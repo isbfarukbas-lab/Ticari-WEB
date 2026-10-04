@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    background-color: #FBFBFC;
+    color: #0A0A0B;
+  }
+  h1, h2, h3, h4, .font-display {
+    font-family: 'Space Grotesk', 'Plus Jakarta Sans', sans-serif;
+  }
+}
+
+/* Subtle Halftone / Dot-Matrix Print Texture matching Image 1 */
+.halftone-texture {
+  background-image: radial-gradient(rgba(10, 10, 11, 0.12) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+.subtle-grid {
+  background-image: linear-gradient(to right, rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Minimalist scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F1F3F5;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #0A0A0B;
+}
+
+/* Pill button styles like Image 1 */
+.btn-pill-black {
+  background-color: #0A0A0B;
+  color: #FFFFFF;
+  border-radius: 9999px;
+  padding: 0.65rem 1.4rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-pill-black:hover {
+  background-color: #262626;
+  transform: translateY(-1px);
+}
+
+.btn-pill-outline {
+  background-color: transparent;
+  color: #0A0A0B;
+  border: 1px solid #0A0A0B;
+  border-radius: 9999px;
+  padding: 0.65rem 1.4rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-pill-outline:hover {
+  background-color: #F1F3F5;
+}

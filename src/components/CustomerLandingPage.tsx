@@ -21,12 +21,14 @@ import { BeforeAfterProject } from '../types';
 interface CustomerLandingPageProps {
   onStartConfiguring: () => void;
   onOpenInspection: () => void;
+  onNavigateStore?: () => void;
   projects?: BeforeAfterProject[];
 }
 
 export const CustomerLandingPage: React.FC<CustomerLandingPageProps> = ({
   onStartConfiguring,
   onOpenInspection,
+  onNavigateStore,
   projects,
 }) => {
   return (
@@ -54,18 +56,69 @@ export const CustomerLandingPage: React.FC<CustomerLandingPageProps> = ({
 
           {/* Subtitle */}
           <p className="mt-6 text-base sm:text-lg text-[#4B5563] max-w-2xl mx-auto font-normal leading-relaxed">
-            RestoLab doğrudan üretici ana bayi tedarikiyle çalışır. Aracı komisyonu olmadan, sözleşmeli sabit bütçe ve mimari teslim onayıyla evinizi anahtar teslim yenileriz.
+            RestoLab doğrudan üretici ana bayi tedarikiyle çalışır. Aracı komisyonu olmadan, sözleşmeli sabit bütçe ve mimari teslim onayıyla ister evinizi anahtar teslim yenileriz, ister tasarım malzemelerimizi kapınıza sevk ederiz.
           </p>
 
-          {/* Focused Action */}
-          <div className="mt-10 flex items-center justify-center">
-            <button
+          {/* 2 Clear Primary Paths / Service Gateways */}
+          <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 max-w-4xl mx-auto text-left">
+            
+            {/* Kapı 1: Anahtar Teslim Tadilat & Mimarlık */}
+            <div 
               onClick={onStartConfiguring}
-              className="btn-pill-black text-sm px-8 py-4 shadow-xl shadow-black/15 hover:scale-[1.02] active:scale-[0.98] transition"
+              className="p-7 sm:p-8 rounded-3xl bg-[#0A0A0B] text-white cursor-pointer hover:scale-[1.015] active:scale-[0.99] transition-all shadow-xl relative overflow-hidden group border border-white/10 flex flex-col justify-between"
             >
-              <span>Tadilatını Hesapla</span>
-              <ArrowUpRight className="w-4 h-4" />
-            </button>
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-white text-[11px] font-bold">
+                    <span>🏡 Hizmet & Mimarlık</span>
+                  </span>
+                  <div className="w-8 h-8 rounded-full bg-white/10 group-hover:bg-white group-hover:text-black flex items-center justify-center transition">
+                    <ArrowUpRight className="w-4 h-4" />
+                  </div>
+                </div>
+                <h3 className="text-2xl font-display font-black text-white tracking-tight">
+                  Anahtar Teslim Tadilat
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-300 mt-2.5 leading-relaxed font-normal">
+                  Evinizi mimarımız ve usta kadromuz yönetsin. Malzeme + Usta + Sabit Bütçe tek kurumsal sözleşmeyle.
+                </p>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between text-xs font-bold text-emerald-400">
+                <span>Tadilat Bütçeni Hesapla</span>
+                <span>Ücretsiz Lazer Keşif →</span>
+              </div>
+            </div>
+
+            {/* Kapı 2: Mimari Malzeme & Tasarım Mağazası */}
+            <div 
+              onClick={onNavigateStore}
+              className="p-7 sm:p-8 rounded-3xl bg-white text-[#0A0A0B] cursor-pointer hover:scale-[1.015] active:scale-[0.99] transition-all shadow-lg relative overflow-hidden group border border-[#E8EAED] hover:border-[#0A0A0B] flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-[11px] font-bold">
+                    <Sparkles className="w-3 h-3 text-amber-600" />
+                    <span>📦 Doğrudan Malzeme Satışı</span>
+                  </span>
+                  <div className="w-8 h-8 rounded-full bg-slate-100 group-hover:bg-[#0A0A0B] group-hover:text-white flex items-center justify-center transition">
+                    <ArrowUpRight className="w-4 h-4" />
+                  </div>
+                </div>
+                <h3 className="text-2xl font-display font-black text-[#0A0A0B] tracking-tight">
+                  Mimari Ürün Mağazası
+                </h3>
+                <p className="text-xs sm:text-sm text-[#64748B] mt-2.5 leading-relaxed font-normal">
+                  Usta aramıyorum, sadece 1. sınıf toptan bayi malzemelerimizi (Akustik panel, çıta, boya, batarya) kargoyla satın al.
+                </p>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-[#E8EAED] flex items-center justify-between text-xs font-bold text-[#0A0A0B]">
+                <span>Ürünleri İncele & Sipariş Ver</span>
+                <span>Tüm Türkiye'ye Kargo →</span>
+              </div>
+            </div>
+
           </div>
 
           {/* 4 Pillars of Guarantee Strip */}

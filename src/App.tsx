@@ -42,11 +42,31 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('hashchange', handleHash);
   }, []);
 
-  // Products state with localStorage persistence
+  // Products state with localStorage persistence & auto-sync with initial catalog
   const [products, setProducts] = useState<Product[]>(() => {
     try {
-      const saved = localStorage.getItem('restolab_products_v5');
-      if (saved) return JSON.parse(saved);
+      const saved = localStorage.getItem('restolab_products_v6');
+      if (saved) {
+        const parsed: Product[] = JSON.parse(saved);
+        const parsedMap = new Map(parsed.map((p) => [p.id, p]));
+        
+        // Merge initial products: retain customizations but guarantee new products and store flags
+        const merged = INITIAL_PRODUCTS.map((initProd) => {
+          const existing = parsedMap.get(initProd.id);
+          if (!existing) return initProd;
+          return {
+            ...initProd,
+            ...existing,
+            isStoreProduct: existing.isStoreProduct ?? initProd.isStoreProduct,
+            specs: existing.specs && existing.specs.length > 0 ? existing.specs : initProd.specs,
+          };
+        });
+
+        // Also preserve any custom products created via Admin Portal
+        const initialIds = new Set(INITIAL_PRODUCTS.map((p) => p.id));
+        const customProds = parsed.filter((p) => !initialIds.has(p.id));
+        return [...merged, ...customProds];
+      }
     } catch (e) {
       console.error(e);
     }
@@ -55,7 +75,7 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     try {
-      localStorage.setItem('restolab_products_v5', JSON.stringify(products));
+      localStorage.setItem('restolab_products_v6', JSON.stringify(products));
     } catch (e) {
       console.error(e);
     }
@@ -271,6 +291,7 @@ export const App: React.FC = () => {
 
   const handleResetDefaults = () => {
     setProducts(INITIAL_PRODUCTS);
+    localStorage.removeItem('restolab_products_v6');
     localStorage.removeItem('restolab_products_v5');
   };
 
@@ -373,6 +394,7 @@ export const App: React.FC = () => {
           <CustomerLandingPage
             onStartConfiguring={navigateToConfigurator}
             onOpenInspection={() => setIsInspectionOpen(true)}
+            onNavigateStore={navigateToStore}
             projects={settings.beforeAfterProjects}
           />
         ) : currentView === 'store' ? (
@@ -430,6 +452,7 @@ export const App: React.FC = () => {
               defaultSqM={defaultSqM}
               setDefaultSqM={setDefaultSqM}
               phoneNumber={settings.phoneNumber}
+              onNavigateStore={navigateToStore}
             />
           </div>
         )}

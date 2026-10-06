@@ -53,48 +53,45 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
             <span className="text-xs font-bold text-[#0A0A0B] -mt-2">®</span>
           </button>
 
-          {/* Navigation based on current view */}
-          <nav className="hidden lg:flex items-center gap-5 text-xs font-semibold text-[#4B5563] whitespace-nowrap">
+          {/* Two distinct, crystal-clear pillars */}
+          <nav className="hidden lg:flex items-center gap-2.5 text-xs whitespace-nowrap">
             <button
               onClick={onNavigateLanding}
-              className={`hover:text-[#0A0A0B] transition ${currentView === 'landing' ? 'text-[#0A0A0B] font-bold' : ''}`}
+              className={`px-3 py-1.5 rounded-full transition font-medium ${
+                currentView === 'landing' 
+                  ? 'bg-[#0A0A0B] text-white font-bold shadow-sm' 
+                  : 'text-[#4B5563] hover:text-[#0A0A0B] hover:bg-slate-100'
+              }`}
             >
               Ana Sayfa
             </button>
 
-            {currentView === 'landing' && (
-              <>
-                <a href="#neden-uygunuz" className="hover:text-[#0A0A0B] transition">
-                  Neden Uygunuz?
-                </a>
-                <a href="#vitrin" className="hover:text-[#0A0A0B] transition">
-                  Uygulama Vitrini
-                </a>
-              </>
-            )}
-
             <button
-              onClick={onNavigateStore}
-              className={`hover:text-[#0A0A0B] transition flex items-center gap-1.5 px-3 py-1 rounded-full ${
-                currentView === 'store' 
-                  ? 'bg-[#0A0A0B] text-white font-bold shadow-sm' 
+              onClick={onNavigateConfigurator}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full transition font-semibold ${
+                currentView === 'configurator'
+                  ? 'bg-[#0A0A0B] text-white font-bold shadow-sm'
                   : 'text-[#0A0A0B] bg-slate-100 hover:bg-slate-200'
               }`}
             >
-              <Sparkles className="w-3 h-3 text-amber-500" />
-              <span>Ürünlerimiz (Mağaza)</span>
+              <span className="text-sm">🏡</span>
+              <span>Anahtar Teslim Tadilat</span>
             </button>
 
-            {currentView !== 'configurator' && (
-              <button
-                onClick={onNavigateConfigurator}
-                className="hover:text-[#0A0A0B] transition text-[#64748B]"
-              >
-                Fiyat Hesaplama
-              </button>
-            )}
+            <button
+              onClick={onNavigateStore}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full transition font-semibold ${
+                currentView === 'store' 
+                  ? 'bg-[#0A0A0B] text-white font-bold shadow-sm' 
+                  : 'text-[#0A0A0B] bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-200/60'
+              }`}
+            >
+              <span className="text-sm">📦</span>
+              <span>Malzeme Mağazası</span>
+            </button>
           </nav>
 
+          {/* Mobile view quick switcher */}
           {currentView !== 'landing' && (
             <button
               onClick={onNavigateLanding}

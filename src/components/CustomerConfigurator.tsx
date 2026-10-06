@@ -49,6 +49,7 @@ interface CustomerConfiguratorProps {
   setSelectedCity?: (city: string) => void;
   selectedDistrict?: string;
   setSelectedDistrict?: (district: string) => void;
+  onNavigateStore?: () => void;
 }
 
 export const TURKEY_SERVICE_AREAS = [
@@ -111,6 +112,7 @@ export const CustomerConfigurator: React.FC<CustomerConfiguratorProps> = ({
   setSelectedCity,
   selectedDistrict = 'Kadıköy',
   setSelectedDistrict,
+  onNavigateStore,
 }) => {
   // Wizard Sequential Step State (1: Kapsam, 2: Malzeme/İşçilik, 3: Özel İstek, 4: Özet/Keşif)
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -620,6 +622,28 @@ export const CustomerConfigurator: React.FC<CustomerConfiguratorProps> = ({
         <div className="fixed top-24 right-6 z-50 bg-[#0A0A0B] text-white px-5 py-3 rounded-full text-xs font-bold shadow-2xl flex items-center gap-2.5 animate-bounce border border-white/20">
           <Check className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{transitionToast}</span>
+        </div>
+      )}
+
+      {/* Quick Bridge to Material Store */}
+      {onNavigateStore && currentStep === 1 && (
+        <div className="mb-6 p-3.5 sm:p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 text-sm shadow-sm">
+              📦
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-amber-950">Usta İstemiyor, Sadece Malzeme mi Almak İstiyorsunuz?</h4>
+              <p className="text-[11px] text-amber-800 mt-0.5">Akustik panel, çıta, boya ve batarya modellerimizi toptan bayi fiyatıyla kargo ile doğrudan satın alabilirsiniz.</p>
+            </div>
+          </div>
+          <button
+            onClick={onNavigateStore}
+            className="btn-pill-black text-[11px] py-1.5 px-3.5 whitespace-nowrap shrink-0"
+          >
+            <span>Ürün Mağazasına Git</span>
+            <ArrowRight className="w-3 h-3" />
+          </button>
         </div>
       )}
 

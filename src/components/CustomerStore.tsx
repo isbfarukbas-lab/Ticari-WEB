@@ -161,6 +161,28 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
             RestoLab ana bayisi olduğu 1. sınıf boya, derzli parke, İtalyan seramik ve atölyemizde üretilen akustik ahşap TV panellerini doğrudan satın alabilirsiniz. İster sadece malzemeyi kargoyla alın, ister uzman montaj hizmetimizi ekleyin.
           </p>
 
+          {/* Quick Bridge to Turnkey Renovation */}
+          {onNavigateConfigurator && (
+            <div className="mt-8 max-w-2xl mx-auto p-3.5 sm:p-4 rounded-2xl bg-slate-50 border border-slate-200/90 flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-[#0A0A0B] text-white flex items-center justify-center shrink-0 text-base shadow-sm">
+                  🏡
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-[#0A0A0B]">Evinizi Komple Yenilemek mi İstiyorsunuz?</h4>
+                  <p className="text-[11px] text-[#64748B] mt-0.5">Mimar yönetiminde anahtar teslim tadilat bütçenizi 3 dakikada hesaplayabilirsiniz.</p>
+                </div>
+              </div>
+              <button
+                onClick={onNavigateConfigurator}
+                className="btn-pill-black text-[11px] py-2 px-4 whitespace-nowrap shrink-0"
+              >
+                <span>Tadilat Sihirbazına Git</span>
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
           {/* 3 Pillars of Store Strip */}
           <div className="mt-12 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 max-w-4xl mx-auto text-left">
             <div className="p-4 rounded-2xl bg-[#F8F9FA] border border-[#E8EAED]">

@@ -9,7 +9,8 @@ import {
   ShieldCheck, 
   TrendingDown,
   Camera,
-  FileText
+  FileText,
+  Truck
 } from 'lucide-react';
 import { CartItem } from '../types';
 
@@ -60,6 +61,12 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
 
   const grandTotal = totalMaterial + totalLabor;
 
+  // Distinguish between pure material orders vs renovation service
+  const hasRenovationItems = cart.some((item) => 
+    item.isCustom || (item.product && item.purchaseType !== 'material_only')
+  );
+  const isMaterialOnlyCart = cart.length > 0 && !hasRenovationItems;
+
   // Estimated market price total for comparison
   const marketTotal = cart.reduce((sum, item) => {
     if (item.isCustom || !item.product) return sum;
@@ -76,13 +83,19 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
   const handleWhatsApp = () => {
     if (cart.length === 0) return;
 
-    let msg = `*RESTOLAB® — Online Tadilat & Ürün Sepeti Talebi*\n\n`;
+    let msg = isMaterialOnlyCart
+      ? `*RESTOLAB® — Online Malzeme Sipariş Talebi (Kargo Teslim)*\n\n`
+      : `*RESTOLAB® — Online Tadilat & Keşif Talebi*\n\n`;
 
-    if (selectedCity && selectedDistrict) {
-      msg += `📍 *Hizmet Lokasyonu:* ${selectedCity} / ${selectedDistrict}\n`;
-    }
-    if (estimatedDays) {
-      msg += `⏱️ *Tahmini Teslimat Süresi:* ${estimatedDays.min} - ${estimatedDays.max} İş Günü\n`;
+    if (isMaterialOnlyCart) {
+      msg += `🚚 *Teslimat Şekli:* Tüm Türkiye'ye Kapıya Teslim Kargo / Ambar Sevk\n`;
+    } else {
+      if (selectedCity && selectedDistrict) {
+        msg += `📍 *Hizmet Lokasyonu:* ${selectedCity} / ${selectedDistrict}\n`;
+      }
+      if (estimatedDays) {
+        msg += `⏱️ *Tahmini Teslimat Süresi:* ${estimatedDays.min} - ${estimatedDays.max} İş Günü\n`;
+      }
     }
     msg += `\n`;
     
@@ -144,8 +157,13 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
       msg += `📉 *Piyasa Tasarrufunuz:* -${totalSavings.toLocaleString('tr-TR')} ₺ (Toptan Bayi Avantajı)\n`;
     }
     msg += `✓ *${kdvNotice || 'KDV dahil net tutardır.'}*\n`;
-    msg += `🛡️ *Tek Kurumsal Muhatap & Sözleşmeli Sabit Bütçe*\n\n`;
-    msg += `Bu sepet ve talebim hakkında detayları görüşmek istiyorum.`;
+    
+    if (isMaterialOnlyCart) {
+      msg += `📦 *Kargo teslimat ve fatura bilgilerimi ileterek siparişimi tamamlamak istiyorum.*`;
+    } else {
+      msg += `🛡️ *Tek Kurumsal Muhatap & Sözleşmeli Sabit Bütçe*\n\n`;
+      msg += `Bu sepet ve tadilat talebim hakkında mimarınızla görüşmek istiyorum.`;
+    }
 
     const encoded = encodeURIComponent(msg);
     window.open(`https://wa.me/${phoneNumber}?text=${encoded}`, '_blank');
@@ -166,10 +184,14 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
           <div className="p-6 border-b border-[#E8EAED] flex items-center justify-between bg-white">
             <div>
               <h2 className="text-xl font-display font-extrabold text-[#0A0A0B]">
-                Tadilat Sepetim
+                {isMaterialOnlyCart ? '📦 Malzeme Sepetim' : '🏡 Tadilat Sepetim'}
               </h2>
               <p className="text-xs text-[#64748B] mt-0.5">
-                {cart.length > 0 ? `${cart.length} Kalem Eklendi • Piyasadan Uygun` : 'Sepetiniz henüz boş'}
+                {cart.length > 0 
+                  ? isMaterialOnlyCart 
+                    ? `${cart.length} Kalem • Kargo ile Kapıya Teslim (Usta Hariç)`
+                    : `${cart.length} Kalem • Malzeme + Uzman İşçilik Dahil`
+                  : 'Sepetiniz henüz boş'}
               </p>
             </div>
 
@@ -382,35 +404,71 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
                 </div>
               </div>
 
-              {/* Hakediş Güvencesi Rozeti */}
-              <div className="p-3 rounded-2xl bg-[#F8F9FA] border border-[#E8EAED] text-[11px] text-[#4B5563] flex items-start gap-2">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                <span>
-                  <strong>Hakediş Güvencesi:</strong> Ödemenin tamamı baştan alınmaz. Malzeme sahaya indiğinde ve Mimari Teslim Onayınızdan sonra bakiye tamamlanır.
-                </span>
-              </div>
+              {/* Info Badge (Different for Material vs Renovation) */}
+              {isMaterialOnlyCart ? (
+                <div className="p-3 rounded-2xl bg-blue-50 border border-blue-200 text-[11px] text-blue-900 flex items-start gap-2">
+                  <Truck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Kargo & Ambar Sevkiyatı:</strong> Seçtiğiniz ürünler faturalı ve orijinal garantili olarak kapınıza sevk edilir. Usta montajı dahil değildir.
+                  </span>
+                </div>
+              ) : (
+                <div className="p-3 rounded-2xl bg-[#F8F9FA] border border-[#E8EAED] text-[11px] text-[#4B5563] flex items-start gap-2">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Hakediş Güvencesi:</strong> Ödemenin tamamı baştan alınmaz. Malzeme sahaya indiğinde ve Mimari Teslim Onayınızdan sonra bakiye tamamlanır.
+                  </span>
+                </div>
+              )}
 
               {/* Actions */}
               <div className="space-y-2 pt-1">
-                <button
-                  onClick={handleWhatsApp}
-                  className="w-full btn-pill-black justify-center py-3.5 text-xs shadow-md"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>WhatsApp ile Teklifi İlet & Görüş</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                </button>
+                {isMaterialOnlyCart ? (
+                  <>
+                    <button
+                      onClick={handleWhatsApp}
+                      className="w-full btn-pill-black justify-center py-3.5 text-xs shadow-md"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>WhatsApp ile Sipariş Ver (Kargo Adresi İlet)</span>
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                    </button>
 
-                <button
-                  onClick={() => {
-                    onClose();
-                    onOpenInspection();
-                  }}
-                  className="w-full btn-pill-outline justify-center py-3 text-xs"
-                >
-                  <Calendar className="w-3.5 h-3.5" />
-                  <span>Ücretsiz Keşif Randevusu Al</span>
-                </button>
+                    <button
+                      onClick={() => {
+                        onClose();
+                        onOpenInspection();
+                      }}
+                      className="w-full btn-pill-outline justify-center py-2.5 text-xs text-[#4B5563]"
+                    >
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>Bu Ürünler İçin Usta Keşfi de İste</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => {
+                        onClose();
+                        onOpenInspection();
+                      }}
+                      className="w-full btn-pill-black justify-center py-3.5 text-xs shadow-md"
+                    >
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>Ücretsiz Mimari Keşif Randevusu Al</span>
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      onClick={handleWhatsApp}
+                      className="w-full btn-pill-outline justify-center py-3 text-xs"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>WhatsApp ile Teklifi İlet & Mimar İle Görüş</span>
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                    </button>
+                  </>
+                )}
 
                 <button
                   onClick={() => {

@@ -45,6 +45,12 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
   const [addedToast, setAddedToast] = useState<string | null>(null);
   const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
+  const [cardPurchaseTypes, setCardPurchaseTypes] = useState<Record<string, 'material_only' | 'with_installation'>>({});
+
+  const getPurchaseType = (id: string) => cardPurchaseTypes[id] || 'material_only';
+  const setPurchaseType = (id: string, type: 'material_only' | 'with_installation') => {
+    setCardPurchaseTypes((prev) => ({ ...prev, [id]: type }));
+  };
 
   // Filter store products (products marked as isStoreProduct, or fallback to active items)
   const hasStoreProducts = products.some((p) => p.isStoreProduct && p.isActive !== false);
@@ -300,22 +306,29 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
           {filteredProducts.map((product) => {
             const qty = getQty(product.id);
+            const purchaseType = getPurchaseType(product.id);
+            const isInstalled = purchaseType === 'with_installation';
+            
+            // Selected price calculation based on toggle
+            const unitPrice = isInstalled 
+              ? (product.materialPrice + product.workmanshipPrice) 
+              : product.materialPrice;
+            const lineTotal = unitPrice * qty;
+
             const materialTotal = product.materialPrice * qty;
-            const installedTotal = (product.materialPrice + product.workmanshipPrice) * qty;
             const marketTotal = (product.marketPrice || Math.round(product.materialPrice * 1.4)) * qty;
             const savings = Math.max(0, marketTotal - materialTotal);
 
             return (
               <div
                 key={product.id}
-                className="group rounded-3xl bg-white border border-[#E8EAED] hover:border-black/30 transition-all duration-300 overflow-hidden flex flex-col shadow-sm hover:shadow-xl"
+                className="group rounded-2xl bg-white border border-[#E8EAED] hover:border-black/30 transition-all duration-300 overflow-hidden flex flex-col shadow-sm hover:shadow-lg"
               >
-                
-                {/* Product Image Area */}
-                <div className="relative h-64 sm:h-72 overflow-hidden bg-slate-100">
+                {/* Product Image Area - Compact aspect-[4/3] */}
+                <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100">
                   <img
                     src={product.image}
                     alt={product.name}
@@ -323,21 +336,21 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                   />
 
                   {/* Top Badges */}
-                  <div className="absolute top-3.5 left-3.5 flex flex-col gap-1.5 items-start">
-                    <span className="bg-[#0A0A0B]/90 backdrop-blur-md text-white text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow">
+                  <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 items-start">
+                    <span className="bg-[#0A0A0B]/90 backdrop-blur-md text-white text-[9px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow">
                       {product.brand}
                     </span>
                     {product.inStock !== false && (
-                      <span className="bg-emerald-600/90 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow flex items-center gap-1">
-                        ✓ Stokta Var
+                      <span className="bg-emerald-600/90 backdrop-blur-md text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow flex items-center gap-1">
+                        ✓ Stokta
                       </span>
                     )}
                   </div>
 
                   {/* Wholesale Discount Badge */}
                   {savings > 0 && (
-                    <div className="absolute top-3.5 right-3.5 bg-emerald-500 text-black text-[10px] font-black px-2.5 py-1 rounded-full shadow-md">
-                      Toptan Bayi Fiyatı
+                    <div className="absolute top-2.5 right-2.5 bg-emerald-500 text-black text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm">
+                      Bayi Fiyatı
                     </div>
                   )}
 
@@ -345,113 +358,125 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                   <button
                     type="button"
                     onClick={() => setPreviewProduct(product)}
-                    className="absolute bottom-3 right-3 bg-white/90 hover:bg-white text-[#0A0A0B] p-2 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute bottom-2.5 right-2.5 bg-white/90 hover:bg-white text-[#0A0A0B] p-1.5 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
                     title="Detaylı İncele"
                   >
-                    <Eye className="w-4 h-4" />
+                    <Eye className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
                 {/* Content Area */}
-                <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
+                <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
                   
                   <div>
-                    <div className="flex items-center justify-between text-[11px] text-[#64748B] mb-1">
-                      <span className="font-mono">Kod: {product.code}</span>
-                      <span className="font-semibold text-slate-500">Birim: {product.unit}</span>
+                    <div className="flex items-center justify-between text-[10px] text-[#64748B] mb-1">
+                      <span className="font-mono">{product.code}</span>
+                      <span className="font-semibold text-slate-500">{product.unit}</span>
                     </div>
 
-                    <h3 className="text-base font-bold text-[#0A0A0B] group-hover:text-black leading-snug">
+                    <h3 className="text-xs sm:text-sm font-bold text-[#0A0A0B] group-hover:text-black line-clamp-1 leading-snug" title={product.name}>
                       {product.name}
                     </h3>
 
-                    <p className="text-xs text-[#64748B] mt-2 line-clamp-2 leading-relaxed">
+                    <p className="text-[11px] text-[#64748B] mt-1 line-clamp-2 leading-relaxed">
                       {product.description}
                     </p>
-
-                    {/* Bullet Specs */}
-                    {product.specs && product.specs.length > 0 && (
-                      <div className="mt-3 space-y-1">
-                        {product.specs.slice(0, 3).map((spec, sIdx) => (
-                          <div key={sIdx} className="text-[11px] text-slate-600 flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                            <span>{spec}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
 
-                  {/* Pricing Box */}
-                  <div className="pt-4 border-t border-[#E8EAED]">
+                  {/* Pricing & Purchase Mode Section */}
+                  <div className="pt-2.5 border-t border-[#F1F3F5] space-y-2.5">
                     
-                    <div className="flex items-end justify-between mb-3">
+                    {/* Toggle: Sadece Malzeme vs + Montaj Dahil */}
+                    {product.workmanshipPrice > 0 ? (
+                      <div className="grid grid-cols-2 p-0.5 bg-[#F1F3F5] rounded-xl text-[10px] font-semibold">
+                        <button
+                          type="button"
+                          onClick={() => setPurchaseType(product.id, 'material_only')}
+                          className={`py-1 rounded-lg transition text-center ${
+                            !isInstalled
+                              ? 'bg-white text-[#0A0A0B] shadow-sm font-bold'
+                              : 'text-[#64748B] hover:text-[#0A0A0B]'
+                          }`}
+                        >
+                          Sadece Ürün
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPurchaseType(product.id, 'with_installation')}
+                          className={`py-1 rounded-lg transition text-center flex items-center justify-center gap-1 ${
+                            isInstalled
+                              ? 'bg-[#0A0A0B] text-white shadow-sm font-bold'
+                              : 'text-[#64748B] hover:text-[#0A0A0B]'
+                          }`}
+                          title={`Usta Montajı: +${(product.workmanshipPrice * qty).toLocaleString('tr-TR')} ₺`}
+                        >
+                          + Montaj Dahil
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="text-[10px] text-slate-500 font-medium py-0.5">
+                        📦 Kargo ile Kapıya Teslim
+                      </div>
+                    )}
+
+                    {/* Price and Qty */}
+                    <div className="flex items-end justify-between">
                       <div>
-                        <span className="text-[10px] text-[#64748B] block font-medium">Toptan Bayi Fiyatı:</span>
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-xl sm:text-2xl font-black font-mono text-[#0A0A0B]">
-                            {materialTotal.toLocaleString('tr-TR')} ₺
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-lg sm:text-xl font-black font-mono text-[#0A0A0B]">
+                            {lineTotal.toLocaleString('tr-TR')} ₺
                           </span>
-                          <span className="text-[11px] text-slate-400 font-mono line-through">
-                            {marketTotal.toLocaleString('tr-TR')} ₺
-                          </span>
+                          {!isInstalled && marketTotal > materialTotal && (
+                            <span className="text-[10px] text-slate-400 font-mono line-through">
+                              {marketTotal.toLocaleString('tr-TR')} ₺
+                            </span>
+                          )}
                         </div>
+                        <span className="text-[9px] text-[#64748B] block">
+                          {isInstalled ? 'Malzeme + Uzman Montaj' : 'Toptan Bayi Satışı'}
+                        </span>
                       </div>
 
                       {/* Quantity Selector */}
-                      <div className="flex items-center border border-[#D1D5DB] rounded-full bg-white px-2 py-1">
+                      <div className="flex items-center border border-[#D1D5DB] rounded-full bg-white px-1.5 py-0.5">
                         <button
                           type="button"
                           onClick={() => setQty(product.id, qty - 1)}
-                          className="w-6 h-6 rounded-full hover:bg-slate-100 flex items-center justify-center font-bold text-xs"
+                          className="w-5 h-5 rounded-full hover:bg-slate-100 flex items-center justify-center font-bold text-xs"
                         >
                           -
                         </button>
-                        <span className="w-8 text-center text-xs font-bold font-mono">
+                        <span className="w-6 text-center text-xs font-bold font-mono">
                           {qty}
                         </span>
                         <button
                           type="button"
                           onClick={() => setQty(product.id, qty + 1)}
-                          className="w-6 h-6 rounded-full hover:bg-slate-100 flex items-center justify-center font-bold text-xs"
+                          className="w-5 h-5 rounded-full hover:bg-slate-100 flex items-center justify-center font-bold text-xs"
                         >
                           +
                         </button>
                       </div>
                     </div>
 
-                    {/* Dual Action Buttons */}
-                    <div className="space-y-2">
-                      {/* Option 1: Sadece Malzemeyi Satın Al */}
+                    {/* Action Buttons: Single Sleek Add to Cart + Quick WhatsApp icon */}
+                    <div className="flex items-center gap-1.5 pt-0.5">
                       <button
                         type="button"
-                        onClick={() => handleAddProduct(product, 'material_only')}
-                        className="w-full btn-pill-black bg-[#0A0A0B] text-white hover:bg-slate-800 text-xs py-2.5 justify-center flex items-center gap-2 shadow-sm"
+                        onClick={() => handleAddProduct(product, purchaseType)}
+                        className="flex-1 btn-pill-black bg-[#0A0A0B] text-white hover:bg-slate-800 text-[11px] py-2 px-3 justify-center flex items-center gap-1.5 shadow-sm"
                       >
                         <ShoppingBag className="w-3.5 h-3.5" />
-                        <span>Sadece Ürünü Sepete Ekle</span>
+                        <span>Sepete Ekle</span>
                       </button>
 
-                      {/* Option 2: Usta Montajı Dahil Ekle */}
-                      {product.workmanshipPrice > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => handleAddProduct(product, 'with_installation')}
-                          className="w-full btn-pill-outline hover:border-black text-[11px] py-2 justify-center flex items-center gap-1.5 text-slate-700"
-                        >
-                          <Wrench className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>Usta Montajı Dahil Ekle (+{(product.workmanshipPrice * qty).toLocaleString('tr-TR')} ₺)</span>
-                        </button>
-                      )}
-
-                      {/* Option 3: Hızlı WhatsApp Siparişi */}
                       <button
                         type="button"
                         onClick={() => handleFastWhatsAppOrder(product)}
-                        className="w-full text-center text-[10px] text-emerald-700 hover:text-emerald-800 font-bold transition flex items-center justify-center gap-1 py-1"
+                        className="w-8 h-8 rounded-full border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 transition"
+                        title="WhatsApp ile Hızlı Sipariş Ver"
                       >
-                        <Send className="w-3 h-3" />
-                        <span>WhatsApp ile Anında Sipariş Ver</span>
+                        <Send className="w-3.5 h-3.5" />
                       </button>
                     </div>
 

@@ -1,11 +1,13 @@
 import React from 'react';
 import { ArrowUpRight, Phone, MapPin, Sparkles } from 'lucide-react';
 import { SiteSettings } from '../types';
+import { LegalTabKey } from './CustomerLegalModal';
 
 interface CustomerFooterProps {
   onNavigateAdmin: () => void;
   onNavigateStore?: () => void;
   onNavigateConfigurator?: () => void;
+  onOpenLegal?: (tab: LegalTabKey) => void;
   settings?: SiteSettings;
 }
 
@@ -13,6 +15,7 @@ export const CustomerFooter: React.FC<CustomerFooterProps> = ({
   onNavigateAdmin,
   onNavigateStore,
   onNavigateConfigurator,
+  onOpenLegal,
   settings,
 }) => {
   return (
@@ -73,6 +76,39 @@ export const CustomerFooter: React.FC<CustomerFooterProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Legal and Compliance Links (Sanal POS & ETBİS Zorunlu Linkleri) */}
+        {onOpenLegal && (
+          <div className="py-4 border-b border-[#E8EAED] flex items-center justify-center sm:justify-start gap-3 sm:gap-6 flex-wrap text-[11px] text-[#64748B]">
+            <button
+              onClick={() => onOpenLegal('sozlesme')}
+              className="hover:text-[#0A0A0B] hover:underline transition"
+            >
+              Mesafeli Satış Sözleşmesi
+            </button>
+            <span>•</span>
+            <button
+              onClick={() => onOpenLegal('onbilgi')}
+              className="hover:text-[#0A0A0B] hover:underline transition"
+            >
+              Ön Bilgilendirme Formu
+            </button>
+            <span>•</span>
+            <button
+              onClick={() => onOpenLegal('kvkk')}
+              className="hover:text-[#0A0A0B] hover:underline transition"
+            >
+              KVKK & Gizlilik Politikası
+            </button>
+            <span>•</span>
+            <button
+              onClick={() => onOpenLegal('iade')}
+              className="hover:text-[#0A0A0B] hover:underline transition"
+            >
+              İptal ve İade Koşulları
+            </button>
+          </div>
+        )}
 
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-[#94A3B8]">
           <p>© {new Date().getFullYear()} {settings?.companyName || 'RestoLab Mimarlık & Yapı Sistemleri'}. Tüm hakları saklıdır.</p>

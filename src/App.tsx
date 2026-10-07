@@ -9,6 +9,7 @@ import { CustomerProformaModal } from './components/CustomerProformaModal';
 import { CustomerCallbackModal } from './components/CustomerCallbackModal';
 import { CustomerTrustSection } from './components/CustomerTrustSection';
 import { CustomerFooter } from './components/CustomerFooter';
+import { CustomerLegalModal, LegalTabKey } from './components/CustomerLegalModal';
 import { AdminPortal } from './components/AdminPortal';
 
 import { CATEGORIES, INITIAL_PRODUCTS } from './data/initialProducts';
@@ -190,6 +191,7 @@ export const App: React.FC = () => {
   const [isInspectionOpen, setIsInspectionOpen] = useState(false);
   const [isProformaOpen, setIsProformaOpen] = useState(false);
   const [isCallbackOpen, setIsCallbackOpen] = useState(false);
+  const [legalModalTab, setLegalModalTab] = useState<LegalTabKey | null>(null);
   const [selectedCity, setSelectedCity] = useState('İstanbul');
   const [selectedDistrict, setSelectedDistrict] = useState('Kadıköy');
 
@@ -466,6 +468,7 @@ export const App: React.FC = () => {
         onNavigateAdmin={navigateToAdmin}
         onNavigateStore={navigateToStore}
         onNavigateConfigurator={navigateToConfigurator}
+        onOpenLegal={(tab) => setLegalModalTab(tab)}
         settings={settings}
       />
 
@@ -516,6 +519,7 @@ export const App: React.FC = () => {
         onClearCart={handleClearCart}
         onOpenInspection={() => setIsInspectionOpen(true)}
         onOpenProforma={() => setIsProformaOpen(true)}
+        onOpenLegal={(tab) => setLegalModalTab(tab)}
         phoneNumber={settings.phoneNumber}
         selectedCity={selectedCity}
         selectedDistrict={selectedDistrict}
@@ -556,6 +560,15 @@ export const App: React.FC = () => {
         onSaveLead={handleSaveLead}
         selectedCity={selectedCity}
         selectedDistrict={selectedDistrict}
+      />
+
+      {/* Legal & Compliance Modal (Sanal POS & ETBİS Zorunluluğu) */}
+      <CustomerLegalModal
+        isOpen={legalModalTab !== null}
+        onClose={() => setLegalModalTab(null)}
+        defaultTab={legalModalTab || 'sozlesme'}
+        companyName={settings.companyName}
+        supportPhone={settings.supportPhone}
       />
 
     </div>

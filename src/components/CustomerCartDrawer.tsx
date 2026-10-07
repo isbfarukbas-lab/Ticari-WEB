@@ -13,6 +13,7 @@ import {
   Truck
 } from 'lucide-react';
 import { CartItem } from '../types';
+import { LegalTabKey } from './CustomerLegalModal';
 
 interface CustomerCartDrawerProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ interface CustomerCartDrawerProps {
   onClearCart: () => void;
   onOpenInspection: () => void;
   onOpenProforma: () => void;
+  onOpenLegal?: (tab: LegalTabKey) => void;
   phoneNumber?: string;
   selectedCity?: string;
   selectedDistrict?: string;
@@ -39,6 +41,7 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
   onClearCart,
   onOpenInspection,
   onOpenProforma,
+  onOpenLegal,
   phoneNumber = '905550000000',
   selectedCity,
   selectedDistrict,
@@ -480,6 +483,28 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
                   <Printer className="w-3.5 h-3.5" />
                   <span>Resmi Proforma Teklifini Yazdır / PDF İndir</span>
                 </button>
+
+                {onOpenLegal && (
+                  <div className="text-[10px] text-[#94A3B8] text-center pt-2 leading-relaxed">
+                    Sipariş veya keşif talebi oluşturarak{' '}
+                    <button
+                      type="button"
+                      onClick={() => onOpenLegal('sozlesme')}
+                      className="underline hover:text-[#0A0A0B] font-medium"
+                    >
+                      Mesafeli Satış Sözleşmesi
+                    </button>
+                    'ni ve{' '}
+                    <button
+                      type="button"
+                      onClick={() => onOpenLegal('kvkk')}
+                      className="underline hover:text-[#0A0A0B] font-medium"
+                    >
+                      KVKK Şartları
+                    </button>
+                    'nı kabul etmiş sayılırsınız.
+                  </div>
+                )}
               </div>
 
             </div>

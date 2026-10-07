@@ -66,14 +66,6 @@ export const CustomerFooter: React.FC<CustomerFooterProps> = ({
                 <ArrowUpRight className="w-3 h-3" />
               </button>
             )}
-
-            <button
-              onClick={onNavigateAdmin}
-              className="text-xs font-semibold text-[#64748B] hover:text-[#0A0A0B] hover:underline flex items-center gap-1"
-            >
-              <span>Yönetici Portalı</span>
-              <ArrowUpRight className="w-3.5 h-3.5" />
-            </button>
           </div>
         </div>
 

@@ -114,7 +114,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
       createdAt: new Date().toISOString(),
     });
 
-    const msg = `*RESTOLAB® — Doğrudan Ürün Siparişi Talebi*\n\n` +
+    const msg = `*RVOBA® — Doğrudan Ürün Siparişi Talebi*\n\n` +
       `📦 *Ürün:* ${product.brand} - ${product.name}\n` +
       `🏷️ *Ürün Kodu:* ${product.code}\n` +
       `🔢 *Adet/Miktar:* ${qty} ${product.unit}\n` +
@@ -246,61 +246,79 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
       </section>
 
       {/* ======================================================== */}
-      {/* 2. FILTER & SEARCH BAR                                   */}
+      {/* 2. STORE TOOLBAR & CATEGORY NAV                          */}
       {/* ======================================================== */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white border border-[#E8EAED] rounded-3xl p-4 sm:p-5 shadow-sm space-y-3">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
+        
+        {/* Top Controls: Search Bar + Product Count */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-3 border-b border-[#E8EAED]">
           
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
-            {/* Categories Pill Nav with clean wrap & clear labels */}
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-              {[
-                { key: 'all', label: 'Tüm Ürünler' },
-                { key: 'ozel', label: '🪵 Ahşap & TV Paneli' },
-                { key: 'boya', label: '🎨 Boya & Astar' },
-                { key: 'parke', label: '📐 Parke & Zemin' },
-                { key: 'mutfak_banyo', label: '🚿 Banyo & Batarya' },
-                { key: 'alci_tavan', label: '🏛️ Duvar Çıtası' },
-                { key: 'elektrik', label: '💡 LED & Elektrik' },
-              ].map((cat) => (
-                <button
-                  key={cat.key}
-                  type="button"
-                  onClick={() => setSelectedCategory(cat.key)}
-                  className={`px-3.5 py-2 rounded-full text-xs font-bold transition whitespace-nowrap flex items-center gap-1.5 ${
-                    selectedCategory === cat.key
-                      ? 'bg-[#0A0A0B] text-white shadow-sm'
-                      : 'bg-[#F8F9FA] text-[#4B5563] border border-[#E8EAED] hover:bg-[#F1F3F5] hover:text-[#0A0A0B]'
-                  }`}
-                >
-                  <span>{cat.label}</span>
-                </button>
-              ))}
-            </div>
-
-            {/* Search Input with quick clear */}
-            <div className="relative w-full lg:w-72 shrink-0">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Ürün adı, kod veya marka ara..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-full pl-9 pr-8 py-2 text-xs text-[#0A0A0B] placeholder:text-slate-400 focus:outline-none focus:border-black"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="w-4 h-4 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold"
-                  title="Aramayı Temizle"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
+          {/* Search Box */}
+          <div className="relative max-w-md w-full">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Ürün adı, marka veya kod ara (örn: Akustik panel, VitrA, Filli Boya)..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white border border-[#D1D5DB] rounded-full pl-9 pr-9 py-2.5 text-xs text-[#0A0A0B] placeholder:text-slate-400 focus:outline-none focus:border-black focus:ring-1 focus:ring-black shadow-xs transition"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="w-5 h-5 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold transition"
+                title="Aramayı Temizle"
+              >
+                ✕
+              </button>
+            )}
           </div>
 
+          {/* Result Count & Quick Reset */}
+          <div className="flex items-center justify-between sm:justify-end gap-3 text-xs text-[#64748B]">
+            <span>
+              Toplam <strong className="text-[#0A0A0B] font-mono">{filteredProducts.length}</strong> ürün listeleniyor
+            </span>
+            {(selectedCategory !== 'all' || searchQuery) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCategory('all');
+                  setSearchQuery('');
+                }}
+                className="text-xs font-semibold text-red-600 hover:underline"
+              >
+                Filtreleri Sıfırla
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Clean Single-Row Category Pills (Smooth horizontal scroll, never broken wrap) */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none whitespace-nowrap -mx-4 px-4 sm:mx-0 sm:px-0">
+          {[
+            { key: 'all', label: 'Tüm Ürünler' },
+            { key: 'ozel', label: '🪵 Ahşap & TV Paneli' },
+            { key: 'boya', label: '🎨 Boya & Astar' },
+            { key: 'parke', label: '📐 Parke & Zemin' },
+            { key: 'mutfak_banyo', label: '🚿 Banyo & Batarya' },
+            { key: 'alci_tavan', label: '🏛️ Duvar Çıtası' },
+            { key: 'elektrik', label: '💡 LED & Elektrik' },
+          ].map((cat) => (
+            <button
+              key={cat.key}
+              type="button"
+              onClick={() => setSelectedCategory(cat.key)}
+              className={`px-4 py-2 rounded-full text-xs font-bold transition shrink-0 flex items-center gap-1.5 ${
+                selectedCategory === cat.key
+                  ? 'bg-[#0A0A0B] text-white shadow-sm'
+                  : 'bg-white text-[#4B5563] border border-[#E8EAED] hover:bg-slate-50 hover:text-[#0A0A0B] hover:border-slate-300'
+              }`}
+            >
+              <span>{cat.label}</span>
+            </button>
+          ))}
         </div>
       </section>
 
@@ -308,21 +326,6 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
       {/* 3. PRODUCT CATALOG GRID                                  */}
       {/* ======================================================== */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        <div className="flex items-center justify-between mb-6">
-          <div className="text-xs text-[#64748B]">
-            Toplam <strong>{filteredProducts.length}</strong> seçkin ürün listeleniyor
-          </div>
-          {onNavigateConfigurator && (
-            <button
-              onClick={onNavigateConfigurator}
-              className="text-xs font-bold text-[#0A0A0B] hover:underline flex items-center gap-1"
-            >
-              <span>Komple Ev Tadilatı Hesaplamak İstiyorum</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
           {filteredProducts.map((product) => {

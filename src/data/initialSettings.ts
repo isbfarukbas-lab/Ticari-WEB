@@ -6,6 +6,7 @@ export const INITIAL_SETTINGS: SiteSettings = {
   companyName: 'RVOBA® Mimarlık ve Yapı Çözümleri A.Ş.',
   coverageNotice: 'İstanbul, Ankara ve İzmir genelinde mimari lazer keşif servisimiz aktiftir.',
   kdvNotice: 'Fiyatlarımız bireysel müşterilerimiz için anahtar teslim KDV dahil net tutardır.',
+  adminPassword: 'rvoba2026',
   laborRates: {
     boya: {
       laborPrice: 105,

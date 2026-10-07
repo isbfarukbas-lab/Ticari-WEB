@@ -11,6 +11,7 @@ import { CustomerTrustSection } from './components/CustomerTrustSection';
 import { CustomerFooter } from './components/CustomerFooter';
 import { CustomerLegalModal, LegalTabKey } from './components/CustomerLegalModal';
 import { AdminPortal } from './components/AdminPortal';
+import { AdminLoginScreen } from './components/AdminLoginScreen';
 
 import { CATEGORIES, INITIAL_PRODUCTS } from './data/initialProducts';
 import { INITIAL_SETTINGS } from './data/initialSettings';
@@ -195,6 +196,38 @@ export const App: React.FC = () => {
   const [selectedCity, setSelectedCity] = useState('İstanbul');
   const [selectedDistrict, setSelectedDistrict] = useState('Kadıköy');
 
+  // Admin authentication state
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('rvoba_admin_auth') === 'true' || localStorage.getItem('rvoba_admin_auth') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleAdminLogin = (rememberMe: boolean) => {
+    setIsAdminAuthenticated(true);
+    try {
+      sessionStorage.setItem('rvoba_admin_auth', 'true');
+      if (rememberMe) {
+        localStorage.setItem('rvoba_admin_auth', 'true');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleAdminLogout = () => {
+    setIsAdminAuthenticated(false);
+    try {
+      sessionStorage.removeItem('rvoba_admin_auth');
+      localStorage.removeItem('rvoba_admin_auth');
+    } catch (e) {
+      console.error(e);
+    }
+    navigateToStore();
+  };
+
   // Cart operations
   const handleAddToCart = (
     product: Product,
@@ -352,6 +385,16 @@ export const App: React.FC = () => {
 
   // If Admin View is active
   if (currentView === 'admin') {
+    if (!isAdminAuthenticated) {
+      return (
+        <AdminLoginScreen
+          correctPassword={settings.adminPassword || 'rvoba2026'}
+          onLoginSuccess={handleAdminLogin}
+          onNavigateHome={navigateToStore}
+        />
+      );
+    }
+
     return (
       <AdminPortal
         categories={CATEGORIES}
@@ -366,7 +409,8 @@ export const App: React.FC = () => {
         onUpdateSettings={handleUpdateSettings}
         onUpdateLeadStatus={handleUpdateLeadStatus}
         onDeleteLead={handleDeleteLead}
-        onNavigateCustomer={navigateToLanding}
+        onNavigateCustomer={navigateToStore}
+        onLogout={handleAdminLogout}
       />
     );
   }

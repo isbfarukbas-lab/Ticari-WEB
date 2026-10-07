@@ -104,6 +104,7 @@ export interface SiteSettings {
   companyName: string;
   coverageNotice: string;
   kdvNotice?: string;        // KDV açıklaması
+  adminPassword?: string;    // Yönetici paneli koruma şifresi
   laborRates: Record<CategoryKey, { laborPrice: number; marketPrice: number; description: string }>;
   durationRules: {
     baseDays: Record<CategoryKey, number>;

@@ -29,7 +29,9 @@ import {
   Check,
   Search,
   ArrowRight,
-  ShoppingBag
+  ShoppingBag,
+  Lock,
+  LogOut
 } from 'lucide-react';
 import { 
   CategoryKey, 
@@ -55,6 +57,7 @@ interface AdminPortalProps {
   onUpdateLeadStatus: (leadId: string, status: LeadRequest['status'], adminNotes?: string) => void;
   onDeleteLead: (leadId: string) => void;
   onNavigateCustomer: () => void;
+  onLogout?: () => void;
 }
 
 const COMMON_BRANDS = [
@@ -83,6 +86,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   onUpdateLeadStatus,
   onDeleteLead,
   onNavigateCustomer,
+  onLogout,
 }) => {
   // Active Admin Module Tab
   const [adminTab, setAdminTab] = useState<
@@ -182,6 +186,27 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [localCompanyName, setLocalCompanyName] = useState(settings.companyName);
   const [localStages, setLocalStages] = useState(settings.paymentStages);
   const [localKdvNotice, setLocalKdvNotice] = useState(settings.kdvNotice || 'Fiyatlarımız bireysel müşterilerimiz için anahtar teslim %20 KDV dahil net tutardır.');
+  const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [confirmAdminPassword, setConfirmAdminPassword] = useState('');
+
+  const handleUpdatePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAdminPassword || newAdminPassword.length < 4) {
+      alert('Şifre en az 4 karakter olmalıdır.');
+      return;
+    }
+    if (newAdminPassword !== confirmAdminPassword) {
+      alert('Girdiğiniz şifreler birbiriyle uyuşmuyor.');
+      return;
+    }
+    onUpdateSettings({
+      ...settings,
+      adminPassword: newAdminPassword.trim(),
+    });
+    setNewAdminPassword('');
+    setConfirmAdminPassword('');
+    showToast('Yönetici şifresi başarıyla güncellendi.');
+  };
 
   // Handle Photo Uploads for Products
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, isRoom = false) => {
@@ -556,6 +581,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             <RotateCcw className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Varsayılana Sıfırla</span>
           </button>
+
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="text-xs font-bold text-slate-700 hover:text-black transition flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200 hover:border-black bg-white shadow-xs"
+              title="Yönetim Panelinden Güvenli Çıkış Yap"
+            >
+              <LogOut className="w-3.5 h-3.5 text-rose-600" />
+              <span>Güvenli Çıkış</span>
+            </button>
+          )}
         </div>
       </header>
 
@@ -1621,6 +1657,61 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     Genel Ayarları Kaydet
                   </button>
                 </div>
+              </form>
+            </div>
+
+            {/* Panel Güvenlik & Şifre Değiştirme */}
+            <div className="bg-white border border-[#E8EAED] rounded-3xl p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-1">
+                <div className="w-9 h-9 rounded-2xl bg-black text-white flex items-center justify-center shrink-0">
+                  <Lock className="w-4 h-4 text-emerald-400" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-display font-extrabold text-[#0A0A0B]">
+                    Yönetim Paneli Giriş Şifresi
+                  </h2>
+                  <p className="text-xs text-[#64748B]">
+                    rvoba.com/#admin adresine girerken sorulan şifreyi buradan güncelleyebilirsiniz.
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleUpdatePassword} className="space-y-4 max-w-md mt-5">
+                <div>
+                  <label className="block text-xs font-bold text-[#0A0A0B] mb-1">
+                    Yeni Yönetici Şifresi *
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Yeni şifrenizi yazın..."
+                    value={newAdminPassword}
+                    onChange={(e) => setNewAdminPassword(e.target.value)}
+                    className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-xl px-3.5 py-2.5 text-xs text-[#0A0A0B] font-mono focus:outline-none focus:border-black"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#0A0A0B] mb-1">
+                    Yeni Şifreyi Onaylayın *
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Yeni şifreyi tekrar yazın..."
+                    value={confirmAdminPassword}
+                    onChange={(e) => setConfirmAdminPassword(e.target.value)}
+                    className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-xl px-3.5 py-2.5 text-xs text-[#0A0A0B] font-mono focus:outline-none focus:border-black"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="btn-pill-black text-xs py-2.5 px-6 font-bold shadow-md bg-black hover:bg-slate-800 text-white flex items-center gap-2"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>Şifreyi Değiştir & Kaydet</span>
+                </button>
               </form>
             </div>
           </div>

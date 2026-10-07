@@ -155,7 +155,7 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
     }
 
     msg += `━━━━━━━━━━━━━━━━━━━━\n`;
-    msg += `💰 *RESTOLAB NET TOPLAM:* ${grandTotal.toLocaleString('tr-TR')} ₺\n`;
+    msg += `💰 *RVOBA NET TOPLAM:* ${grandTotal.toLocaleString('tr-TR')} ₺\n`;
     if (totalSavings > 0) {
       msg += `📉 *Piyasa Tasarrufunuz:* -${totalSavings.toLocaleString('tr-TR')} ₺ (Toptan Bayi Avantajı)\n`;
     }

@@ -306,7 +306,7 @@ export const CustomerLandingPage: React.FC<CustomerLandingPageProps> = ({
             UYGULAMA GALERİSİ
           </span>
           <h2 className="text-3xl sm:text-4xl font-display font-extrabold text-[#0A0A0B] mt-2">
-            RestoLab Standartlarında Teslim Edilen Mekanlar
+            RVOBA Standartlarında Teslim Edilen Mekanlar
           </h2>
           <p className="text-sm text-[#64748B] mt-3">
             1. Sınıf silinebilir mat boyalar, dayanıklı derzli laminat zeminler ve 60x120 lüks granit seramik uygulamaları.

@@ -1085,7 +1085,7 @@ export const CustomerConfigurator: React.FC<CustomerConfiguratorProps> = ({
                 <p className={`text-xs mt-1 leading-relaxed ${
                   categoryModes[currentCategory.key] === 'labor_only' ? 'text-slate-300' : 'text-[#64748B]'
                 }`}>
-                  Malzemeyi siz aldınız; RestoLab usta kadrosu kırım, hazırlık ve döşemeyi üstlensin.
+                  Malzemeyi siz aldınız; RVOBA usta kadrosu kırım, hazırlık ve döşemeyi üstlensin.
                 </p>
               </div>
               <div className="mt-4 pt-3 border-t border-white/10 text-[11px] font-semibold flex items-center gap-1.5">
@@ -1330,7 +1330,7 @@ export const CustomerConfigurator: React.FC<CustomerConfiguratorProps> = ({
                     {currentCategory.label} İçin Yalnızca Uygulama & Usta İşçiliği
                   </h3>
                   <p className="text-xs sm:text-sm text-[#64748B] mt-1 leading-relaxed">
-                    Malzemenizi (boya, parke, seramik vb.) önceden satın aldıysanız veya kendiniz temin edecekseniz; malzeme bedeli <strong>0 ₺</strong> sayılır. RestoLab usta kadrosu kırım, yüzey hazırlığı ve anahtar teslim uygulama işçiliğini şeffaf birim fiyatla üstlenir.
+                    Malzemenizi (boya, parke, seramik vb.) önceden satın aldıysanız veya kendiniz temin edecekseniz; malzeme bedeli <strong>0 ₺</strong> sayılır. RVOBA usta kadrosu kırım, yüzey hazırlığı ve anahtar teslim uygulama işçiliğini şeffaf birim fiyatla üstlenir.
                   </p>
                 </div>
 
@@ -1340,7 +1340,7 @@ export const CustomerConfigurator: React.FC<CustomerConfiguratorProps> = ({
                   {/* Sol: Neler Dahil? */}
                   <div className="space-y-3">
                     <span className="text-xs font-bold text-[#0A0A0B] block">
-                      RestoLab Usta İşçiliğine Neler Dahil?
+                      RVOBA Usta İşçiliğine Neler Dahil?
                     </span>
                     <p className="text-xs text-[#4B5563] leading-relaxed">
                       {laborProduct.description}

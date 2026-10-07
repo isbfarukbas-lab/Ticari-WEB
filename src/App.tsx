@@ -46,7 +46,7 @@ export const App: React.FC = () => {
   // Products state with localStorage persistence & auto-sync with initial catalog
   const [products, setProducts] = useState<Product[]>(() => {
     try {
-      const saved = localStorage.getItem('restolab_products_v6');
+      const saved = localStorage.getItem('rvoba_products_v1') || localStorage.getItem('restolab_products_v6');
       if (saved) {
         const parsed: Product[] = JSON.parse(saved);
         const parsedMap = new Map(parsed.map((p) => [p.id, p]));
@@ -76,7 +76,7 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     try {
-      localStorage.setItem('restolab_products_v6', JSON.stringify(products));
+      localStorage.setItem('rvoba_products_v1', JSON.stringify(products));
     } catch (e) {
       console.error(e);
     }
@@ -85,7 +85,7 @@ export const App: React.FC = () => {
   // Cart state with localStorage persistence
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
-      const saved = localStorage.getItem('restolab_cart_v5');
+      const saved = localStorage.getItem('rvoba_cart_v1') || localStorage.getItem('restolab_cart_v5');
       if (saved) return JSON.parse(saved);
     } catch (e) {
       console.error(e);
@@ -110,7 +110,7 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     try {
-      localStorage.setItem('restolab_cart_v5', JSON.stringify(cart));
+      localStorage.setItem('rvoba_cart_v1', JSON.stringify(cart));
     } catch (e) {
       console.error(e);
     }
@@ -119,7 +119,7 @@ export const App: React.FC = () => {
   // Leads state
   const [leads, setLeads] = useState<LeadRequest[]>(() => {
     try {
-      const saved = localStorage.getItem('restolab_leads_v5');
+      const saved = localStorage.getItem('rvoba_leads_v1') || localStorage.getItem('restolab_leads_v5');
       if (saved) return JSON.parse(saved);
     } catch (e) {
       console.error(e);
@@ -157,7 +157,7 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     try {
-      localStorage.setItem('restolab_leads_v5', JSON.stringify(leads));
+      localStorage.setItem('rvoba_leads_v1', JSON.stringify(leads));
     } catch (e) {
       console.error(e);
     }
@@ -166,7 +166,7 @@ export const App: React.FC = () => {
   // Site settings state with localStorage persistence
   const [settings, setSettings] = useState<SiteSettings>(() => {
     try {
-      const saved = localStorage.getItem('restolab_settings_v5');
+      const saved = localStorage.getItem('rvoba_settings_v1') || localStorage.getItem('restolab_settings_v5');
       if (saved) return JSON.parse(saved);
     } catch (e) {
       console.error(e);
@@ -176,7 +176,7 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     try {
-      localStorage.setItem('restolab_settings_v5', JSON.stringify(settings));
+      localStorage.setItem('rvoba_settings_v1', JSON.stringify(settings));
     } catch (e) {
       console.error(e);
     }
@@ -293,6 +293,7 @@ export const App: React.FC = () => {
 
   const handleResetDefaults = () => {
     setProducts(INITIAL_PRODUCTS);
+    localStorage.removeItem('rvoba_products_v1');
     localStorage.removeItem('restolab_products_v6');
     localStorage.removeItem('restolab_products_v5');
   };
@@ -429,7 +430,7 @@ export const App: React.FC = () => {
               </button>
 
               <div className="text-xs text-[#64748B]">
-                RestoLab Fiyat & Tasarım Sihirbazı
+                RVOBA Fiyat & Tasarım Sihirbazı
               </div>
             </div>
 

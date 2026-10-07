@@ -66,7 +66,7 @@ const COMMON_BRANDS = [
   'AGT',
   'Schneider Electric',
   'Knauf',
-  'RestoLab Özel',
+  'RVOBA Özel',
 ];
 
 export const AdminPortal: React.FC<AdminPortalProps> = ({
@@ -509,7 +509,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `restolab_talepler_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `rvoba_talepler_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -2103,7 +2103,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
               {/* Sonrası Görseli */}
               <div>
-                <label className="block text-xs font-bold mb-1">Sonrası (RestoLab Teslimi) Fotoğrafı *</label>
+                <label className="block text-xs font-bold mb-1">Sonrası (RVOBA Teslimi) Fotoğrafı *</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="file"

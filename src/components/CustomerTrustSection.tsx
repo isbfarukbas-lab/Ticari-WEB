@@ -15,7 +15,7 @@ export const CustomerTrustSection: React.FC = () => {
             Müşteri Usta İle Asla Muhatap Olmaz.
           </h2>
           <p className="text-sm text-[#64748B] mt-3 leading-relaxed">
-            Klasik tadilat süreçlerindeki usta arama derdine, telefonlara çıkmayan taşeronlara ve sürekli artan masraflara RestoLab ile son veriyoruz.
+            Klasik tadilat süreçlerindeki usta arama derdine, telefonlara çıkmayan taşeronlara ve sürekli artan masraflara RVOBA ile son veriyoruz.
           </p>
         </div>
 

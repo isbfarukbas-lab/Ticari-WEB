@@ -296,7 +296,7 @@ export const CustomerProformaModal: React.FC<CustomerProformaModalProps> = ({
               <div className="text-[10px] text-slate-400">İmza / Tarih</div>
             </div>
             <div className="text-center space-y-12">
-              <div className="text-xs font-bold text-slate-700">RESTOLAB® MİMARLIK KAŞE & İMZA</div>
+              <div className="text-xs font-bold text-slate-700">RVOBA® MİMARLIK KAŞE & İMZA</div>
               <div className="border-b border-slate-300 w-48 mx-auto" />
               <div className="text-[10px] text-slate-400">Yetkili Mimar Onayı</div>
             </div>
@@ -308,7 +308,7 @@ export const CustomerProformaModal: React.FC<CustomerProformaModalProps> = ({
               <strong>Kurumsal Güvenceler:</strong> Tek Kurumsal Muhatap • Toptan Bayi Fiyatı • Sözleşmeli Sabit Bütçe • Mimari Teslim Onayı
             </div>
             <div className="font-mono text-[10px] text-slate-400">
-              restolab.com.tr
+              rvoba.com
             </div>
           </div>
 

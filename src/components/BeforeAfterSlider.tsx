@@ -118,7 +118,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
             <span>MİMARİ DÖNÜŞÜM VİTRİNİ</span>
           </div>
           <h3 className="text-2xl sm:text-3xl font-display font-extrabold text-[#0A0A0B]">
-            Öncesi & Sonrası: RestoLab Dönüşümleri
+            Öncesi & Sonrası: RVOBA Dönüşümleri
           </h3>
           <p className="text-xs sm:text-sm text-[#64748B] mt-1 max-w-xl leading-relaxed">
             Eski, yıpranmış mekanların şeffaf bütçeli sözleşmeyle nasıl modern mimari yaşam alanlarına dönüştüğünü çubuğu kaydırarak canlı inceleyin.
@@ -171,7 +171,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         {/* Sonrası Görseli (Arka Planda Tam Görsel) */}
         <img
           src={activeProj.afterImage}
-          alt="Sonrası — RestoLab Teslimi"
+          alt="Sonrası — RVOBA Teslimi"
           draggable={false}
           className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
         />
@@ -199,7 +199,7 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
         {/* Sağ Görsel Etiketi */}
         <div className="absolute top-4 right-4 bg-emerald-600/90 backdrop-blur-md text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-md border border-white/20 flex items-center gap-1.5 select-none pointer-events-none">
           <CheckCircle className="w-3.5 h-3.5" />
-          <span>SONRASI: RestoLab Mimari Teslimi</span>
+          <span>SONRASI: RVOBA Mimari Teslimi</span>
         </div>
 
         {/* Dikey Kaydırma Çizgisi & Buton */}

@@ -156,16 +156,29 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
           
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#0A0A0B] text-white text-xs font-semibold mb-6 shadow-sm">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>RESTOLAB MİMARİ KOLEKSİYON & TOPTAN BAYİ SEÇKİSİ</span>
+            <span>RESTOLAB E-TİCARET & MİMARİ MALZEME SEÇKİSİ</span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-display font-extrabold tracking-tight text-[#0A0A0B] max-w-4xl mx-auto leading-tight">
-            Doğrudan Ürün Satışı: Fabrika Bayi Fiyatıyla Malzeme ve Özel İmalat.
+            Doğrudan Ürün Satışı: Bayi Fiyatıyla Tasarım Malzemeleri.
           </h1>
 
           <p className="mt-5 text-sm sm:text-base text-[#4B5563] max-w-2xl mx-auto leading-relaxed">
-            RestoLab ana bayisi olduğu 1. sınıf boya, derzli parke, İtalyan seramik ve atölyemizde üretilen akustik ahşap TV panellerini doğrudan satın alabilirsiniz. İster sadece malzemeyi kargoyla alın, ister uzman montaj hizmetimizi ekleyin.
+            RestoLab ana bayisi olduğu 1. sınıf boya, derzli parke, İtalyan bataryalar ve atölyemizde üretilen akustik ahşap TV panellerini doğrudan satın alabilirsiniz. Malzemeler 81 il kapınıza kargo/ambar ile sevk edilir; dilerseniz İstanbul, Ankara ve İzmir için RestoLab uzman montaj hizmetini ekleyebilirsiniz.
           </p>
+
+          {/* Reassurance Bar: Cargo vs Installation */}
+          <div className="mt-6 inline-flex flex-wrap items-center justify-center gap-2 sm:gap-4 py-2 px-5 rounded-full bg-slate-100 text-xs text-[#0A0A0B] border border-slate-200">
+            <span className="flex items-center gap-1.5 font-bold">
+              <Truck className="w-3.5 h-3.5 text-blue-600" />
+              <span>📦 Malzeme Alımları: 81 İl Kargo ile Kapıya Sevk</span>
+            </span>
+            <span className="hidden sm:inline text-slate-300">•</span>
+            <span className="flex items-center gap-1.5 font-bold">
+              <Wrench className="w-3.5 h-3.5 text-emerald-600" />
+              <span>🛠️ Montaj Hizmeti: İstanbul, Ankara, İzmir</span>
+            </span>
+          </div>
 
           {/* Quick Bridge to Turnkey Renovation */}
           {onNavigateConfigurator && (
@@ -388,34 +401,59 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                     
                     {/* Toggle: Sadece Malzeme vs + Montaj Dahil */}
                     {product.workmanshipPrice > 0 ? (
-                      <div className="grid grid-cols-2 p-0.5 bg-[#F1F3F5] rounded-xl text-[10px] font-semibold">
-                        <button
-                          type="button"
-                          onClick={() => setPurchaseType(product.id, 'material_only')}
-                          className={`py-1 rounded-lg transition text-center ${
-                            !isInstalled
-                              ? 'bg-white text-[#0A0A0B] shadow-sm font-bold'
-                              : 'text-[#64748B] hover:text-[#0A0A0B]'
-                          }`}
-                        >
-                          Sadece Ürün
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPurchaseType(product.id, 'with_installation')}
-                          className={`py-1 rounded-lg transition text-center flex items-center justify-center gap-1 ${
-                            isInstalled
-                              ? 'bg-[#0A0A0B] text-white shadow-sm font-bold'
-                              : 'text-[#64748B] hover:text-[#0A0A0B]'
-                          }`}
-                          title={`Usta Montajı: +${(product.workmanshipPrice * qty).toLocaleString('tr-TR')} ₺`}
-                        >
-                          + Montaj Dahil
-                        </button>
+                      <div className="space-y-1.5">
+                        <div className="grid grid-cols-2 p-0.5 bg-[#F1F3F5] rounded-xl text-[10px] font-semibold">
+                          <button
+                            type="button"
+                            onClick={() => setPurchaseType(product.id, 'material_only')}
+                            className={`py-1 rounded-lg transition text-center ${
+                              !isInstalled
+                                ? 'bg-white text-[#0A0A0B] shadow-sm font-bold'
+                                : 'text-[#64748B] hover:text-[#0A0A0B]'
+                            }`}
+                          >
+                            Sadece Ürün
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPurchaseType(product.id, 'with_installation')}
+                            className={`py-1 rounded-lg transition text-center flex items-center justify-center gap-1 ${
+                              isInstalled
+                                ? 'bg-[#0A0A0B] text-white shadow-sm font-bold'
+                                : 'text-[#64748B] hover:text-[#0A0A0B]'
+                            }`}
+                            title={`Usta Montajı: +${(product.workmanshipPrice * qty).toLocaleString('tr-TR')} ₺`}
+                          >
+                            + Montaj Dahil
+                          </button>
+                        </div>
+
+                        {/* Geographic Scope Clarification */}
+                        {!isInstalled ? (
+                          <div className="flex items-center justify-between text-[10px] text-blue-700 bg-blue-50/80 border border-blue-100 rounded-lg px-2 py-0.5 font-medium">
+                            <span className="flex items-center gap-1">
+                              <Truck className="w-3 h-3 text-blue-600 shrink-0" />
+                              <span>81 İl Kargo ile Kapıya Teslim</span>
+                            </span>
+                            <span className="text-[9px] text-blue-600 font-bold">Kapıya Sevk</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between text-[10px] text-emerald-800 bg-emerald-50/80 border border-emerald-100 rounded-lg px-2 py-0.5 font-medium">
+                            <span className="flex items-center gap-1">
+                              <Wrench className="w-3 h-3 text-emerald-600 shrink-0" />
+                              <span>Montaj: İst, Ank, İzm</span>
+                            </span>
+                            <span className="text-[9px] text-emerald-700 font-bold">Usta Dahil</span>
+                          </div>
+                        )}
                       </div>
                     ) : (
-                      <div className="text-[10px] text-slate-500 font-medium py-0.5">
-                        📦 Kargo ile Kapıya Teslim
+                      <div className="flex items-center justify-between text-[10px] text-blue-700 bg-blue-50/80 border border-blue-100 rounded-lg px-2 py-1 font-medium">
+                        <span className="flex items-center gap-1">
+                          <Truck className="w-3 h-3 text-blue-600 shrink-0" />
+                          <span>81 İl Kargo ile Kapıya Teslim</span>
+                        </span>
+                        <span className="text-[9px] text-blue-600 font-bold">Bayi Sevk</span>
                       </div>
                     )}
 
@@ -433,7 +471,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                           )}
                         </div>
                         <span className="text-[9px] text-[#64748B] block">
-                          {isInstalled ? 'Malzeme + Uzman Montaj' : 'Toptan Bayi Satışı'}
+                          {isInstalled ? 'Malzeme + Uzman Montaj' : 'Toptan Bayi Satışı (Kargo)'}
                         </span>
                       </div>
 
@@ -467,7 +505,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                         className="flex-1 btn-pill-black bg-[#0A0A0B] text-white hover:bg-slate-800 text-[11px] py-2 px-3 justify-center flex items-center gap-1.5 shadow-sm"
                       >
                         <ShoppingBag className="w-3.5 h-3.5" />
-                        <span>Sepete Ekle</span>
+                        <span>{isInstalled ? 'Sepete Ekle (+Montaj)' : 'Sepete Ekle (Kargo)'}</span>
                       </button>
 
                       <button
@@ -545,6 +583,17 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* Geographic Scope in Modal */}
+              <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-blue-900">
+                <div className="flex items-center gap-2 font-semibold">
+                  <Truck className="w-4 h-4 text-blue-600 shrink-0" />
+                  <span>📦 Tüm Türkiye'ye (81 İl) Kargo ile Kapıya Teslim</span>
+                </div>
+                <div className="text-[11px] text-blue-700">
+                  🛠️ Montaj Hizmeti: İstanbul, Ankara, İzmir
+                </div>
+              </div>
 
               <div className="pt-4 border-t border-[#E8EAED] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>

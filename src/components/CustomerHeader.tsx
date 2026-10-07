@@ -53,7 +53,7 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
             <span className="text-xs font-bold text-[#0A0A0B] -mt-2">®</span>
           </button>
 
-          {/* Two distinct, crystal-clear pillars */}
+          {/* Two distinct, crystal-clear pillars (Desktop) */}
           <nav className="hidden lg:flex items-center gap-2.5 text-xs whitespace-nowrap">
             <button
               onClick={onNavigateLanding}
@@ -75,7 +75,7 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
               }`}
             >
               <span className="text-sm">🏡</span>
-              <span>Anahtar Teslim Tadilat</span>
+              <span>Mimari Teklif Al</span>
             </button>
 
             <button
@@ -87,20 +87,36 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
               }`}
             >
               <span className="text-sm">📦</span>
-              <span>Malzeme Mağazası</span>
+              <span>Malzeme Satın Al (81 İl Kargo)</span>
             </button>
           </nav>
 
-          {/* Mobile view quick switcher */}
-          {currentView !== 'landing' && (
+          {/* Mobile view quick switchers */}
+          <div className="lg:hidden flex items-center gap-1.5">
             <button
-              onClick={onNavigateLanding}
-              className="lg:hidden inline-flex items-center gap-1.5 text-xs font-semibold text-[#64748B] hover:text-[#0A0A0B] transition whitespace-nowrap"
+              onClick={onNavigateConfigurator}
+              className={`text-[11px] px-2.5 py-1 rounded-full font-bold transition flex items-center gap-1 ${
+                currentView === 'configurator' 
+                  ? 'bg-[#0A0A0B] text-white shadow-xs' 
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
             >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Ana Sayfa</span>
+              <span>🏡</span>
+              <span>Teklif Al</span>
             </button>
-          )}
+
+            <button
+              onClick={onNavigateStore}
+              className={`text-[11px] px-2.5 py-1 rounded-full font-bold transition flex items-center gap-1 ${
+                currentView === 'store' 
+                  ? 'bg-[#0A0A0B] text-white shadow-xs' 
+                  : 'bg-amber-100 text-amber-900 hover:bg-amber-200'
+              }`}
+            >
+              <span>📦</span>
+              <span>Malzeme</span>
+            </button>
+          </div>
         </div>
 
         {/* Right side actions */}
@@ -147,7 +163,7 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
               onClick={onNavigateConfigurator}
               className="btn-pill-black text-xs hidden md:inline-flex py-2 px-4 shadow-sm whitespace-nowrap shrink-0"
             >
-              <span>Tadilatını Hesapla</span>
+              <span>🏡 Mimari Teklif Al</span>
               <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
             </button>
           ) : currentView === 'store' ? (
@@ -155,15 +171,15 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
               onClick={onNavigateConfigurator}
               className="btn-pill-black text-xs hidden md:inline-flex py-2 px-4 shadow-sm whitespace-nowrap shrink-0"
             >
-              <span>Tadilatını Hesapla</span>
+              <span>🏡 Mimari Teklif Al</span>
               <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
             </button>
           ) : (
             <button
-              onClick={onOpenInspection}
-              className="btn-pill-black text-xs hidden sm:inline-flex whitespace-nowrap shrink-0"
+              onClick={onNavigateStore}
+              className="btn-pill-outline text-xs hidden md:inline-flex py-2 px-3.5 border-slate-300 hover:border-black whitespace-nowrap shrink-0"
             >
-              <span>Ücretsiz Keşif</span>
+              <span>📦 Malzeme Satın Al</span>
               <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
             </button>
           )}

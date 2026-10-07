@@ -20,17 +20,17 @@ export const CustomerHero: React.FC<CustomerHeroProps> = ({
         {/* Subtle pill tag with savings highlight */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#0A0A0B] text-white text-xs font-semibold mb-8 shadow-sm">
           <TrendingDown className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Piyasadan %20-30 Daha Uygun Fabrika & Toptan Bayi Fiyatı</span>
+          <span>Piyasadan %20-30 Daha Uygun Bayi Fiyatı & 81 İl Kargo</span>
         </div>
 
         {/* Main Bold Headline matching Image 1 Typography */}
         <h1 className="text-4xl sm:text-6xl lg:text-7xl font-display font-extrabold tracking-tight text-[#0A0A0B] leading-[1.08] max-w-4xl mx-auto">
-          Usta ile muhatap olmadan, piyasadan uygun fiyata evinizi yenileyin.
+          İster Anahtar Teslim Mimari Tadilat, İster Fabrika Bayi Fiyatıyla Tasarım Malzemeleri.
         </h1>
 
         {/* Subtitle */}
         <p className="mt-6 text-base sm:text-lg text-[#4B5563] max-w-2xl mx-auto font-normal leading-relaxed">
-          RestoLab doğrudan Filli Boya, Marshall, Yıldız Parke ve Kütahya Seramik ana bayi tedarikiyle çalışır. Aracı komisyonu olmadan, sabit fiyat ve 2 yıl garantimizle anahtar teslim uygularız.
+          Usta stresi ve aracı komisyonu olmadan evinizi yenileyin. Mimar kadromuzla anahtar teslim komple uygulama yaptırabilir veya 1. sınıf malzemeleri (akustik panel, boya, çıta, batarya) Türkiye geneli 81 ile doğrudan kargo teslim satın alabilirsiniz.
         </p>
 
         {/* Centered Pill Buttons matching Image 1 */}

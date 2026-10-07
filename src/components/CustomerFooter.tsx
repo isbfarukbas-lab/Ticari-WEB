@@ -31,7 +31,7 @@ export const CustomerFooter: React.FC<CustomerFooterProps> = ({
               <span className="text-xs font-bold text-[#0A0A0B] -mt-2">®</span>
             </div>
             <p className="text-xs text-[#64748B] mt-1 max-w-md">
-              {settings?.companyName || 'RESTOLAB® Mimarlık ve Yapı Çözümleri A.Ş.'} — Anahtar teslim mimari tadilat, toptan bayi ürünleri ve şeffaf maliyet hesaplama platformu.
+              {settings?.companyName || 'RESTOLAB® Mimarlık ve Yapı Çözümleri A.Ş.'} — Anahtar teslim mimari tadilat ve 81 ile doğrudan toptan bayi fiyatıyla malzeme tedarik platformu.
             </p>
             <div className="flex items-center gap-4 mt-2 text-[11px] text-slate-500">
               <span className="flex items-center gap-1">
@@ -41,7 +41,7 @@ export const CustomerFooter: React.FC<CustomerFooterProps> = ({
               <span>•</span>
               <span className="flex items-center gap-1">
                 <MapPin className="w-3 h-3 text-emerald-600" />
-                {settings?.coverageNotice || 'İstanbul, Ankara, İzmir'}
+                Kargo: 81 İl | Tadilat: İstanbul, Ankara, İzmir
               </span>
             </div>
           </div>

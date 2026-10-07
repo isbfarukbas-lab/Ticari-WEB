@@ -187,12 +187,12 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
           <div className="p-6 border-b border-[#E8EAED] flex items-center justify-between bg-white">
             <div>
               <h2 className="text-xl font-display font-extrabold text-[#0A0A0B]">
-                {isMaterialOnlyCart ? '📦 Malzeme Sepetim' : '🏡 Tadilat Sepetim'}
+                {isMaterialOnlyCart ? '📦 Malzeme Sipariş Sepeti' : '🏡 Mimari Tadilat Teklifi'}
               </h2>
               <p className="text-xs text-[#64748B] mt-0.5">
                 {cart.length > 0 
                   ? isMaterialOnlyCart 
-                    ? `${cart.length} Kalem • Kargo ile Kapıya Teslim (Usta Hariç)`
+                    ? `${cart.length} Kalem • 81 İl Kargo ile Kapıya Teslim (Usta Hariç)`
                     : `${cart.length} Kalem • Malzeme + Uzman İşçilik Dahil`
                   : 'Sepetiniz henüz boş'}
               </p>
@@ -233,13 +233,22 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
                   </div>
                 )}
 
-                {/* Guarantee Reminder */}
-                <div className="p-3 rounded-2xl bg-white border border-[#E8EAED] flex items-start gap-2.5 shadow-sm text-xs text-[#4B5563]">
-                  <ShieldCheck className="w-4 h-4 text-[#0A0A0B] shrink-0 mt-0.5" />
-                  <span>
-                    <strong className="text-[#0A0A0B]">Usta ile sıfır temas:</strong> Tüm süreci İç Mimarımız yönetir. Sözleşme şartları onaylanmadan 1 TL dahi ödemezsiniz.
-                  </span>
-                </div>
+                {/* Guarantee Reminder (Context-aware) */}
+                {isMaterialOnlyCart ? (
+                  <div className="p-3 rounded-2xl bg-blue-50/70 border border-blue-200 flex items-start gap-2.5 shadow-sm text-xs text-blue-900">
+                    <Truck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                    <span>
+                      <strong className="text-blue-950">📦 Kargo & Ambar ile Kapıya Teslim:</strong> Ürünler orijinal ambalajında ve faturalı olarak tüm Türkiye'ye kapınıza sevk edilir.
+                    </span>
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-2xl bg-white border border-[#E8EAED] flex items-start gap-2.5 shadow-sm text-xs text-[#4B5563]">
+                    <ShieldCheck className="w-4 h-4 text-[#0A0A0B] shrink-0 mt-0.5" />
+                    <span>
+                      <strong className="text-[#0A0A0B]">Usta ile sıfır temas:</strong> Tüm süreci İç Mimarımız yönetir. Sözleşme şartları onaylanmadan 1 TL dahi ödemezsiniz.
+                    </span>
+                  </div>
+                )}
 
                 {/* Items List */}
                 <div className="space-y-3">

@@ -46,17 +46,17 @@ export const CustomerLandingPage: React.FC<CustomerLandingPageProps> = ({
           {/* Tag */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#0A0A0B] text-white text-xs font-semibold mb-8 shadow-sm">
             <TrendingDown className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Piyasadan %20-30 Daha Uygun Toptan Bayi Fiyatı</span>
+            <span>Piyasadan %20-30 Daha Uygun Bayi Fiyatı & 81 İl Kargo</span>
           </div>
 
           {/* Main Title */}
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-display font-extrabold tracking-tight text-[#0A0A0B] leading-[1.08] max-w-4xl mx-auto">
-            Tadilatın en şeffaf hali: Usta stresi yok, piyasadan uygun fabrika fiyatı.
+            İster Anahtar Teslim Mimari Tadilat, İster Fabrika Bayi Fiyatıyla Tasarım Malzemeleri.
           </h1>
 
           {/* Subtitle */}
           <p className="mt-6 text-base sm:text-lg text-[#4B5563] max-w-2xl mx-auto font-normal leading-relaxed">
-            RestoLab doğrudan üretici ana bayi tedarikiyle çalışır. Aracı komisyonu olmadan, sözleşmeli sabit bütçe ve mimari teslim onayıyla ister evinizi anahtar teslim yenileriz, ister tasarım malzemelerimizi kapınıza sevk ederiz.
+            Usta stresi ve aracı komisyonu olmadan evinizi yenileyin. Mimar kadromuzla anahtar teslim komple uygulama yaptırabilir veya 1. sınıf malzemeleri (akustik panel, boya, çıta, batarya) Türkiye geneli 81 ile doğrudan kargo teslim satın alabilirsiniz.
           </p>
 
           {/* 2 Clear Primary Paths / Service Gateways */}
@@ -77,45 +77,51 @@ export const CustomerLandingPage: React.FC<CustomerLandingPageProps> = ({
                   </div>
                 </div>
                 <h3 className="text-2xl font-display font-black text-white tracking-tight">
-                  Anahtar Teslim Tadilat
+                  Anahtar Teslim Tadilat & Keşif
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-300 mt-2.5 leading-relaxed font-normal">
-                  Evinizi mimarımız ve usta kadromuz yönetsin. Malzeme + Usta + Sabit Bütçe tek kurumsal sözleşmeyle.
+                  Evinizi iç mimarlarımız ve profesyonel usta kadromuz yönetsin. Malzeme + Usta + Sabit Bütçe tek resmi sözleşmeyle.
                 </p>
+                <div className="mt-3 text-[11px] text-emerald-400 font-semibold flex items-center gap-1.5">
+                  <span>✓ 3 İlde Hizmet: İstanbul, Ankara, İzmir</span>
+                </div>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between text-xs font-bold text-emerald-400">
-                <span>Tadilat Bütçeni Hesapla</span>
-                <span>Ücretsiz Lazer Keşif →</span>
+              <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between text-xs font-bold text-white">
+                <span className="underline underline-offset-4 decoration-emerald-400">Tadilat Bütçeni Hesapla</span>
+                <span className="text-emerald-400">Ücretsiz Lazer Keşif →</span>
               </div>
             </div>
 
             {/* Kapı 2: Mimari Malzeme & Tasarım Mağazası */}
             <div 
               onClick={onNavigateStore}
-              className="p-7 sm:p-8 rounded-3xl bg-white text-[#0A0A0B] cursor-pointer hover:scale-[1.015] active:scale-[0.99] transition-all shadow-lg relative overflow-hidden group border border-[#E8EAED] hover:border-[#0A0A0B] flex flex-col justify-between"
+              className="p-7 sm:p-8 rounded-3xl bg-white text-[#0A0A0B] cursor-pointer hover:scale-[1.015] active:scale-[0.99] transition-all shadow-lg relative overflow-hidden group border-2 border-amber-300 hover:border-[#0A0A0B] flex flex-col justify-between"
             >
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-[11px] font-bold">
                     <Sparkles className="w-3 h-3 text-amber-600" />
-                    <span>📦 Doğrudan Malzeme Satışı</span>
+                    <span>📦 E-Ticaret & Malzeme (Kargo)</span>
                   </span>
                   <div className="w-8 h-8 rounded-full bg-slate-100 group-hover:bg-[#0A0A0B] group-hover:text-white flex items-center justify-center transition">
                     <ArrowUpRight className="w-4 h-4" />
                   </div>
                 </div>
                 <h3 className="text-2xl font-display font-black text-[#0A0A0B] tracking-tight">
-                  Mimari Ürün Mağazası
+                  Doğrudan Malzeme Satın Al
                 </h3>
                 <p className="text-xs sm:text-sm text-[#64748B] mt-2.5 leading-relaxed font-normal">
-                  Usta aramıyorum, sadece 1. sınıf toptan bayi malzemelerimizi (Akustik panel, çıta, boya, batarya) kargoyla satın al.
+                  Usta aramıyorum, sadece 1. sınıf toptan bayi malzemelerini (Akustik panel, çıta, boya, batarya) kapıma kargoyla istiyorum.
                 </p>
+                <div className="mt-3 text-[11px] text-amber-700 font-semibold flex items-center gap-1.5">
+                  <span>✓ Tüm Türkiye (81 İl) Kargo ile Kapıya Teslim</span>
+                </div>
               </div>
 
               <div className="mt-6 pt-4 border-t border-[#E8EAED] flex items-center justify-between text-xs font-bold text-[#0A0A0B]">
-                <span>Ürünleri İncele & Sipariş Ver</span>
-                <span>Tüm Türkiye'ye Kargo →</span>
+                <span className="underline underline-offset-4 decoration-amber-500">Ürünleri İncele & Satın Al</span>
+                <span className="text-amber-800">81 İl Kapıya Teslim →</span>
               </div>
             </div>
 

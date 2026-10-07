@@ -121,7 +121,7 @@ export const CustomerInspectionModal: React.FC<CustomerInspectionModalProps> = (
     setSubmitted(true);
 
     // WhatsApp Notification
-    let msg = `*YENİ ÜCRETSİZ KEŞİF TALEBİ — RESTOLAB®*\n\n`;
+    let msg = `*YENİ ÜCRETSİZ KEŞİF TALEBİ — RVOBA® (rvoba.com)*\n\n`;
     msg += `👤 *Müşteri:* ${fullName}\n`;
     msg += `📞 *Telefon:* ${phone}\n`;
     msg += `📍 *Konum:* ${city} / ${district}\n`;

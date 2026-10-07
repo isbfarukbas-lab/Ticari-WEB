@@ -553,7 +553,7 @@ export const CustomerConfigurator: React.FC<CustomerConfiguratorProps> = ({
       return;
     }
 
-    let msg = `*RESTOLAB® — Şeffaf Tadilat Teklifi Talebi*\n`;
+    let msg = `*RVOBA® — Şeffaf Tadilat Teklifi Talebi (rvoba.com)*\n`;
     msg += `📍 *Lokasyon:* ${city} / ${district}\n`;
     msg += `📐 *Daire Bilgisi:* ${activeRoom} (${defaultSqM} m²)\n`;
     msg += `🏠 *Daire Durumu:* ${propertyCondition === 'empty' ? 'Boş Daire (Hemen Başlanabilir)' : 'Eşyalı Daire (Eşya Maskeleme & Koruma Dahil)'}\n\n`;
@@ -601,7 +601,7 @@ export const CustomerConfigurator: React.FC<CustomerConfiguratorProps> = ({
     }
 
     msg += `━━━━━━━━━━━━━━━━━━━━\n`;
-    msg += `💰 *RESTOLAB ANAHTAR TESLİM TUTAR:* ${grandTotal.toLocaleString('tr-TR')} ₺\n`;
+    msg += `💰 *RVOBA ANAHTAR TESLİM TUTAR:* ${grandTotal.toLocaleString('tr-TR')} ₺\n`;
     if (totalSavings > 0) {
       msg += `✨ *Tahmini Piyasa Tasarrufu:* ${totalSavings.toLocaleString('tr-TR')} ₺\n`;
     }
@@ -1999,7 +1999,7 @@ export const CustomerConfigurator: React.FC<CustomerConfiguratorProps> = ({
             <div className="p-6 rounded-3xl bg-[#0A0A0B] text-white mb-8">
               <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 mb-2">
                 <ShieldCheck className="w-4 h-4" />
-                <span>RESTOLAB® MİMARİ GÜVENCE MODELİ</span>
+                <span>RVOBA® MİMARİ GÜVENCE MODELİ</span>
               </div>
               <h3 className="text-base sm:text-lg font-bold text-white mb-2">
                 Sözleşmeli Sabit Bütçe & Kademeli Hakediş Sistemi

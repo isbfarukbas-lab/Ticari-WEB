@@ -300,15 +300,15 @@ export const INITIAL_PRODUCTS: Product[] = [
   },
 
   // ==========================================
-  // RESTOLAB MİMARİ MAĞAZA & ÖZEL İMALAT SEÇKİSİ
+  // RVOBA MİMARİ MAĞAZA & ÖZEL İMALAT SEÇKİSİ
   // (Doğrudan Satışa ve Projeye Açık Ürünler)
   // ==========================================
   {
-    id: 'store-restolab-tv-panel',
+    id: 'store-rvoba-tv-panel',
     category: 'ozel',
-    brand: 'RestoLab Atelier',
+    brand: 'RVOBA Atelier',
     name: 'Akustik Ahşap TV Arkası Çıta Paneli (280x60 cm)',
-    code: 'RL-AKUS-280',
+    code: 'RV-AKUS-280',
     image: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80',
     description: 'Doğal meşe kaplama ahşap çıtalar ve arkasında ses yutan yüksek yoğunluklu akustik keçe. Salon TV arkası veya yatak başı için lüks mimari detay.',
     unit: 'adet',
@@ -338,11 +338,11 @@ export const INITIAL_PRODUCTS: Product[] = [
     specs: ['Mat siyah çizilmez PVD gövde', '35mm seramik kartuş', '5.7 lt/dk debi sınırlayıcı', '5 yıl VitrA Türkiye garantisi'],
   },
   {
-    id: 'store-restolab-canak-lavabo',
+    id: 'store-rvoba-canak-lavabo',
     category: 'mutfak_banyo',
-    brand: 'RestoLab Seramik',
+    brand: 'RVOBA Seramik',
     name: 'Artisan Mat Beyaz İnce Kenar Çanak Lavabo (40 cm)',
-    code: 'RL-CANAK-40',
+    code: 'RV-CANAK-40',
     image: 'https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?auto=format&fit=crop&w=800&q=80',
     description: 'Sıvı cam pürüzsüz sırlı mat beyaz yüzey, ultra ince kenar estetiği. Tezgah üstü mimari banyolara özel minimalist tasarım.',
     unit: 'adet',
@@ -389,11 +389,11 @@ export const INITIAL_PRODUCTS: Product[] = [
     specs: ['1 paket = 1.83 m² (8 panel)', '32. Sınıf AC4 aşınma dayanımı', '4V mikro derzli doğal ahşap dokusu', 'Çizilme ve darbeye ekstra mukavim'],
   },
   {
-    id: 'store-restolab-cita-kiti',
+    id: 'store-rvoba-cita-kiti',
     category: 'alci_tavan',
-    brand: 'RestoLab Atelier',
+    brand: 'RVOBA Atelier',
     name: 'Salon Duvar Çıtalama Hazır Montaj Seti (12 Çerçeve)',
-    code: 'RL-CITA-12',
+    code: 'RV-CITA-12',
     image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80',
     description: '12 adet simetrik salon duvar çerçevesi oluşturmak için 45° açılı hazır kesilmiş, boyanabilir sert polimer çıtalar ve montaj mastiği.',
     unit: 'set',

@@ -26,12 +26,12 @@ export const CustomerFooter: React.FC<CustomerFooterProps> = ({
           <div>
             <div className="flex items-center gap-1.5">
               <span className="font-display font-extrabold text-2xl tracking-tighter text-[#0A0A0B]">
-                RESTOLAB
+                RVOBA
               </span>
               <span className="text-xs font-bold text-[#0A0A0B] -mt-2">®</span>
             </div>
             <p className="text-xs text-[#64748B] mt-1 max-w-md">
-              {settings?.companyName || 'RESTOLAB® Mimarlık ve Yapı Çözümleri A.Ş.'} — Anahtar teslim mimari tadilat ve 81 ile doğrudan toptan bayi fiyatıyla malzeme tedarik platformu.
+              {settings?.companyName || 'RVOBA® Mimarlık ve Yapı Çözümleri A.Ş.'} — Mimari tasarım ürünleri, toptan bayi fiyatıyla malzeme tedariki ve anahtar teslim tadilat platformu (rvoba.com).
             </p>
             <div className="flex items-center gap-4 mt-2 text-[11px] text-slate-500">
               <span className="flex items-center gap-1">
@@ -111,7 +111,7 @@ export const CustomerFooter: React.FC<CustomerFooterProps> = ({
         )}
 
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-[#94A3B8]">
-          <p>© {new Date().getFullYear()} {settings?.companyName || 'RestoLab Mimarlık & Yapı Sistemleri'}. Tüm hakları saklıdır.</p>
+          <p>© {new Date().getFullYear()} {settings?.companyName || 'RVOBA® Mimarlık ve Yapı Sistemleri'}. Tüm hakları saklıdır (rvoba.com).</p>
           <div className="flex items-center gap-4 flex-wrap">
             <span>Tek Kurumsal Muhatap</span>
             <span>•</span>

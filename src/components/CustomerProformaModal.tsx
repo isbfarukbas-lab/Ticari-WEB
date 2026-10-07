@@ -23,7 +23,7 @@ export const CustomerProformaModal: React.FC<CustomerProformaModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const quoteNo = `RL-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+  const quoteNo = `RV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
   const dateStr = new Date().toLocaleDateString('tr-TR', {
     day: 'numeric',
     month: 'long',
@@ -89,12 +89,12 @@ export const CustomerProformaModal: React.FC<CustomerProformaModalProps> = ({
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="font-display font-black text-3xl tracking-tighter text-[#0A0A0B]">
-                  RESTOLAB
+                  RVOBA
                 </span>
                 <span className="text-xs font-bold text-[#0A0A0B] -mt-3">®</span>
               </div>
               <p className="text-xs text-slate-600 font-semibold mt-1">
-                {settings?.companyName || 'RESTOLAB® Mimarlık ve Yapı Çözümleri A.Ş.'}
+                {settings?.companyName || 'RVOBA® Mimarlık ve Yapı Çözümleri A.Ş.'}
               </p>
               <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-3">
                 <span>Destek: {settings?.supportPhone || '0850 123 45 67'}</span>

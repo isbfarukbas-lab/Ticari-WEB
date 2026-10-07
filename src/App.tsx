@@ -18,12 +18,12 @@ import { CartItem, Product, LeadRequest, CustomRequestItem, CategoryKey, SiteSet
 import { ShoppingBag, ArrowUpRight, ArrowLeft } from 'lucide-react';
 
 export const App: React.FC = () => {
-  // Navigation view: 'landing' (Tanıtım) | 'configurator' (Fiyat & Detay Belirleme) | 'store' (Ürünlerimiz) | 'admin' (Yönetici)
+  // Navigation view: 'store' (Satış Vitrini & E-Ticaret) | 'configurator' (Komple Tadilat Teklifi) | 'landing' (Kurumsal Tanıtım) | 'admin' (Yönetici)
   const [currentView, setCurrentView] = useState<'landing' | 'configurator' | 'store' | 'admin'>(() => {
     if (window.location.hash === '#admin') return 'admin';
-    if (window.location.hash === '#hesapla') return 'configurator';
-    if (window.location.hash === '#urunler') return 'store';
-    return 'landing';
+    if (window.location.hash === '#hesapla' || window.location.hash === '#teklif') return 'configurator';
+    if (window.location.hash === '#tanitim') return 'landing';
+    return 'store';
   });
 
   // Synchronize hash changes
@@ -31,12 +31,12 @@ export const App: React.FC = () => {
     const handleHash = () => {
       if (window.location.hash === '#admin') {
         setCurrentView('admin');
-      } else if (window.location.hash === '#hesapla') {
+      } else if (window.location.hash === '#hesapla' || window.location.hash === '#teklif') {
         setCurrentView('configurator');
-      } else if (window.location.hash === '#urunler') {
-        setCurrentView('store');
-      } else {
+      } else if (window.location.hash === '#tanitim') {
         setCurrentView('landing');
+      } else {
+        setCurrentView('store');
       }
     };
     window.addEventListener('hashchange', handleHash);
@@ -317,13 +317,13 @@ export const App: React.FC = () => {
 
   // Navigations
   const navigateToLanding = () => {
-    window.location.hash = '';
+    window.location.hash = '#tanitim';
     setCurrentView('landing');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const navigateToConfigurator = () => {
-    window.location.hash = '#hesapla';
+    window.location.hash = '#teklif';
     setCurrentView('configurator');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -335,7 +335,7 @@ export const App: React.FC = () => {
   };
 
   const navigateToStore = () => {
-    window.location.hash = '#urunler';
+    window.location.hash = '';
     setCurrentView('store');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };

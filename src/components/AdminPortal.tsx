@@ -539,7 +539,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             <span>Müşteri Sitesine Dön</span>
           </button>
           <div>
-            <span className="font-display font-black text-lg tracking-tight">RESTOLAB®</span>
+            <span className="font-display font-black text-lg tracking-tight">RVOBA®</span>
             <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded-full bg-black text-white">YÖNETİM PANELİ</span>
           </div>
         </div>

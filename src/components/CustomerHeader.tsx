@@ -41,82 +41,38 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
     <header className="sticky top-0 z-40 bg-[#FBFBFC]/95 backdrop-blur-md border-b border-[#E8EAED]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
         
-        {/* Brand Name matching Image 1: RESTOLAB® */}
-        <div className="flex items-center gap-6 sm:gap-8">
+        {/* Brand Name: RVOBA® */}
+        <div className="flex items-center gap-8">
           <button
-            onClick={onNavigateLanding}
+            onClick={onNavigateStore}
             className="flex items-center gap-1.5 group text-left"
           >
             <span className="font-display font-extrabold text-2xl tracking-tighter text-[#0A0A0B]">
-              RESTOLAB
+              RVOBA
             </span>
             <span className="text-xs font-bold text-[#0A0A0B] -mt-2">®</span>
           </button>
 
-          {/* Two distinct, crystal-clear pillars (Desktop) */}
-          <nav className="hidden lg:flex items-center gap-2.5 text-xs whitespace-nowrap">
+          {/* Clean Desktop Navigation Links */}
+          <nav className="hidden lg:flex items-center gap-3 text-xs whitespace-nowrap">
             <button
-              onClick={onNavigateLanding}
-              className={`px-3 py-1.5 rounded-full transition font-medium ${
-                currentView === 'landing' 
-                  ? 'bg-[#0A0A0B] text-white font-bold shadow-sm' 
+              onClick={onNavigateStore}
+              className={`px-3 py-1.5 rounded-full transition font-semibold ${
+                currentView === 'store' || currentView === 'landing'
+                  ? 'bg-[#0A0A0B] text-white shadow-sm' 
                   : 'text-[#4B5563] hover:text-[#0A0A0B] hover:bg-slate-100'
               }`}
             >
-              Ana Sayfa
+              Ürünler & Vitrin
             </button>
 
-            <button
-              onClick={onNavigateConfigurator}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full transition font-semibold ${
-                currentView === 'configurator'
-                  ? 'bg-[#0A0A0B] text-white font-bold shadow-sm'
-                  : 'text-[#0A0A0B] bg-slate-100 hover:bg-slate-200'
-              }`}
+            <a
+              href="#neden-uygunuz"
+              className="px-3 py-1.5 rounded-full transition font-medium text-[#4B5563] hover:text-[#0A0A0B] hover:bg-slate-100"
             >
-              <span className="text-sm">🏡</span>
-              <span>Mimari Teklif Al</span>
-            </button>
-
-            <button
-              onClick={onNavigateStore}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full transition font-semibold ${
-                currentView === 'store' 
-                  ? 'bg-[#0A0A0B] text-white font-bold shadow-sm' 
-                  : 'text-[#0A0A0B] bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-200/60'
-              }`}
-            >
-              <span className="text-sm">📦</span>
-              <span>Malzeme Satın Al (81 İl Kargo)</span>
-            </button>
+              Neden Uygunuz?
+            </a>
           </nav>
-
-          {/* Mobile view quick switchers */}
-          <div className="lg:hidden flex items-center gap-1.5">
-            <button
-              onClick={onNavigateConfigurator}
-              className={`text-[11px] px-2.5 py-1 rounded-full font-bold transition flex items-center gap-1 ${
-                currentView === 'configurator' 
-                  ? 'bg-[#0A0A0B] text-white shadow-xs' 
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              <span>🏡</span>
-              <span>Teklif Al</span>
-            </button>
-
-            <button
-              onClick={onNavigateStore}
-              className={`text-[11px] px-2.5 py-1 rounded-full font-bold transition flex items-center gap-1 ${
-                currentView === 'store' 
-                  ? 'bg-[#0A0A0B] text-white shadow-xs' 
-                  : 'bg-amber-100 text-amber-900 hover:bg-amber-200'
-              }`}
-            >
-              <span>📦</span>
-              <span>Malzeme</span>
-            </button>
-          </div>
         </div>
 
         {/* Right side actions */}
@@ -145,41 +101,38 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
           {/* Cart Trigger */}
           <button
             onClick={onOpenCart}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-full border text-xs font-bold whitespace-nowrap shrink-0 transition ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 rounded-full border text-xs font-bold whitespace-nowrap shrink-0 transition ${
               totalCount > 0
                 ? 'border-[#0A0A0B] bg-[#0A0A0B] text-white shadow-sm'
                 : 'border-[#D1D5DB] text-[#0A0A0B] hover:bg-[#F3F4F6]'
             }`}
           >
             <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
-            <span>
+            <span className="hidden sm:inline">
               {totalCount > 0 ? `${totalCount} Kalem • ${totalPrice.toLocaleString('tr-TR')} ₺` : 'Sepet (0)'}
+            </span>
+            <span className="sm:hidden">
+              ({totalCount})
             </span>
           </button>
 
-          {/* Primary CTA button */}
-          {currentView === 'landing' ? (
+          {/* Primary High-Ticket Renovation Proposal CTA */}
+          {currentView !== 'configurator' ? (
             <button
               onClick={onNavigateConfigurator}
-              className="btn-pill-black text-xs hidden md:inline-flex py-2 px-4 shadow-sm whitespace-nowrap shrink-0"
+              className="btn-pill-black text-xs py-2 px-3 sm:px-4 shadow-sm whitespace-nowrap shrink-0 flex items-center gap-1.5"
             >
-              <span>🏡 Mimari Teklif Al</span>
-              <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
-            </button>
-          ) : currentView === 'store' ? (
-            <button
-              onClick={onNavigateConfigurator}
-              className="btn-pill-black text-xs hidden md:inline-flex py-2 px-4 shadow-sm whitespace-nowrap shrink-0"
-            >
-              <span>🏡 Mimari Teklif Al</span>
+              <span className="text-sm">🏡</span>
+              <span className="hidden sm:inline">Komple Ev Tadilatı Teklifi</span>
+              <span className="sm:hidden">Tadilat Teklifi</span>
               <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
             </button>
           ) : (
             <button
               onClick={onNavigateStore}
-              className="btn-pill-outline text-xs hidden md:inline-flex py-2 px-3.5 border-slate-300 hover:border-black whitespace-nowrap shrink-0"
+              className="btn-pill-outline text-xs py-2 px-3.5 border-slate-300 hover:border-black whitespace-nowrap shrink-0 flex items-center gap-1.5"
             >
-              <span>📦 Malzeme Satın Al</span>
+              <span>Mağazaya Dön</span>
               <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
             </button>
           )}

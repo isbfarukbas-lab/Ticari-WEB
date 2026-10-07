@@ -15,7 +15,7 @@ export const CustomerLegalModal: React.FC<CustomerLegalModalProps> = ({
   isOpen,
   onClose,
   defaultTab = 'sozlesme',
-  companyName = 'RESTOLAB® Mimarlık ve Yapı Çözümleri A.Ş.',
+  companyName = 'RVOBA® Mimarlık ve Yapı Çözümleri A.Ş.',
   supportPhone = '0850 123 45 67',
 }) => {
   const [activeTab, setActiveTab] = useState<LegalTabKey>(defaultTab);
@@ -136,7 +136,7 @@ export const CustomerLegalModal: React.FC<CustomerLegalModalProps> = ({
                 <h4 className="font-bold text-[#0A0A0B] mb-1">MADDE 1 — TARAFLAR</h4>
                 <p><strong>SATICI / YÜKLENİCİ:</strong> {companyName}<br />
                 Mersis No: 0735000000000001 • Adres: Levent / Beşiktaş, İstanbul<br />
-                Destek & Müşteri Danışma Hattı: {supportPhone} • E-Posta: destek@restolab.com</p>
+                Destek & Müşteri Danışma Hattı: {supportPhone} • E-Posta: destek@rvoba.com</p>
                 <p className="mt-1.5"><strong>ALICI / İŞ SAHİBİ:</strong> Platform üzerinden malzeme siparişi veren veya mimari keşif ve tadilat taahhüdü başlatan müşteri.</p>
               </div>
 
@@ -231,7 +231,7 @@ export const CustomerLegalModal: React.FC<CustomerLegalModalProps> = ({
             <div className="space-y-4">
               <div className="border-b pb-3">
                 <h3 className="text-sm font-bold text-[#0A0A0B]">İPTAL, İADE VE DEĞİŞİM KOŞULLARI</h3>
-                <p className="text-[11px] text-slate-500 mt-0.5">RestoLab Tüketici Hakları ve Malzeme İade Prosedürü</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">RVOBA® Tüketici Hakları ve Malzeme İade Prosedürü</p>
               </div>
 
               <div>

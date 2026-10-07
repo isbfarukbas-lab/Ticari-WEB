@@ -3,7 +3,7 @@ import { SiteSettings } from '../types';
 export const INITIAL_SETTINGS: SiteSettings = {
   phoneNumber: '905550000000',
   supportPhone: '0850 123 45 67',
-  companyName: 'RESTOLAB® Mimarlık ve Yapı Çözümleri A.Ş.',
+  companyName: 'RVOBA® Mimarlık ve Yapı Çözümleri A.Ş.',
   coverageNotice: 'İstanbul, Ankara ve İzmir genelinde mimari lazer keşif servisimiz aktiftir.',
   kdvNotice: 'Fiyatlarımız bireysel müşterilerimiz için anahtar teslim KDV dahil net tutardır.',
   laborRates: {

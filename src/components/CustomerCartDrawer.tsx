@@ -87,8 +87,8 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
     if (cart.length === 0) return;
 
     let msg = isMaterialOnlyCart
-      ? `*RESTOLAB® — Online Malzeme Sipariş Talebi (Kargo Teslim)*\n\n`
-      : `*RESTOLAB® — Online Tadilat & Keşif Talebi*\n\n`;
+      ? `*RVOBA® — Online Malzeme Sipariş Talebi (rvoba.com)*\n\n`
+      : `*RVOBA® — Online Tadilat & Keşif Talebi (rvoba.com)*\n\n`;
 
     if (isMaterialOnlyCart) {
       msg += `🚚 *Teslimat Şekli:* Tüm Türkiye'ye Kapıya Teslim Kargo / Ambar Sevk\n`;

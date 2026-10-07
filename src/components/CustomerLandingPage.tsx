@@ -56,7 +56,7 @@ export const CustomerLandingPage: React.FC<CustomerLandingPageProps> = ({
 
           {/* Subtitle */}
           <p className="mt-6 text-base sm:text-lg text-[#4B5563] max-w-2xl mx-auto font-normal leading-relaxed">
-            Usta stresi ve aracı komisyonu olmadan evinizi yenileyin. Mimar kadromuzla anahtar teslim komple uygulama yaptırabilir veya 1. sınıf malzemeleri (akustik panel, boya, çıta, batarya) Türkiye geneli 81 ile doğrudan kargo teslim satın alabilirsiniz.
+            Usta stresi ve aracı komisyonu olmadan evinizi yenileyin. RVOBA® ile ister anahtar teslim komple uygulama yaptırabilir, ister 1. sınıf mimari tasarım malzemelerini Türkiye geneli 81 ile doğrudan kargo teslim satın alabilirsiniz.
           </p>
 
           {/* 2 Clear Primary Paths / Service Gateways */}
@@ -130,7 +130,7 @@ export const CustomerLandingPage: React.FC<CustomerLandingPageProps> = ({
           {/* 4 Pillars of Guarantee Strip */}
           <div className="mt-20 pt-10 border-t border-[#E8EAED]">
             <p className="text-xs uppercase font-bold tracking-widest text-[#94A3B8] mb-6">
-              RESTOLAB KURUMSAL GÜVENCELERİ
+              RVOBA® KURUMSAL GÜVENCELERİ
             </p>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 text-left">

@@ -80,3 +80,84 @@
 .btn-pill-outline:hover {
   background-color: #F1F3F5;
 }
+
+/* ==========================================================================
+   PROFORMA PRINT ENGINE (Strict 1-Page A4 Isolation & Zero Bleed)
+   ========================================================================== */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 6mm 8mm;
+  }
+
+  /* Reset document for printing */
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #0A0A0B !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Completely hide all interactive UI, website headers, store catalogs, footers and floating pills */
+  header,
+  footer,
+  nav,
+  aside,
+  main,
+  .print\:hidden,
+  [data-print-hide="true"],
+  .fixed:not(#proforma-modal-root) {
+    display: none !important;
+  }
+
+  /* Ensure proforma root takes over the print page cleanly */
+  #proforma-modal-root {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border: none !important;
+    inset: auto !important;
+    z-index: auto !important;
+  }
+
+  #proforma-modal-dialog {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  #proforma-print-canvas {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Force exact colors for borders and subtle backgrounds in print */
+  #proforma-print-canvas * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

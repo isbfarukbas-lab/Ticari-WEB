@@ -496,28 +496,30 @@ export const App: React.FC = () => {
     <div className="min-h-screen bg-[#FBFBFC] text-[#0A0A0B] flex flex-col font-sans selection:bg-[#0A0A0B] selection:text-white">
       
       {/* Header */}
-      <CustomerHeader
-        currentView={currentView}
-        cart={cart}
-        onNavigateLanding={navigateToLanding}
-        onNavigateConfigurator={navigateToConfigurator}
-        onNavigateStore={navigateToStore}
-        onOpenCart={() => setIsCartOpen(true)}
-        onOpenInspection={() => setIsInspectionOpen(true)}
-        supportPhone={settings.supportPhone}
-        phoneNumber={settings.phoneNumber}
-        content={settings.content}
-        searchQuery={storeSearchQuery}
-        onSearchChange={setStoreSearchQuery}
-        selectedCategory={storeSelectedCategory}
-        onSelectCategory={handleSelectCategory}
-        favoritesCount={favoritesCount}
-        onToggleFavoritesOnly={handleToggleFavoritesOnly}
-        showFavoritesOnly={showFavoritesOnly}
-      />
+      <div className="print:hidden">
+        <CustomerHeader
+          currentView={currentView}
+          cart={cart}
+          onNavigateLanding={navigateToLanding}
+          onNavigateConfigurator={navigateToConfigurator}
+          onNavigateStore={navigateToStore}
+          onOpenCart={() => setIsCartOpen(true)}
+          onOpenInspection={() => setIsInspectionOpen(true)}
+          supportPhone={settings.supportPhone}
+          phoneNumber={settings.phoneNumber}
+          content={settings.content}
+          searchQuery={storeSearchQuery}
+          onSearchChange={setStoreSearchQuery}
+          selectedCategory={storeSelectedCategory}
+          onSelectCategory={handleSelectCategory}
+          favoritesCount={favoritesCount}
+          onToggleFavoritesOnly={handleToggleFavoritesOnly}
+          showFavoritesOnly={showFavoritesOnly}
+        />
+      </div>
 
       {/* Main View Switcher */}
-      <main className="flex-1 w-full">
+      <main className="flex-1 w-full print:hidden">
         {currentView === 'landing' ? (
           /* ======================================================== */
           /* 1. MÜŞTERİ KARŞILAMA & TANITIM VİTRİNİ SAYFASI           */
@@ -600,20 +602,26 @@ export const App: React.FC = () => {
       </main>
 
       {/* Trust & Guarantee Section (Yalnızca Tadilat Teklif ve Tanıtım Sayfasında Görünür; Mağazada E-Ticaret Güvenceleri Yer Alır) */}
-      {currentView !== 'store' && <CustomerTrustSection content={settings.content} />}
+      {currentView !== 'store' && (
+        <div className="print:hidden">
+          <CustomerTrustSection content={settings.content} />
+        </div>
+      )}
 
       {/* Footer */}
-      <CustomerFooter
-        onNavigateAdmin={navigateToAdmin}
-        onNavigateStore={navigateToStore}
-        onNavigateConfigurator={navigateToConfigurator}
-        onOpenLegal={(tab) => setLegalModalTab(tab)}
-        settings={settings}
-      />
+      <div className="print:hidden">
+        <CustomerFooter
+          onNavigateAdmin={navigateToAdmin}
+          onNavigateStore={navigateToStore}
+          onNavigateConfigurator={navigateToConfigurator}
+          onOpenLegal={(tab) => setLegalModalTab(tab)}
+          settings={settings}
+        />
+      </div>
 
       {/* Floating Bottom Cart Bar */}
       {cart.length > 0 && (
-        <div className="fixed bottom-5 left-4 right-4 max-w-xl mx-auto z-40">
+        <div className="fixed bottom-5 left-4 right-4 max-w-xl mx-auto z-40 print:hidden">
           <div className="p-3.5 sm:p-4 rounded-full bg-[#0A0A0B] text-white shadow-2xl flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 pl-2">
               <div className="w-8 h-8 rounded-full bg-white text-[#0A0A0B] flex items-center justify-center font-bold text-xs">

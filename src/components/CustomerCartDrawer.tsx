@@ -203,9 +203,9 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
               <p className="text-xs text-[#64748B] mt-0.5">
                 {cart.length > 0 
                   ? isStoreMode
-                    ? `${cart.length} Ürün • 81 İl Kargo ile Kapıya Teslim`
+                    ? `${cart.length} Ürün Bulunuyor`
                     : isMaterialOnlyCart 
-                      ? `${cart.length} Kalem • 81 İl Kargo ile Kapıya Teslim (Usta Hariç)`
+                      ? `${cart.length} Kalem Malzeme`
                       : `${cart.length} Kalem • Malzeme + Uzman İşçilik Dahil`
                   : isStoreMode ? 'Sepetiniz henüz boş' : 'Teklif listeniz henüz boş'}
               </p>
@@ -255,41 +255,8 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
                   </div>
                 )}
 
-                {/* Free Shipping Progress Bar */}
-                {isMaterialOnlyCart && (
-                  grandTotal < 3000 ? (
-                    <div className="p-3 rounded-2xl bg-amber-50/80 border border-amber-200 text-xs text-amber-950 space-y-1.5 shadow-xs">
-                      <div className="flex justify-between items-center font-bold text-[11px]">
-                        <span className="flex items-center gap-1.5">
-                          <Truck className="w-3.5 h-3.5 text-amber-700" />
-                          <span>3.000 ₺ Ücretsiz Kargoya Kalan:</span>
-                        </span>
-                        <span className="font-mono text-amber-900 font-black">{(3000 - grandTotal).toLocaleString('tr-TR')} ₺</span>
-                      </div>
-                      <div className="w-full h-1.5 rounded-full bg-amber-200 overflow-hidden">
-                        <div 
-                          className="h-full bg-amber-600 rounded-full transition-all duration-300"
-                          style={{ width: `${Math.min(100, (grandTotal / 3000) * 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="p-2.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 font-bold flex items-center gap-2 shadow-xs">
-                      <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>Tebrikler! Bu siparişinizde <strong>Kargo & Ambar ÜCRETSİZ</strong>.</span>
-                    </div>
-                  )
-                )}
-
-                {/* Guarantee Reminder (Context-aware) */}
-                {isMaterialOnlyCart ? (
-                  <div className="p-3 rounded-2xl bg-blue-50/70 border border-blue-200 flex items-start gap-2.5 shadow-sm text-xs text-blue-900">
-                    <Truck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                    <span>
-                      <strong className="text-blue-950">📦 Kargo & Ambar ile Kapıya Teslim:</strong> Ürünler orijinal ambalajında ve faturalı olarak tüm Türkiye'ye kapınıza sevk edilir.
-                    </span>
-                  </div>
-                ) : (
+                {/* Guarantee Reminder (Only for Turnkey Renovation Mode) */}
+                {!isMaterialOnlyCart && (
                   <div className="p-3 rounded-2xl bg-white border border-[#E8EAED] flex items-start gap-2.5 shadow-sm text-xs text-[#4B5563]">
                     <ShieldCheck className="w-4 h-4 text-[#0A0A0B] shrink-0 mt-0.5" />
                     <span>
@@ -322,7 +289,7 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
                             )}
 
                             <div className="flex-1 pr-6">
-                              <span className="text-[10px] font-bold text-orange-600 uppercase">
+                              <span className="text-[10px] font-bold text-slate-700 uppercase bg-slate-100 px-1.5 py-0.5 rounded">
                                 ÖZEL İSTEK • {item.customData.roomType}
                               </span>
                               <h4 className="text-xs font-bold text-[#0A0A0B] mt-0.5 leading-snug">
@@ -380,7 +347,7 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
                                 </span>
                               )}
                               {isOnSite && (
-                                <span className="text-[9px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-full">
+                                <span className="text-[9px] font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded-full">
                                   Keşifte Canlı Seçim
                                 </span>
                               )}
@@ -480,16 +447,16 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
                   <span className="font-mono text-xl font-black">{grandTotal.toLocaleString('tr-TR')} ₺</span>
                 </div>
                 <div className="text-[10px] text-emerald-700 font-semibold flex items-center justify-end gap-1">
-                  <span>✓ {kdvNotice || 'KDV dahil net tutardır.'}</span>
+                  <span>✓ {isStoreMode || isMaterialOnlyCart ? 'Tüm fiyatlarımıza %20 KDV dahildir.' : (kdvNotice || 'KDV dahil net tutardır.')}</span>
                 </div>
               </div>
 
               {/* Info Badge (Different for Material vs Renovation) */}
               {isStoreMode || isMaterialOnlyCart ? (
-                <div className="p-3 rounded-2xl bg-blue-50 border border-blue-200 text-[11px] text-blue-900 flex items-start gap-2">
-                  <Truck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                <div className="p-3 rounded-2xl bg-[#F8F9FA] border border-[#E8EAED] text-[11px] text-[#4B5563] flex items-start gap-2">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
                   <span>
-                    <strong>81 İl Kargo ile Kapıya Teslim:</strong> Siparişiniz darbelere dayanıklı özel ambalajında ve resmi üretici garantisiyle doğrudan adresinize sevk edilir.
+                    <strong>Orijinal Ürün & Güvenli Teslimat:</strong> Tüm siparişleriniz korumalı ambalajında ve üretici garantili resmi fatura ile sevk edilir.
                   </span>
                 </div>
               ) : (

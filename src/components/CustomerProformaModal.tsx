@@ -54,13 +54,13 @@ export const CustomerProformaModal: React.FC<CustomerProformaModalProps> = ({
   const p3 = settings?.paymentStages?.stage3Percent || 25;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden flex items-center justify-center p-4">
+    <div id="proforma-modal-root" className="fixed inset-0 z-50 overflow-hidden flex items-center justify-center p-4">
       <div
         onClick={onClose}
         className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity print:hidden"
       />
 
-      <div className="relative w-full max-w-4xl bg-white text-[#0A0A0B] rounded-3xl shadow-2xl max-h-[92vh] flex flex-col overflow-hidden print:m-0 print:max-h-none print:shadow-none print:w-full print:rounded-none">
+      <div id="proforma-modal-dialog" className="relative w-full max-w-4xl bg-white text-[#0A0A0B] rounded-3xl shadow-2xl max-h-[92vh] flex flex-col overflow-hidden print:m-0 print:max-h-none print:shadow-none print:w-full print:rounded-none">
         
         {/* Top Action Bar (Screen only) */}
         <div className="p-4 bg-[#0A0A0B] text-white flex items-center justify-between print:hidden">
@@ -90,21 +90,21 @@ export const CustomerProformaModal: React.FC<CustomerProformaModalProps> = ({
         </div>
 
         {/* Paper Canvas */}
-        <div className="flex-1 overflow-y-auto p-8 sm:p-12 space-y-6 text-xs text-slate-800 font-sans print:p-8">
+        <div id="proforma-print-canvas" className="flex-1 overflow-y-auto p-8 sm:p-12 space-y-6 text-xs text-slate-800 font-sans print:p-0 print:space-y-2.5 print:text-[10px] print:overflow-visible">
           
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between border-b-2 border-[#0A0A0B] pb-6 gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between border-b-2 border-[#0A0A0B] pb-6 print:pb-2.5 gap-4 print:gap-2">
             <div>
               <div className="flex items-center gap-1">
-                <span className="font-display font-black text-3xl tracking-tighter text-[#0A0A0B]">
+                <span className="font-display font-black text-3xl print:text-2xl tracking-tighter text-[#0A0A0B]">
                   RVOBA
                 </span>
                 <span className="text-xs font-bold text-[#0A0A0B] -mt-3">®</span>
               </div>
-              <p className="text-xs text-slate-600 font-semibold mt-1">
+              <p className="text-xs print:text-[10px] text-slate-600 font-semibold mt-1 print:mt-0.5">
                 {settings?.companyName || 'RVOBA® Mimarlık ve Yapı Çözümleri A.Ş.'}
               </p>
-              <div className="text-[11px] text-slate-500 mt-1 flex flex-wrap items-center gap-3">
+              <div className="text-[11px] print:text-[9px] text-slate-500 mt-1 print:mt-0.5 flex flex-wrap items-center gap-3 print:gap-2">
                 <span>Destek: <strong className="text-slate-800 font-mono">{settings?.supportPhone || '0544 768 51 37'}</strong></span>
                 <span>•</span>
                 {isPureStoreOrder ? (
@@ -122,12 +122,12 @@ export const CustomerProformaModal: React.FC<CustomerProformaModalProps> = ({
             </div>
 
             <div className="sm:text-right">
-              <span className="inline-block px-3 py-1 rounded-full bg-slate-100 font-mono text-xs font-bold text-slate-900 border border-slate-300">
+              <span className="inline-block px-3 py-1 print:px-2 print:py-0.5 rounded-full bg-slate-100 font-mono text-xs print:text-[9.5px] font-bold text-slate-900 border border-slate-300">
                 PROFORMA NO: {quoteNo}
               </span>
-              <div className="text-[11px] text-slate-500 mt-1.5 font-medium">Tarih: {dateStr}</div>
-              <div className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full mt-1 border border-emerald-200">
-                <Clock className="w-3 h-3" />
+              <div className="text-[11px] print:text-[8.5px] text-slate-500 mt-1.5 print:mt-0.5 font-medium">Tarih: {dateStr}</div>
+              <div className="inline-flex items-center gap-1.5 text-[11px] print:text-[8.5px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full mt-1 border border-emerald-200">
+                <Clock className="w-3 h-3 print:w-2.5 print:h-2.5" />
                 <span>
                   {isPureStoreOrder ? 'Tahmini Kargo Sevk: 2 - 4 İş Günü' : `Teslimat: ${deliveryDays.min} - ${deliveryDays.max} İş Günü`}
                 </span>
@@ -136,25 +136,25 @@ export const CustomerProformaModal: React.FC<CustomerProformaModalProps> = ({
           </div>
 
           {/* Table of Items */}
-          <table className="w-full text-left text-xs border-collapse">
+          <table className="w-full text-left text-xs print:text-[9px] border-collapse">
             <thead>
-              <tr className="border-b border-slate-300 bg-slate-100 text-slate-700 font-bold uppercase text-[10px] tracking-wider">
-                <th className="py-2.5 px-3">#</th>
-                <th className="py-2.5 px-3">Ürün / Malzeme Adı & Kodu</th>
+              <tr className="border-b border-slate-300 bg-slate-100 text-slate-700 font-bold uppercase text-[10px] print:text-[8px] tracking-wider">
+                <th className="py-2.5 px-3 print:py-1 print:px-1.5">#</th>
+                <th className="py-2.5 px-3 print:py-1 print:px-1.5">Ürün / Malzeme Adı & Kodu</th>
                 {isPureStoreOrder ? (
                   <>
-                    <th className="py-2.5 px-3">Kapsam / Paket</th>
-                    <th className="py-2.5 px-3 text-center">Sipariş Miktarı</th>
-                    <th className="py-2.5 px-3 text-right">Birim Fiyat</th>
-                    <th className="py-2.5 px-3 text-right">Toplam Tutar</th>
+                    <th className="py-2.5 px-3 print:py-1 print:px-1.5">Kapsam / Paket</th>
+                    <th className="py-2.5 px-3 print:py-1 print:px-1.5 text-center">Sipariş Miktarı</th>
+                    <th className="py-2.5 px-3 print:py-1 print:px-1.5 text-right">Birim Fiyat</th>
+                    <th className="py-2.5 px-3 print:py-1 print:px-1.5 text-right">Toplam Tutar</th>
                   </>
                 ) : (
                   <>
-                    <th className="py-2.5 px-3">Mekan</th>
-                    <th className="py-2.5 px-3 text-center">Miktar</th>
-                    <th className="py-2.5 px-3 text-right">Malzeme Bedeli</th>
-                    <th className="py-2.5 px-3 text-right">Uygulama & İşçilik</th>
-                    <th className="py-2.5 px-3 text-right">Toplam Tutar</th>
+                    <th className="py-2.5 px-3 print:py-1 print:px-1.5">Mekan</th>
+                    <th className="py-2.5 px-3 print:py-1 print:px-1.5 text-center">Miktar</th>
+                    <th className="py-2.5 px-3 print:py-1 print:px-1.5 text-right">Malzeme Bedeli</th>
+                    <th className="py-2.5 px-3 print:py-1 print:px-1.5 text-right">Uygulama & İşçilik</th>
+                    <th className="py-2.5 px-3 print:py-1 print:px-1.5 text-right">Toplam Tutar</th>
                   </>
                 )}
               </tr>
@@ -164,16 +164,16 @@ export const CustomerProformaModal: React.FC<CustomerProformaModalProps> = ({
                 if (item.isCustom && item.customData) {
                   return (
                     <tr key={item.id} className="bg-slate-50">
-                      <td className="py-2.5 px-3 text-slate-400 font-mono">{idx + 1}</td>
-                      <td className="py-2.5 px-3 font-semibold text-slate-900" colSpan={isPureStoreOrder ? 2 : 2}>
-                        <span className="text-[10px] font-bold text-slate-700 mr-1.5">[ÖZEL İSTEK]</span>
+                      <td className="py-2.5 px-3 print:py-1 print:px-1.5 text-slate-400 font-mono">{idx + 1}</td>
+                      <td className="py-2.5 px-3 print:py-1 print:px-1.5 font-semibold text-slate-900" colSpan={isPureStoreOrder ? 2 : 2}>
+                        <span className="text-[10px] print:text-[8px] font-bold text-slate-700 mr-1.5">[ÖZEL İSTEK]</span>
                         {item.customData.title} ({item.customData.roomType})
-                        <div className="text-[10px] text-slate-500 font-normal italic">
+                        <div className="text-[10px] print:text-[8px] text-slate-500 font-normal italic">
                           "{item.customData.description}"
                         </div>
                       </td>
-                      <td className="py-2.5 px-3 text-center">1 adet</td>
-                      <td className="py-2.5 px-3 text-right" colSpan={isPureStoreOrder ? 2 : 3}>
+                      <td className="py-2.5 px-3 print:py-1 print:px-1.5 text-center">1 adet</td>
+                      <td className="py-2.5 px-3 print:py-1 print:px-1.5 text-right" colSpan={isPureStoreOrder ? 2 : 3}>
                         <span className="text-slate-500 italic">Keşifte netleştirilecek</span>
                       </td>
                     </tr>
@@ -190,25 +190,25 @@ export const CustomerProformaModal: React.FC<CustomerProformaModalProps> = ({
                 if (isPureStoreOrder) {
                   return (
                     <tr key={item.id} className="hover:bg-slate-50/50">
-                      <td className="py-2.5 px-3 text-slate-400 font-mono">{idx + 1}</td>
-                      <td className="py-2.5 px-3 font-semibold text-slate-900">
+                      <td className="py-2.5 px-3 print:py-1 print:px-1.5 text-slate-400 font-mono">{idx + 1}</td>
+                      <td className="py-2.5 px-3 print:py-1 print:px-1.5 font-semibold text-slate-900">
                         <div>
                           {item.product.brand} - {item.product.name}
                         </div>
-                        <div className="text-[9px] text-slate-400 font-mono mt-0.5">
+                        <div className="text-[9px] print:text-[7.5px] text-slate-400 font-mono mt-0.5">
                           Ürün Kodu: {item.product.code}
                         </div>
                       </td>
-                      <td className="py-2.5 px-3 text-slate-600">
+                      <td className="py-2.5 px-3 print:py-1 print:px-1.5 text-slate-600">
                         {item.product.packageInfo || `1 ${item.product.unit}`}
                       </td>
-                      <td className="py-2.5 px-3 text-center font-bold">
+                      <td className="py-2.5 px-3 print:py-1 print:px-1.5 text-center font-bold">
                         {item.quantity} {item.product.unit}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono text-slate-600">
+                      <td className="py-2.5 px-3 print:py-1 print:px-1.5 text-right font-mono text-slate-600">
                         {item.product.materialPrice.toLocaleString('tr-TR')} ₺
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
+                      <td className="py-2.5 px-3 print:py-1 print:px-1.5 text-right font-mono font-bold text-slate-900">
                         {line.toLocaleString('tr-TR')} ₺
                       </td>
                     </tr>
@@ -217,31 +217,31 @@ export const CustomerProformaModal: React.FC<CustomerProformaModalProps> = ({
 
                 return (
                   <tr key={item.id} className="hover:bg-slate-50/50">
-                    <td className="py-2.5 px-3 text-slate-400 font-mono">{idx + 1}</td>
-                    <td className="py-2.5 px-3 font-semibold text-slate-900">
+                    <td className="py-2.5 px-3 print:py-1 print:px-1.5 text-slate-400 font-mono">{idx + 1}</td>
+                    <td className="py-2.5 px-3 print:py-1 print:px-1.5 font-semibold text-slate-900">
                       <div>
                         {item.product.brand} - {item.product.name}
                       </div>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[9px] text-slate-400 font-mono">Kod: {item.product.code}</span>
+                        <span className="text-[9px] print:text-[7.5px] text-slate-400 font-mono">Kod: {item.product.code}</span>
                         {isMaterialOnly && (
-                          <span className="text-[9px] font-bold bg-slate-100 text-slate-800 px-1.5 py-0.2 rounded">
+                          <span className="text-[9px] print:text-[7.5px] font-bold bg-slate-100 text-slate-800 px-1.5 py-0.2 rounded">
                             Sadece Malzeme
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="py-2.5 px-3 text-slate-600">{item.roomType}</td>
-                    <td className="py-2.5 px-3 text-center font-bold">
+                    <td className="py-2.5 px-3 print:py-1 print:px-1.5 text-slate-600">{item.roomType}</td>
+                    <td className="py-2.5 px-3 print:py-1 print:px-1.5 text-center font-bold">
                       {item.quantity} {item.product.unit}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono text-slate-600">
+                    <td className="py-2.5 px-3 print:py-1 print:px-1.5 text-right font-mono text-slate-600">
                       {isLaborOnly ? '0 ₺' : `${(item.product.materialPrice * item.quantity).toLocaleString('tr-TR')} ₺`}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono text-slate-600">
+                    <td className="py-2.5 px-3 print:py-1 print:px-1.5 text-right font-mono text-slate-600">
                       {isMaterialOnly ? '0 ₺' : `${(item.product.workmanshipPrice * item.quantity).toLocaleString('tr-TR')} ₺`}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
+                    <td className="py-2.5 px-3 print:py-1 print:px-1.5 text-right font-mono font-bold text-slate-900">
                       {line.toLocaleString('tr-TR')} ₺
                     </td>
                   </tr>
@@ -251,25 +251,25 @@ export const CustomerProformaModal: React.FC<CustomerProformaModalProps> = ({
           </table>
 
           {/* Subtotals & Grand Total */}
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6 pt-2">
-            <div className="flex-1 space-y-2">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6 print:gap-3 pt-2 print:pt-1">
+            <div className="flex-1 space-y-2 print:space-y-1">
               {/* KDV Statement */}
-              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <div className="p-3 print:p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs print:text-[8.5px] font-semibold flex items-center gap-2 print:gap-1.5">
+                <CheckCircle2 className="w-4 h-4 print:w-3.5 print:h-3.5 text-emerald-600 shrink-0" />
                 <span>
                   {isPureStoreOrder 
                     ? '%100 Orijinal Üretici Bayi Faturalı & KDV Dahil Net Fiyatlar'
                     : (settings?.kdvNotice || 'Fiyatlarımız bireysel müşterilerimiz için anahtar teslim KDV dahil net tutardır.')}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
+              <p className="text-[11px] print:text-[8px] text-slate-500 leading-relaxed print:leading-tight">
                 {isPureStoreOrder 
                   ? '* Belirtilen tutarlar KDV dahil net fatura bedelidir. Siparişiniz doğrudan yetkili üretici bayi deposundan adınıza düzenlenen fatura ile sevk edilir.'
                   : '* Belirtilen bütçe kesinleşmiş sabit sözleşme bütçesidir. Ücretsiz lazer keşifte net metrajlar doğrulanır ve ekstra sürpriz masraf çıkarılmaz.'}
               </p>
             </div>
 
-            <div className="w-full sm:w-80 bg-slate-50 rounded-2xl p-5 border border-slate-200 space-y-2 text-xs shrink-0">
+            <div className="w-full sm:w-80 bg-slate-50 rounded-2xl print:rounded-lg p-5 print:p-2.5 border border-slate-200 space-y-2 print:space-y-1 text-xs print:text-[8.5px] shrink-0">
               <div className="flex justify-between text-slate-600">
                 <span>1. Sınıf Malzeme Toplamı:</span>
                 <span className="font-mono font-bold">{totalMaterial.toLocaleString('tr-TR')} ₺</span>
@@ -293,7 +293,7 @@ export const CustomerProformaModal: React.FC<CustomerProformaModalProps> = ({
                 </div>
               )}
 
-              <div className="pt-2.5 border-t border-slate-300 flex justify-between font-black text-base text-slate-900">
+              <div className="pt-2.5 print:pt-1 border-t border-slate-300 flex justify-between font-black text-base print:text-sm text-slate-900">
                 <span>{isPureStoreOrder ? 'NET SİPARİŞ TUTARI:' : 'NET BÜTÇE:'}</span>
                 <span className="font-mono">{grandTotal.toLocaleString('tr-TR')} ₺</span>
               </div>
@@ -304,143 +304,143 @@ export const CustomerProformaModal: React.FC<CustomerProformaModalProps> = ({
           {/* If Pure Store Order: Render E-Commerce Consumer & Delivery Guarantees */}
           {/* If Turnkey Renovation: Render 3-Stage Progress Payment (Hakediş) Schedule */}
           {isPureStoreOrder ? (
-            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200">
-              <div className="flex items-center justify-between mb-3">
-                <h5 className="font-bold text-slate-900 text-xs flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            <div className="p-5 print:p-2.5 rounded-2xl print:rounded-lg bg-slate-50 border border-slate-200">
+              <div className="flex items-center justify-between mb-3 print:mb-1.5">
+                <h5 className="font-bold text-slate-900 text-xs print:text-[9.5px] flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 print:w-3.5 print:h-3.5 text-emerald-600" />
                   <span>RVOBA® Online Sipariş & Tüketici Güvenceleri</span>
                 </h5>
-                <span className="text-[10px] text-slate-500 font-medium">
+                <span className="text-[10px] print:text-[8px] text-slate-500 font-medium">
                   Tüm siparişler doğrudan kurumsal güvencemiz altındadır.
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
-                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
-                  <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
-                    <CreditCard className="w-3.5 h-3.5 text-slate-700" />
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 print:gap-2 text-xs print:text-[8.5px]">
+                <div className="bg-white p-3.5 print:p-2 rounded-xl border border-slate-200 shadow-sm print:shadow-none">
+                  <div className="font-bold text-slate-900 text-xs print:text-[8.5px] flex items-center gap-1.5">
+                    <CreditCard className="w-3.5 h-3.5 print:w-3 print:h-3 text-slate-700" />
                     <span>12 Taksit İmkanı</span>
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">
+                  <p className="text-[10px] print:text-[7.5px] text-slate-500 mt-1 print:mt-0.5 leading-relaxed print:leading-tight">
                     Tüm kredi kartlarına vade farksız veya uygun vadeli taksit imkanı.
                   </p>
                 </div>
 
-                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
-                  <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
-                    <PackageCheck className="w-3.5 h-3.5 text-emerald-600" />
+                <div className="bg-white p-3.5 print:p-2 rounded-xl border border-slate-200 shadow-sm print:shadow-none">
+                  <div className="font-bold text-slate-900 text-xs print:text-[8.5px] flex items-center gap-1.5">
+                    <PackageCheck className="w-3.5 h-3.5 print:w-3 print:h-3 text-emerald-600" />
                     <span>%100 Orijinal & Faturalı</span>
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">
+                  <p className="text-[10px] print:text-[7.5px] text-slate-500 mt-1 print:mt-0.5 leading-relaxed print:leading-tight">
                     Yetkili bayi garantili, adınıza kesilmiş resmi e-fatura ile teslimat.
                   </p>
                 </div>
 
-                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
-                  <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
-                    <RotateCcw className="w-3.5 h-3.5 text-slate-700" />
+                <div className="bg-white p-3.5 print:p-2 rounded-xl border border-slate-200 shadow-sm print:shadow-none">
+                  <div className="font-bold text-slate-900 text-xs print:text-[8.5px] flex items-center gap-1.5">
+                    <RotateCcw className="w-3.5 h-3.5 print:w-3 print:h-3 text-slate-700" />
                     <span>14 Gün İade Hakkı</span>
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">
+                  <p className="text-[10px] print:text-[7.5px] text-slate-500 mt-1 print:mt-0.5 leading-relaxed print:leading-tight">
                     Açılmamış orijinal ambalajında hasarsız ürünler için yasal iade hakkı.
                   </p>
                 </div>
 
-                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
-                  <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
-                    <Truck className="w-3.5 h-3.5 text-slate-700" />
+                <div className="bg-white p-3.5 print:p-2 rounded-xl border border-slate-200 shadow-sm print:shadow-none">
+                  <div className="font-bold text-slate-900 text-xs print:text-[8.5px] flex items-center gap-1.5">
+                    <Truck className="w-3.5 h-3.5 print:w-3 print:h-3 text-slate-700" />
                     <span>Sigortalı Sevkiyat</span>
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">
+                  <p className="text-[10px] print:text-[7.5px] text-slate-500 mt-1 print:mt-0.5 leading-relaxed print:leading-tight">
                     Kargo ve ambar taşıma sürecindeki tüm hasarlar firmamız sorumluluğundadır.
                   </p>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200">
-              <div className="flex items-center justify-between mb-3">
-                <h5 className="font-bold text-slate-900 text-xs flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+            <div className="p-5 print:p-2.5 rounded-2xl print:rounded-lg bg-slate-50 border border-slate-200">
+              <div className="flex items-center justify-between mb-3 print:mb-1.5">
+                <h5 className="font-bold text-slate-900 text-xs print:text-[9.5px] flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 print:w-3.5 print:h-3.5 text-emerald-600" />
                   <span>3 Aşamalı Korumalı Hakediş Ödeme Planı</span>
                 </h5>
-                <span className="text-[10px] text-slate-500 font-medium">
+                <span className="text-[10px] print:text-[8px] text-slate-500 font-medium">
                   Paranızı iş bitmeden ve onaylamadan riske atmazsınız.
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 print:gap-2 text-xs print:text-[8.5px]">
+                <div className="bg-white p-3.5 print:p-2 rounded-xl border border-slate-200 shadow-sm print:shadow-none">
+                  <div className="text-[10px] print:text-[8px] font-bold uppercase tracking-wider text-slate-500">
                     1. Aşama: %{p1} Peşinat
                   </div>
-                  <div className="font-bold text-slate-900 mt-0.5 text-xs">
+                  <div className="font-bold text-slate-900 mt-0.5 text-xs print:text-[8.5px]">
                     Sözleşme & Malzeme Tedariki
                   </div>
-                  <div className="font-mono font-black text-sm text-slate-900 mt-2">
+                  <div className="font-mono font-black text-sm print:text-xs text-slate-900 mt-1.5 print:mt-0.5">
                     {Math.round(grandTotal * (p1 / 100)).toLocaleString('tr-TR')} ₺
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-1">Sözleşme imzası ve malzemelerin adrese sevkinde.</p>
+                  <p className="text-[10px] print:text-[7.5px] text-slate-500 mt-1 print:mt-0.5 leading-tight">Sözleşme imzası ve malzemelerin adrese sevkinde.</p>
                 </div>
 
-                <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                <div className="bg-white p-3.5 print:p-2 rounded-xl border border-slate-200 shadow-sm print:shadow-none">
+                  <div className="text-[10px] print:text-[8px] font-bold uppercase tracking-wider text-slate-500">
                     2. Aşama: %{p2} Ara Hakediş
                   </div>
-                  <div className="font-bold text-slate-900 mt-0.5 text-xs">
+                  <div className="font-bold text-slate-900 mt-0.5 text-xs print:text-[8.5px]">
                     Uygulama & Kaba Teslim
                   </div>
-                  <div className="font-mono font-black text-sm text-slate-900 mt-2">
+                  <div className="font-mono font-black text-sm print:text-xs text-slate-900 mt-1.5 print:mt-0.5">
                     {Math.round(grandTotal * (p2 / 100)).toLocaleString('tr-TR')} ₺
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-1">Kırım, zemin hazırlığı ve montaj aşamalarında.</p>
+                  <p className="text-[10px] print:text-[7.5px] text-slate-500 mt-1 print:mt-0.5 leading-tight">Kırım, zemin hazırlığı ve montaj aşamalarında.</p>
                 </div>
 
-                <div className="bg-white p-3.5 rounded-xl border-2 border-emerald-300 shadow-sm bg-emerald-50/20">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+                <div className="bg-white p-3.5 print:p-2 rounded-xl border-2 border-emerald-300 shadow-sm print:shadow-none bg-emerald-50/20">
+                  <div className="text-[10px] print:text-[8px] font-bold uppercase tracking-wider text-emerald-700">
                     3. Aşama: %{p3} Mimari Onay
                   </div>
-                  <div className="font-bold text-slate-900 mt-0.5 text-xs">
+                  <div className="font-bold text-slate-900 mt-0.5 text-xs print:text-[8.5px]">
                     Eksiksiz Teslimat & Onayınız
                   </div>
-                  <div className="font-mono font-black text-sm text-emerald-700 mt-2">
+                  <div className="font-mono font-black text-sm print:text-xs text-emerald-700 mt-1.5 print:mt-0.5">
                     {Math.round(grandTotal * (p3 / 100)).toLocaleString('tr-TR')} ₺
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-1">Mimarınızla evi gezip onay verdiğinizde ödenir.</p>
+                  <p className="text-[10px] print:text-[7.5px] text-slate-500 mt-1 print:mt-0.5 leading-tight">Mimarınızla evi gezip onay verdiğinizde ödenir.</p>
                 </div>
               </div>
             </div>
           )}
 
           {/* Official Signatures strip for Print */}
-          <div className="hidden print:grid grid-cols-2 gap-12 pt-8 border-t border-slate-300 mt-8">
-            <div className="text-center space-y-12">
-              <div className="text-xs font-bold text-slate-700">
+          <div className="hidden print:grid grid-cols-2 gap-8 pt-3 border-t border-slate-300 mt-2.5">
+            <div className="text-center space-y-5">
+              <div className="text-xs print:text-[9px] font-bold text-slate-700">
                 {isPureStoreOrder ? 'SİPARİŞ VEREN MÜŞTERİ' : 'MÜŞTERİ ONAYI'}
               </div>
-              <div className="border-b border-slate-300 w-48 mx-auto" />
-              <div className="text-[10px] text-slate-400">İmza / Tarih</div>
+              <div className="border-b border-slate-400 w-36 mx-auto" />
+              <div className="text-[10px] print:text-[8px] text-slate-400">İmza / Tarih</div>
             </div>
-            <div className="text-center space-y-12">
-              <div className="text-xs font-bold text-slate-700">
+            <div className="text-center space-y-5">
+              <div className="text-xs print:text-[9px] font-bold text-slate-700">
                 {isPureStoreOrder ? 'RVOBA® TİCARET & SEVKİYAT ONAYI' : 'RVOBA® MİMARLIK KAŞE & İMZA'}
               </div>
-              <div className="border-b border-slate-300 w-48 mx-auto" />
-              <div className="text-[10px] text-slate-400">
+              <div className="border-b border-slate-400 w-36 mx-auto" />
+              <div className="text-[10px] print:text-[8px] text-slate-400">
                 {isPureStoreOrder ? 'Yetkili Sevk Onayı' : 'Yetkili Mimar Onayı'}
               </div>
             </div>
           </div>
 
           {/* Guarantees Footer */}
-          <div className="border-t border-slate-200 pt-4 text-[11px] text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <div className="border-t border-slate-200 pt-3 print:pt-1 text-[11px] print:text-[8px] text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-1">
             <div>
               <strong>Kurumsal Güvenceler:</strong>{' '}
               {isPureStoreOrder 
                 ? 'Doğrudan Bayi Fiyatı • Orijinal Faturalı Ürün • Güvenli Ödeme • 14 Gün İade' 
                 : 'Tek Kurumsal Muhatap • Toptan Bayi Fiyatı • Sözleşmeli Sabit Bütçe • Mimari Teslim Onayı'}
             </div>
-            <div className="font-mono text-[10px] text-slate-400">
+            <div className="font-mono text-[10px] print:text-[8px] text-slate-400">
               rvoba.com
             </div>
           </div>

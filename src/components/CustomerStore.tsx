@@ -238,7 +238,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
           <div className="max-w-3xl mx-auto text-center">
             
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#0A0A0B] text-white text-[11px] font-semibold mb-4 shadow-sm">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
               <span>{content?.storeBadge || 'RVOBA® 2026 MİMARİ ÜRÜN & MALZEME KOLEKSİYONU'}</span>
             </div>
 
@@ -247,17 +247,17 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
             </h1>
 
             <p className="mt-3 text-xs sm:text-sm text-[#4B5563] leading-relaxed max-w-2xl mx-auto">
-              {content?.storeSubtitle || 'Trend akustik ahşap paneller, poliüretan çıta setleri, 1. sınıf boyalar ve zemin çözümleri doğrudan üretici bayi fiyatıyla Türkiye geneli kapınıza teslim.'}
+              {content?.storeSubtitle || 'Trend akustik ahşap paneller, poliüretan çıta setleri, 1. sınıf boyalar ve zemin çözümleri doğrudan üretici bayi fiyatıyla kapınıza teslim.'}
             </p>
 
             {/* Quick Perks Strip */}
             <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5 text-xs">
               <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-50 text-slate-800 font-semibold border border-slate-200">
-                <Truck className="w-3.5 h-3.5 text-blue-600" />
-                <span>{content?.storePerk1 || '3.000 ₺ Üzeri Ücretsiz Kargo'}</span>
+                <Layers className="w-3.5 h-3.5 text-slate-700" />
+                <span>{content?.storePerk1 || 'Doğrudan Üretici Bayi Fiyatı'}</span>
               </span>
               <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-50 text-slate-800 font-semibold border border-slate-200">
-                <CreditCard className="w-3.5 h-3.5 text-purple-600" />
+                <CreditCard className="w-3.5 h-3.5 text-slate-700" />
                 <span>{content?.storePerk2 || '12 Taksit İmkanı'}</span>
               </span>
               <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-50 text-slate-800 font-semibold border border-slate-200">
@@ -387,14 +387,9 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                 <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
                   <div>
                     <div className="flex items-center justify-between text-[10px] text-[#64748B] mb-1">
-                      <div className="flex items-center gap-1 text-amber-500 font-bold">
-                        <div className="flex items-center">
-                          {[...Array(5)].map((_, i) => (
-                            <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-400" />
-                          ))}
-                        </div>
-                        <span className="text-slate-600 text-[10px] font-mono ml-0.5">4.9</span>
-                      </div>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                        ● Stokta Hazır
+                      </span>
                       <span className="font-mono text-slate-400 text-[10px]">{product.code}</span>
                     </div>
 
@@ -417,16 +412,6 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
 
                   {/* Pricing and Action */}
                   <div className="pt-2 border-t border-[#F1F3F5] space-y-2.5">
-                    <div className="flex items-center justify-between text-[11px] text-slate-600 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-100">
-                      <span className="flex items-center gap-1.5 font-medium text-slate-700">
-                        <Truck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                        <span>81 İl Kargo ile Teslim</span>
-                      </span>
-                      <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
-                        Stokta
-                      </span>
-                    </div>
-
                     <div className="flex items-end justify-between">
                       <div>
                         <div className="flex items-baseline gap-1.5">
@@ -713,16 +698,10 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                   <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
                     
                     <div>
-                      {/* Social proof stars & product code */}
                       <div className="flex items-center justify-between text-[10px] text-[#64748B] mb-1">
-                        <div className="flex items-center gap-1 text-amber-500 font-bold">
-                          <div className="flex items-center">
-                            {[...Array(5)].map((_, i) => (
-                              <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-400" />
-                            ))}
-                          </div>
-                          <span className="text-slate-600 text-[10px] font-mono ml-0.5">4.9 (40+)</span>
-                        </div>
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                          ● Stokta Hazır
+                        </span>
                         <span className="font-mono text-slate-400 text-[10px]">{product.code}</span>
                       </div>
 
@@ -749,17 +728,6 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
 
                     {/* Pricing & Purchase Mode Section */}
                     <div className="pt-2 border-t border-[#F1F3F5] space-y-2.5">
-                      
-                      {/* Shipping & Stock Reassurance Badge */}
-                      <div className="flex items-center justify-between text-[11px] text-slate-600 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-100">
-                        <span className="flex items-center gap-1.5 font-medium text-slate-700">
-                          <Truck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                          <span>81 İl Kargo ile Kapıya Teslim</span>
-                        </span>
-                        <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
-                          Stokta
-                        </span>
-                      </div>
 
                       {/* Price Display */}
                       <div className="flex items-end justify-between">
@@ -960,14 +928,14 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                 </div>
               )}
 
-              {/* Geographic Scope & Guarantee */}
-              <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-blue-900">
+              {/* Delivery & Guarantee */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-800">
                 <div className="flex items-center gap-2 font-semibold">
-                  <Truck className="w-4 h-4 text-blue-600 shrink-0" />
-                  <span>📦 Tüm Türkiye'ye (81 İl) Kargo ile Kapıya Teslim</span>
+                  <Truck className="w-4 h-4 text-slate-700 shrink-0" />
+                  <span>📦 Sigortalı Hızlı Kargo / Ambar Sevkiyatı</span>
                 </div>
-                <div className="text-[11px] text-blue-700 font-semibold flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                <div className="text-[11px] text-emerald-700 font-bold flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                   <span>%100 Orijinal & Üretici Bayi Faturalı</span>
                 </div>
               </div>

@@ -620,8 +620,8 @@ export const App: React.FC = () => {
                 <ShoppingBag className="w-4 h-4" />
               </div>
               <div>
-                <div className="text-[11px] text-slate-300">
-                  {cart.length} {currentView === 'store' ? 'Ürün' : 'Kalem'} • {currentView === 'store' ? 'Kapıya Teslim Kargo' : cart.some(c => !c.isCustom && c.purchaseType !== 'material_only') ? 'Malzeme + İşçilik' : 'Toptan Bayi Ürünleri'}
+                <div className="text-[11px] text-slate-400">
+                  {cart.length} {currentView === 'store' ? 'Ürün Seçildi' : 'Seçili Kalem'}
                 </div>
                 <div className="text-sm font-extrabold font-mono text-white">
                   {cartTotal.toLocaleString('tr-TR')} ₺

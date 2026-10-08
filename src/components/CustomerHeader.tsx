@@ -181,7 +181,7 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
               <span className="font-display font-black text-2xl sm:text-3xl tracking-tighter text-[#0A0A0B] group-hover:opacity-90 transition">
                 RVOBA
               </span>
-              <span className="text-xs font-bold text-[#F1641E] -mt-2">®</span>
+              <span className="text-xs font-bold text-[#0A0A0B] -mt-2">®</span>
             </button>
 
             {/* ☰ Kategoriler Trigger Button */}
@@ -248,13 +248,13 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
                         setIsCategoryMenuOpen(false);
                         onNavigateConfigurator();
                       }}
-                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold bg-amber-50 text-amber-900 hover:bg-amber-100 transition"
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-900 hover:bg-slate-200 transition"
                     >
                       <div className="flex items-center gap-2">
                         <span>🏡</span>
                         <span>Anahtar Teslim Komple Tadilat</span>
                       </div>
-                      <ArrowUpRight className="w-3.5 h-3.5 text-amber-700" />
+                      <ArrowUpRight className="w-3.5 h-3.5 text-slate-600" />
                     </button>
                   </div>
                 </div>
@@ -262,12 +262,12 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
             </div>
           </div>
 
-          {/* Central Wide Search Bar (Etsy Style: Rounded Pill with Orange Circular Button) */}
+          {/* Central Wide Search Bar (Refined Architectural Black Button) */}
           <form 
             onSubmit={handleSearchSubmit}
             className="flex-1 max-w-2xl mx-1 sm:mx-4"
           >
-            <div className="relative flex items-center w-full rounded-full border-2 border-slate-900 bg-white hover:border-black focus-within:border-black focus-within:ring-2 focus-within:ring-orange-500/20 shadow-xs transition-all pl-3 sm:pl-4 pr-1 sm:pr-1.5 py-1">
+            <div className="relative flex items-center w-full rounded-full border-2 border-slate-900 bg-white hover:border-black focus-within:border-black focus-within:ring-2 focus-within:ring-black/10 shadow-xs transition-all pl-3 sm:pl-4 pr-1 sm:pr-1.5 py-1">
               <input
                 type="text"
                 value={searchQuery}
@@ -288,10 +288,10 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
                 </button>
               )}
 
-              {/* Etsy-Style Iconic Orange Circular Search Button */}
+              {/* Architectural Deep Black Circular Search Button */}
               <button
                 type="submit"
-                className="w-8 h-8 sm:w-9 sm:h-9 bg-[#F1641E] hover:bg-[#D9531E] active:scale-95 text-white rounded-full flex items-center justify-center shrink-0 shadow-sm transition-all"
+                className="w-8 h-8 sm:w-9 sm:h-9 bg-[#0A0A0B] hover:bg-slate-800 active:scale-95 text-white rounded-full flex items-center justify-center shrink-0 shadow-sm transition-all"
                 title="Ara"
               >
                 <Search className="w-4 h-4 stroke-[2.5]" />

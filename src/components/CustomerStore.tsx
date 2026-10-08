@@ -24,7 +24,7 @@ import {
   RotateCcw,
   Percent
 } from 'lucide-react';
-import { Product, CartItem, LeadRequest } from '../types';
+import { Product, CartItem, LeadRequest, SiteContentSettings } from '../types';
 
 interface CustomerStoreProps {
   products: Product[];
@@ -35,6 +35,7 @@ interface CustomerStoreProps {
   supportPhone?: string;
   onNavigateConfigurator?: () => void;
   onSaveLead?: (lead: LeadRequest) => void;
+  content?: SiteContentSettings;
 }
 
 // Category visual metadata with high-res architectural photos
@@ -99,6 +100,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
   supportPhone = '0850 123 45 67',
   onNavigateConfigurator,
   onSaveLead,
+  content,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -261,30 +263,30 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
             <div className="max-w-2xl text-center lg:text-left">
               <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#0A0A0B] text-white text-[11px] font-semibold mb-4 shadow-sm">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>RVOBA® 2026 MİMARİ ÜRÜN & MALZEME KOLEKSİYONU</span>
+                <span>{content?.storeBadge || 'RVOBA® 2026 MİMARİ ÜRÜN & MALZEME KOLEKSİYONU'}</span>
               </div>
 
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display font-black tracking-tight text-[#0A0A0B] leading-tight">
-                Evinizin Havasını Değiştiren Tasarım Malzemeleri.
+                {content?.storeTitle || 'Evinizin Havasını Değiştiren Tasarım Malzemeleri.'}
               </h1>
 
               <p className="mt-3 text-xs sm:text-sm text-[#4B5563] leading-relaxed">
-                Trend akustik ahşap TV panelleri, poliüretan duvar çıtaları, 1. sınıf boyalar ve zemin çözümleri doğrudan üretici bayi fiyatıyla kapınıza teslim. İster sadece malzemeyi alın, ister usta montaj hizmetimizi ekleyin.
+                {content?.storeSubtitle || 'Trend akustik ahşap TV panelleri, poliüretan duvar çıtaları, 1. sınıf boyalar ve zemin çözümleri doğrudan üretici bayi fiyatıyla kapınıza teslim. İster sadece malzemeyi alın, ister usta montaj hizmetimizi ekleyin.'}
               </p>
 
               {/* Quick Perks Strip */}
               <div className="mt-5 flex flex-wrap items-center justify-center lg:justify-start gap-2 text-xs">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-800 font-semibold border border-slate-200">
                   <Truck className="w-3.5 h-3.5 text-blue-600" />
-                  <span>3.000 ₺ Üzeri Ücretsiz Kargo</span>
+                  <span>{content?.storePerk1 || '3.000 ₺ Üzeri Ücretsiz Kargo'}</span>
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-800 font-semibold border border-slate-200">
                   <CreditCard className="w-3.5 h-3.5 text-purple-600" />
-                  <span>12 Taksit İmkanı</span>
+                  <span>{content?.storePerk2 || '12 Taksit İmkanı'}</span>
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-800 font-semibold border border-slate-200">
                   <Wrench className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>İsteğe Bağlı Montaj (İst, Ank, İzm)</span>
+                  <span>{content?.storePerk3 || 'İsteğe Bağlı Montaj (İst, Ank, İzm)'}</span>
                 </span>
               </div>
 
@@ -317,26 +319,26 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                 className="group relative rounded-3xl overflow-hidden bg-gradient-to-b from-[#18181B] to-[#0A0A0B] text-white p-6 shadow-xl border border-white/10 cursor-pointer transform hover:-translate-y-1 transition duration-300"
               >
                 <div className="absolute top-4 right-4 bg-rose-500 text-white text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shadow">
-                  🔥 Haftanın Yıldızı
+                  {content?.spotlightBadge || '🔥 Haftanın Yıldızı'}
                 </div>
 
                 <div className="text-[11px] font-mono text-emerald-400 font-semibold uppercase tracking-wider">
-                  RVOBA Atelier Özel Tasarım
+                  {content?.spotlightSub || 'RVOBA Atelier Özel Tasarım'}
                 </div>
 
                 <h3 className="text-lg font-bold text-white mt-1 group-hover:text-emerald-400 transition">
-                  Akustik Ahşap TV Arkası Çıta Paneli
+                  {content?.spotlightTitle || 'Akustik Ahşap TV Arkası Çıta Paneli'}
                 </h3>
 
                 <p className="text-xs text-slate-300 mt-1 line-clamp-2">
-                  Doğal meşe kaplama çıtalar, ses yutan yüksek yoğunluklu siyah akustik keçe.
+                  {content?.spotlightDesc || 'Doğal meşe kaplama çıtalar, ses yutan yüksek yoğunluklu siyah akustik keçe.'}
                 </p>
 
                 <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] text-slate-400 line-through">4.200 ₺</span>
+                    <span className="text-[10px] text-slate-400 line-through">{content?.spotlightOldPrice || '4.200 ₺'}</span>
                     <div className="text-xl font-mono font-black text-white">
-                      2.450 ₺ <span className="text-xs font-normal text-slate-300">/ adet</span>
+                      {content?.spotlightPrice || '2.450 ₺'} <span className="text-xs font-normal text-slate-300">{content?.spotlightUnit || '/ adet'}</span>
                     </div>
                   </div>
 
@@ -468,32 +470,6 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
           </div>
 
         </div>
-
-        {/* Clean Single-Row Category Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none whitespace-nowrap -mx-4 px-4 sm:mx-0 sm:px-0">
-          {[
-            { key: 'all', label: 'Tüm Ürünler' },
-            { key: 'ozel', label: '🪵 Ahşap TV Paneli' },
-            { key: 'alci_tavan', label: '🏛️ Duvar Çıtası' },
-            { key: 'mutfak_banyo', label: '🚿 Banyo & Batarya' },
-            { key: 'boya', label: '🎨 Boya & Astar' },
-            { key: 'parke', label: '📐 Parke & Zemin' },
-            { key: 'elektrik', label: '💡 LED & Elektrik' },
-          ].map((cat) => (
-            <button
-              key={cat.key}
-              type="button"
-              onClick={() => setSelectedCategory(cat.key)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition shrink-0 flex items-center gap-1.5 ${
-                selectedCategory === cat.key
-                  ? 'bg-[#0A0A0B] text-white shadow-sm'
-                  : 'bg-white text-[#4B5563] border border-[#E8EAED] hover:bg-slate-50 hover:text-[#0A0A0B] hover:border-slate-300'
-              }`}
-            >
-              <span>{cat.label}</span>
-            </button>
-          ))}
-        </div>
       </section>
 
       {/* ======================================================== */}
@@ -621,6 +597,14 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                         {product.name}
                       </h3>
 
+                      {product.packageInfo && (
+                        <div className="mt-1">
+                          <span className="inline-flex items-center text-[10px] font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                            📦 {product.packageInfo}
+                          </span>
+                        </div>
+                      )}
+
                       <p className="text-[11px] text-[#64748B] mt-1 line-clamp-2 leading-relaxed">
                         {product.description}
                       </p>
@@ -744,30 +728,6 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                 </div>
               );
             })}
-          </div>
-        )}
-
-        {/* Turnkey Renovation Showcase Banner */}
-        {onNavigateConfigurator && (
-          <div className="mt-16 p-8 sm:p-10 rounded-3xl bg-[#0A0A0B] text-white relative overflow-hidden shadow-xl border border-white/10 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="max-w-xl">
-              <span className="text-[11px] uppercase font-bold tracking-widest text-emerald-400">
-                RVOBA® MİMARLIK & PROJE DİREKTÖRLÜĞÜ
-              </span>
-              <h3 className="text-2xl sm:text-3xl font-display font-extrabold text-white mt-1.5">
-                Evinizi Komple Yenilemek mi İstiyorsunuz?
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-300 mt-2 leading-relaxed">
-                Mimar kadromuz, sözleşmeli sabit bütçe ve 2 yıl resmi garantiyle anahtar teslim daire tadilatı yapıyor. 3 dakikada bütçenizi hesaplayın, ücretsiz lazer keşif isteyin.
-              </p>
-            </div>
-            <button
-              onClick={onNavigateConfigurator}
-              className="btn-pill-black bg-white text-black hover:bg-slate-100 text-xs sm:text-sm px-6 py-3.5 font-bold shadow-lg whitespace-nowrap shrink-0 flex items-center gap-2"
-            >
-              <span>🏡 Komple Tadilat Bütçeni Hesapla</span>
-              <ArrowUpRight className="w-4 h-4" />
-            </button>
           </div>
         )}
 
@@ -928,34 +888,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
       )}
 
       {/* ======================================================== */}
-      {/* 7. FLOATING MOBILE CART PILL                             */}
-      {/* ======================================================== */}
-      {totalCartCount > 0 && (
-        <div className="md:hidden fixed bottom-4 left-4 right-4 z-40 animate-in slide-in-from-bottom duration-300">
-          <button
-            onClick={onOpenCart}
-            className="w-full bg-[#0A0A0B] text-white p-3.5 rounded-2xl shadow-2xl flex items-center justify-between border border-white/20 font-bold text-xs"
-          >
-            <div className="flex items-center gap-2.5">
-              <div className="w-6 h-6 rounded-xl bg-emerald-500 text-black flex items-center justify-center font-black text-xs">
-                {totalCartCount}
-              </div>
-              <span>Sepetinizde Ürün Var</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-emerald-400 font-extrabold text-sm">
-                {totalCartPrice.toLocaleString('tr-TR')} ₺
-              </span>
-              <span className="bg-white/20 px-2 py-1 rounded-lg text-[10px]">
-                Sepeti Gör →
-              </span>
-            </div>
-          </button>
-        </div>
-      )}
-
-      {/* ======================================================== */}
-      {/* 8. FLOATING WHATSAPP CONSULTATION BUBBLE                 */}
+      {/* 7. FLOATING WHATSAPP CONSULTATION BUBBLE                 */}
       {/* ======================================================== */}
       <aside 
         aria-label="Canlı Destek ve Hızlı Sipariş"

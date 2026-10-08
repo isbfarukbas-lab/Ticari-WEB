@@ -4,6 +4,7 @@ import { CustomerLandingPage } from './components/CustomerLandingPage';
 import { CustomerConfigurator } from './components/CustomerConfigurator';
 import { CustomerStore } from './components/CustomerStore';
 import { CustomerCartDrawer } from './components/CustomerCartDrawer';
+import { CustomerCheckoutModal } from './components/CustomerCheckoutModal';
 import { CustomerInspectionModal } from './components/CustomerInspectionModal';
 import { CustomerProformaModal } from './components/CustomerProformaModal';
 import { CustomerCallbackModal } from './components/CustomerCallbackModal';
@@ -21,7 +22,7 @@ import { ShoppingBag, ArrowUpRight, ArrowLeft } from 'lucide-react';
 export const App: React.FC = () => {
   // Navigation view: 'store' (Satış Vitrini & E-Ticaret) | 'configurator' (Komple Tadilat Teklifi) | 'landing' (Kurumsal Tanıtım) | 'admin' (Yönetici)
   const [currentView, setCurrentView] = useState<'landing' | 'configurator' | 'store' | 'admin'>(() => {
-    if (window.location.hash === '#admin') return 'admin';
+    if (window.location.hash === '#admin' || window.location.pathname.endsWith('/admin')) return 'admin';
     if (window.location.hash === '#hesapla' || window.location.hash === '#teklif') return 'configurator';
     if (window.location.hash === '#tanitim') return 'landing';
     return 'store';
@@ -30,7 +31,7 @@ export const App: React.FC = () => {
   // Synchronize hash changes
   useEffect(() => {
     const handleHash = () => {
-      if (window.location.hash === '#admin') {
+      if (window.location.hash === '#admin' || window.location.pathname.endsWith('/admin')) {
         setCurrentView('admin');
       } else if (window.location.hash === '#hesapla' || window.location.hash === '#teklif') {
         setCurrentView('configurator');
@@ -41,7 +42,11 @@ export const App: React.FC = () => {
       }
     };
     window.addEventListener('hashchange', handleHash);
-    return () => window.removeEventListener('hashchange', handleHash);
+    window.addEventListener('popstate', handleHash);
+    return () => {
+      window.removeEventListener('hashchange', handleHash);
+      window.removeEventListener('popstate', handleHash);
+    };
   }, []);
 
   // Products state with localStorage persistence & auto-sync with initial catalog
@@ -168,7 +173,17 @@ export const App: React.FC = () => {
   const [settings, setSettings] = useState<SiteSettings>(() => {
     try {
       const saved = localStorage.getItem('rvoba_settings_v1') || localStorage.getItem('restolab_settings_v5');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          ...INITIAL_SETTINGS,
+          ...parsed,
+          content: {
+            ...INITIAL_SETTINGS.content,
+            ...(parsed.content || {}),
+          },
+        };
+      }
     } catch (e) {
       console.error(e);
     }
@@ -189,6 +204,7 @@ export const App: React.FC = () => {
 
   // Modals
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isInspectionOpen, setIsInspectionOpen] = useState(false);
   const [isProformaOpen, setIsProformaOpen] = useState(false);
   const [isCallbackOpen, setIsCallbackOpen] = useState(false);
@@ -427,9 +443,9 @@ export const App: React.FC = () => {
         onNavigateStore={navigateToStore}
         onOpenCart={() => setIsCartOpen(true)}
         onOpenInspection={() => setIsInspectionOpen(true)}
-        onNavigateAdmin={navigateToAdmin}
         supportPhone={settings.supportPhone}
         phoneNumber={settings.phoneNumber}
+        content={settings.content}
       />
 
       {/* Main View Switcher */}
@@ -443,6 +459,7 @@ export const App: React.FC = () => {
             onOpenInspection={() => setIsInspectionOpen(true)}
             onNavigateStore={navigateToStore}
             projects={settings.beforeAfterProjects}
+            content={settings.content}
           />
         ) : currentView === 'store' ? (
           /* ======================================================== */
@@ -457,6 +474,7 @@ export const App: React.FC = () => {
             onSaveLead={handleSaveLead}
             phoneNumber={settings.phoneNumber}
             supportPhone={settings.supportPhone}
+            content={settings.content}
           />
         ) : (
           /* ======================================================== */
@@ -505,8 +523,8 @@ export const App: React.FC = () => {
         )}
       </main>
 
-      {/* Trust & Guarantee Section */}
-      <CustomerTrustSection />
+      {/* Trust & Guarantee Section (Yalnızca Tadilat Teklif ve Tanıtım Sayfasında Görünür; Mağazada E-Ticaret Güvenceleri Yer Alır) */}
+      {currentView !== 'store' && <CustomerTrustSection content={settings.content} />}
 
       {/* Footer */}
       <CustomerFooter
@@ -564,12 +582,26 @@ export const App: React.FC = () => {
         onClearCart={handleClearCart}
         onOpenInspection={() => setIsInspectionOpen(true)}
         onOpenProforma={() => setIsProformaOpen(true)}
+        onOpenCheckout={() => setIsCheckoutOpen(true)}
         onOpenLegal={(tab) => setLegalModalTab(tab)}
         phoneNumber={settings.phoneNumber}
         selectedCity={selectedCity}
         selectedDistrict={selectedDistrict}
         estimatedDays={{ min: 10, max: 14 }}
         kdvNotice={settings.kdvNotice}
+      />
+
+      {/* Direct Online Checkout Modal */}
+      <CustomerCheckoutModal
+        isOpen={isCheckoutOpen}
+        onClose={() => setIsCheckoutOpen(false)}
+        cart={cart}
+        onOrderCompleted={(order) => {
+          handleSaveLead(order);
+          handleClearCart();
+        }}
+        phoneNumber={settings.phoneNumber}
+        supportPhone={settings.supportPhone}
       />
 
       {/* Free Discovery Modal */}

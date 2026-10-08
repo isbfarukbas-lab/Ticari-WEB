@@ -7,10 +7,13 @@ import {
   Calendar, 
   Printer, 
   ShieldCheck, 
-  TrendingDown,
-  Camera,
-  FileText,
-  Truck
+  TrendingDown, 
+  Camera, 
+  FileText, 
+  Truck,
+  CreditCard,
+  Check,
+  ArrowRight
 } from 'lucide-react';
 import { CartItem } from '../types';
 import { LegalTabKey } from './CustomerLegalModal';
@@ -25,6 +28,7 @@ interface CustomerCartDrawerProps {
   onOpenInspection: () => void;
   onOpenProforma: () => void;
   onOpenLegal?: (tab: LegalTabKey) => void;
+  onOpenCheckout?: () => void;
   phoneNumber?: string;
   selectedCity?: string;
   selectedDistrict?: string;
@@ -42,6 +46,7 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
   onOpenInspection,
   onOpenProforma,
   onOpenLegal,
+  onOpenCheckout,
   phoneNumber = '905550000000',
   selectedCity,
   selectedDistrict,
@@ -231,6 +236,32 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
                       Toptan Bayi
                     </span>
                   </div>
+                )}
+
+                {/* Free Shipping Progress Bar */}
+                {isMaterialOnlyCart && (
+                  grandTotal < 3000 ? (
+                    <div className="p-3 rounded-2xl bg-amber-50/80 border border-amber-200 text-xs text-amber-950 space-y-1.5 shadow-xs">
+                      <div className="flex justify-between items-center font-bold text-[11px]">
+                        <span className="flex items-center gap-1.5">
+                          <Truck className="w-3.5 h-3.5 text-amber-700" />
+                          <span>3.000 ₺ Ücretsiz Kargoya Kalan:</span>
+                        </span>
+                        <span className="font-mono text-amber-900 font-black">{(3000 - grandTotal).toLocaleString('tr-TR')} ₺</span>
+                      </div>
+                      <div className="w-full h-1.5 rounded-full bg-amber-200 overflow-hidden">
+                        <div 
+                          className="h-full bg-amber-600 rounded-full transition-all duration-300"
+                          style={{ width: `${Math.min(100, (grandTotal / 3000) * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-2.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 font-bold flex items-center gap-2 shadow-xs">
+                      <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>Tebrikler! Bu siparişinizde <strong>Kargo & Ambar ÜCRETSİZ</strong>.</span>
+                    </div>
+                  )
                 )}
 
                 {/* Guarantee Reminder (Context-aware) */}
@@ -437,12 +468,26 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
               <div className="space-y-2 pt-1">
                 {isMaterialOnlyCart ? (
                   <>
+                    {onOpenCheckout && (
+                      <button
+                        onClick={() => {
+                          onClose();
+                          onOpenCheckout();
+                        }}
+                        className="w-full btn-pill-black bg-[#0A0A0B] text-white hover:bg-slate-800 justify-center py-3.5 text-xs font-bold shadow-lg flex items-center gap-2"
+                      >
+                        <CreditCard className="w-4 h-4 text-emerald-400" />
+                        <span>Siparişi Tamamla (Adres & Teslimat)</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+
                     <button
                       onClick={handleWhatsApp}
-                      className="w-full btn-pill-black justify-center py-3.5 text-xs shadow-md"
+                      className="w-full btn-pill-outline justify-center py-2.5 text-xs text-slate-700 hover:text-black flex items-center gap-1.5"
                     >
-                      <Send className="w-3.5 h-3.5" />
-                      <span>WhatsApp ile Sipariş Ver (Kargo Adresi İlet)</span>
+                      <Send className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>WhatsApp ile Hızlı Danış & Sipariş Ver</span>
                       <ArrowUpRight className="w-3.5 h-3.5" />
                     </button>
 
@@ -451,10 +496,10 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
                         onClose();
                         onOpenInspection();
                       }}
-                      className="w-full btn-pill-outline justify-center py-2.5 text-xs text-[#4B5563]"
+                      className="w-full text-center text-[11px] text-slate-500 hover:text-black py-1 transition flex items-center justify-center gap-1"
                     >
-                      <Calendar className="w-3.5 h-3.5" />
-                      <span>Bu Ürünler İçin Usta Keşfi de İste</span>
+                      <Calendar className="w-3 h-3 text-slate-400" />
+                      <span>Bu ürünler için montaj ustası randevusu da iste</span>
                     </button>
                   </>
                 ) : (

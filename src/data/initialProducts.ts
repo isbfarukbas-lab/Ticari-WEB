@@ -318,6 +318,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     isActive: true,
     isStoreProduct: true,
     inStock: true,
+    packageInfo: '280x60 cm Boy Panel',
     specs: ['280 cm tavan boyu', '60 cm genişlik', 'Doğal meşe kaplama', 'Ses yutan akustik siyah keçe', 'Vidalı veya yapıştırmalı kolay montaj'],
   },
   {
@@ -335,6 +336,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     isActive: true,
     isStoreProduct: true,
     inStock: true,
+    packageInfo: 'PVD Mat Siyah • 5 Yıl Garanti',
     specs: ['Mat siyah çizilmez PVD gövde', '35mm seramik kartuş', '5.7 lt/dk debi sınırlayıcı', '5 yıl VitrA Türkiye garantisi'],
   },
   {
@@ -352,6 +354,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     isActive: true,
     isStoreProduct: true,
     inStock: true,
+    packageInfo: '40 cm İnce Kenar Çanak',
     specs: ['40 cm çap, 14 cm yükseklik', 'Ultra ince kenar porselen', 'Kolay temizlenen antibakteriyel sır', 'Standart batarya deliği uyumlu'],
   },
   {
@@ -369,6 +372,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     isActive: true,
     isStoreProduct: true,
     inStock: true,
+    packageInfo: '15L Fabrika Kovası (130 m²)',
     specs: ['15 Litre (yaklaşık 20 kg)', '120-140 m² çift kat alan boyar', 'Silikonlu tam silinebilir leke tutmaz', 'İstediğiniz kartela renginde hazırlanır'],
   },
   {
@@ -386,6 +390,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     isActive: true,
     isStoreProduct: true,
     inStock: true,
+    packageInfo: '1 Paket = 1.83 m² (8 Panel)',
     specs: ['1 paket = 1.83 m² (8 panel)', '32. Sınıf AC4 aşınma dayanımı', '4V mikro derzli doğal ahşap dokusu', 'Çizilme ve darbeye ekstra mukavim'],
   },
   {
@@ -403,6 +408,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     isActive: true,
     isStoreProduct: true,
     inStock: true,
+    packageInfo: '12 Çerçeve Hazır Gönyeli Set',
     specs: ['12 adet hazır gönyeli çerçeve kiti', '4 cm genişlik, 2 cm et kalınlığı', 'Darbeye dayanıklı polimer malzeme', '2 tüp montaj yapıştırıcı yapıştırıcı dahil'],
   },
 

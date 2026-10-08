@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowUpRight, Phone, MapPin, Sparkles } from 'lucide-react';
+import { ArrowUpRight, Phone, MapPin, Sparkles, Lock } from 'lucide-react';
 import { SiteSettings } from '../types';
 import { LegalTabKey } from './CustomerLegalModal';
 
@@ -103,7 +103,19 @@ export const CustomerFooter: React.FC<CustomerFooterProps> = ({
         )}
 
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-[#94A3B8]">
-          <p>© {new Date().getFullYear()} {settings?.companyName || 'RVOBA® Mimarlık ve Yapı Sistemleri'}. Tüm hakları saklıdır (rvoba.com).</p>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span>© {new Date().getFullYear()} {settings?.companyName || 'RVOBA® Mimarlık ve Yapı Sistemleri'}. Tüm hakları saklıdır (rvoba.com).</span>
+            {onNavigateAdmin && (
+              <button 
+                onClick={onNavigateAdmin}
+                className="text-slate-300 hover:text-slate-600 transition p-0.5 rounded opacity-60 hover:opacity-100" 
+                title="Yetkili Yönetici Girişi"
+                aria-label="Yetkili Yönetici Girişi"
+              >
+                <Lock className="w-3 h-3" />
+              </button>
+            )}
+          </div>
           <div className="flex items-center gap-4 flex-wrap">
             <span>Tek Kurumsal Muhatap</span>
             <span>•</span>

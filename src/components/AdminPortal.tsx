@@ -31,7 +31,10 @@ import {
   ArrowRight,
   ShoppingBag,
   Lock,
-  LogOut
+  LogOut,
+  AlertTriangle,
+  Globe,
+  ShieldCheck
 } from 'lucide-react';
 import { 
   CategoryKey, 
@@ -40,8 +43,10 @@ import {
   CategoryInfo, 
   SiteSettings, 
   BeforeAfterProject,
-  ServiceArea 
+  ServiceArea,
+  SiteContentSettings 
 } from '../types';
+import { INITIAL_SETTINGS } from '../data/initialSettings';
 
 interface AdminPortalProps {
   categories: CategoryInfo[];
@@ -90,7 +95,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 }) => {
   // Active Admin Module Tab
   const [adminTab, setAdminTab] = useState<
-    'products' | 'labor_rates' | 'durations' | 'areas' | 'gallery' | 'leads' | 'settings'
+    'products' | 'cms' | 'labor_rates' | 'durations' | 'areas' | 'gallery' | 'leads' | 'settings'
   >('products');
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -98,6 +103,38 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  // ==========================================
+  // TAB CMS: SAYFA METİNLERİ & VİTRİN STATE
+  // ==========================================
+  const [localContent, setLocalContent] = useState<SiteContentSettings>(() => {
+    return {
+      ...(INITIAL_SETTINGS.content || {}),
+      ...(settings.content || {}),
+    } as SiteContentSettings;
+  });
+
+  const handleSaveContent = () => {
+    const updated: SiteSettings = {
+      ...settings,
+      content: localContent,
+    };
+    onUpdateSettings(updated);
+    showToast('Sayfa metinleri ve vitrin ayarları başarıyla kaydedildi. Canlı site güncellendi!');
+  };
+
+  const handleResetContent = () => {
+    if (confirm('Tüm sayfa metinlerini ve vitrin içeriklerini varsayılan fabrika ayarlarına sıfırlamak istediğinize emin misiniz?')) {
+      if (INITIAL_SETTINGS.content) {
+        setLocalContent(INITIAL_SETTINGS.content);
+        onUpdateSettings({
+          ...settings,
+          content: INITIAL_SETTINGS.content,
+        });
+        showToast('Sayfa metinleri varsayılana sıfırlandı.');
+      }
+    }
   };
 
   // ==========================================
@@ -554,132 +591,147 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       )}
 
       {/* Top Header */}
-      <header className="bg-white border-b border-[#E8EAED] sticky top-0 z-30 px-6 py-4 flex items-center justify-between">
+      <header className="bg-[#0A0A0B] text-white border-b border-white/10 sticky top-0 z-30 px-6 py-3.5 flex items-center justify-between shadow-lg">
         <div className="flex items-center gap-4">
           <button
             onClick={onNavigateCustomer}
-            className="btn-pill-outline text-xs py-2 px-4 flex items-center gap-2"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-300 hover:text-white transition px-3.5 py-1.5 rounded-full border border-white/20 hover:border-white bg-white/5"
+            title="Müşterilerin gördüğü canlı web sitesini aç"
           >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Müşteri Sitesine Dön</span>
+            <Globe className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Canlı Siteyi Gör</span>
           </button>
-          <div>
-            <span className="font-display font-black text-lg tracking-tight">RVOBA®</span>
-            <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded-full bg-black text-white">YÖNETİM PANELİ</span>
+          
+          <div className="flex items-center gap-2">
+            <span className="font-display font-black text-lg tracking-tight text-white">RVOBA®</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono">
+              YÖNETİM & BACKOFFICE
+            </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-[#64748B] hidden sm:inline">
-            Aktif Kartela: <strong>{products.length}</strong> | Gelen Talep: <strong>{leads.length}</strong>
-          </span>
-          <button
-            onClick={onResetDefaults}
-            className="text-xs font-semibold text-rose-600 hover:text-rose-700 transition flex items-center gap-1.5"
-            title="Varsayılan Fabrika Ayarlarına Dön"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Varsayılana Sıfırla</span>
-          </button>
+        <div className="flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-3 text-xs text-slate-400 border-r border-white/10 pr-4">
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Güvenli Oturum</span>
+            </span>
+            <span>•</span>
+            <span>Ürün: <strong className="text-white">{products.length}</strong></span>
+            <span>•</span>
+            <span>CRM: <strong className="text-white">{leads.length}</strong></span>
+          </div>
 
           {onLogout && (
             <button
               onClick={onLogout}
-              className="text-xs font-bold text-slate-700 hover:text-black transition flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200 hover:border-black bg-white shadow-xs"
+              className="text-xs font-bold text-rose-300 hover:text-white hover:bg-rose-600 transition flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-rose-500/30 hover:border-rose-600 bg-rose-500/10 shadow-sm"
               title="Yönetim Panelinden Güvenli Çıkış Yap"
             >
-              <LogOut className="w-3.5 h-3.5 text-rose-600" />
+              <LogOut className="w-3.5 h-3.5" />
               <span>Güvenli Çıkış</span>
             </button>
           )}
         </div>
       </header>
 
-      {/* Navigation Sub-bar (6 Modules) */}
-      <div className="bg-white border-b border-[#E8EAED] px-6 py-2 overflow-x-auto scrollbar-none">
+      {/* Navigation Sub-bar */}
+      <div className="bg-white border-b border-[#E8EAED] px-6 py-2.5 overflow-x-auto scrollbar-none shadow-xs sticky top-[57px] z-20">
         <div className="flex items-center gap-2 max-w-7xl mx-auto min-w-max">
           <button
             onClick={() => setAdminTab('products')}
-            className={`px-4 py-2 rounded-full text-xs font-bold transition flex items-center gap-2 ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-2 ${
               adminTab === 'products'
                 ? 'bg-[#0A0A0B] text-white shadow-sm'
                 : 'text-[#4B5563] hover:bg-[#F1F3F5] hover:text-[#0A0A0B]'
             }`}
           >
-            <Layers className="w-4 h-4" />
-            <span>1. Ürün & Kartela ({products.length})</span>
+            <Layers className="w-3.5 h-3.5" />
+            <span>1. Ürün Kataloğu ({products.length})</span>
           </button>
 
           <button
-            onClick={() => setAdminTab('labor_rates')}
-            className={`px-4 py-2 rounded-full text-xs font-bold transition flex items-center gap-2 ${
-              adminTab === 'labor_rates'
+            onClick={() => setAdminTab('cms')}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-2 ${
+              adminTab === 'cms'
                 ? 'bg-[#0A0A0B] text-white shadow-sm'
                 : 'text-[#4B5563] hover:bg-[#F1F3F5] hover:text-[#0A0A0B]'
             }`}
           >
-            <Wrench className="w-4 h-4" />
-            <span>2. Taban İşçilik Fiyatları</span>
-          </button>
-
-          <button
-            onClick={() => setAdminTab('durations')}
-            className={`px-4 py-2 rounded-full text-xs font-bold transition flex items-center gap-2 ${
-              adminTab === 'durations'
-                ? 'bg-[#0A0A0B] text-white shadow-sm'
-                : 'text-[#4B5563] hover:bg-[#F1F3F5] hover:text-[#0A0A0B]'
-            }`}
-          >
-            <Clock className="w-4 h-4" />
-            <span>3. Teslimat Süreleri</span>
-          </button>
-
-          <button
-            onClick={() => setAdminTab('areas')}
-            className={`px-4 py-2 rounded-full text-xs font-bold transition flex items-center gap-2 ${
-              adminTab === 'areas'
-                ? 'bg-[#0A0A0B] text-white shadow-sm'
-                : 'text-[#4B5563] hover:bg-[#F1F3F5] hover:text-[#0A0A0B]'
-            }`}
-          >
-            <MapPin className="w-4 h-4" />
-            <span>4. Hizmet Bölgeleri ({localServiceAreas.length})</span>
-          </button>
-
-          <button
-            onClick={() => setAdminTab('gallery')}
-            className={`px-4 py-2 rounded-full text-xs font-bold transition flex items-center gap-2 ${
-              adminTab === 'gallery'
-                ? 'bg-[#0A0A0B] text-white shadow-sm'
-                : 'text-[#4B5563] hover:bg-[#F1F3F5] hover:text-[#0A0A0B]'
-            }`}
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>5. Öncesi / Sonrası ({localProjects.length})</span>
+            <Edit3 className="w-3.5 h-3.5 text-amber-500" />
+            <span>2. Sayfa Metinleri & Vitrin (CMS)</span>
           </button>
 
           <button
             onClick={() => setAdminTab('leads')}
-            className={`px-4 py-2 rounded-full text-xs font-bold transition flex items-center gap-2 ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-2 ${
               adminTab === 'leads'
                 ? 'bg-[#0A0A0B] text-white shadow-sm'
                 : 'text-[#4B5563] hover:bg-[#F1F3F5] hover:text-[#0A0A0B]'
             }`}
           >
-            <Inbox className="w-4 h-4" />
-            <span>6. Gelen Talepler & CRM ({leads.length})</span>
+            <Inbox className="w-3.5 h-3.5 text-blue-500" />
+            <span>3. Talepler & CRM ({leads.length})</span>
+          </button>
+
+          <button
+            onClick={() => setAdminTab('labor_rates')}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-2 ${
+              adminTab === 'labor_rates'
+                ? 'bg-[#0A0A0B] text-white shadow-sm'
+                : 'text-[#4B5563] hover:bg-[#F1F3F5] hover:text-[#0A0A0B]'
+            }`}
+          >
+            <Wrench className="w-3.5 h-3.5" />
+            <span>4. Taban İşçilik</span>
+          </button>
+
+          <button
+            onClick={() => setAdminTab('durations')}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-2 ${
+              adminTab === 'durations'
+                ? 'bg-[#0A0A0B] text-white shadow-sm'
+                : 'text-[#4B5563] hover:bg-[#F1F3F5] hover:text-[#0A0A0B]'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5" />
+            <span>5. Teslimat Süreleri</span>
+          </button>
+
+          <button
+            onClick={() => setAdminTab('areas')}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-2 ${
+              adminTab === 'areas'
+                ? 'bg-[#0A0A0B] text-white shadow-sm'
+                : 'text-[#4B5563] hover:bg-[#F1F3F5] hover:text-[#0A0A0B]'
+            }`}
+          >
+            <MapPin className="w-3.5 h-3.5" />
+            <span>6. Bölgeler ({localServiceAreas.length})</span>
+          </button>
+
+          <button
+            onClick={() => setAdminTab('gallery')}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-2 ${
+              adminTab === 'gallery'
+                ? 'bg-[#0A0A0B] text-white shadow-sm'
+                : 'text-[#4B5563] hover:bg-[#F1F3F5] hover:text-[#0A0A0B]'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>7. Öncesi / Sonrası ({localProjects.length})</span>
           </button>
 
           <button
             onClick={() => setAdminTab('settings')}
-            className={`px-4 py-2 rounded-full text-xs font-bold transition flex items-center gap-2 ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-2 ${
               adminTab === 'settings'
                 ? 'bg-[#0A0A0B] text-white shadow-sm'
                 : 'text-[#4B5563] hover:bg-[#F1F3F5] hover:text-[#0A0A0B]'
             }`}
           >
-            <SettingsIcon className="w-4 h-4" />
-            <span>7. Genel & WhatsApp</span>
+            <SettingsIcon className="w-3.5 h-3.5" />
+            <span>8. Sistem & Güvenlik</span>
           </button>
         </div>
       </div>
@@ -946,7 +998,574 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         )}
 
         {/* ======================================================== */}
-        {/* MODÜL 2: TABAN İŞÇİLİK FİYATLARI ("Elimde Malzeme Var")   */}
+        {/* MODÜL 2: SAYFA İÇERİKLERİ & VİTRİN YÖNETİMİ (CMS)       */}
+        {/* ======================================================== */}
+        {adminTab === 'cms' && (
+          <div className="space-y-6">
+            
+            {/* Top Toolbar */}
+            <div className="bg-white border border-[#E8EAED] rounded-3xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm sticky top-[105px] z-10 backdrop-blur-md bg-white/95">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-[11px] font-bold border border-emerald-200 mb-1">
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Canlı Siteyle %100 Senkronize CMS</span>
+                </div>
+                <h2 className="text-xl font-display font-extrabold text-[#0A0A0B]">
+                  Sayfa Metinleri & Vitrin Yönetimi (CMS)
+                </h2>
+                <p className="text-xs text-[#64748B] mt-0.5">
+                  Müşterinin sitede gördüğü tüm başlıkları, sloganları, güvence maddelerini ve vitrin kartlarını buradan anında değiştirin.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleResetContent}
+                  className="btn-pill-outline text-xs py-2 px-4 border-slate-300 hover:border-slate-400 text-slate-600 flex items-center gap-1.5"
+                  title="Metinleri varsayılan fabrika ayarlarına döndür"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Varsayılana Döndür</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveContent}
+                  className="btn-pill-black bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-2.5 px-5 font-bold shadow-md flex items-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Değişiklikleri Canlı Siteye Kaydet</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 1. BÖLÜM: HERO / KARŞILAMA VE MANŞET */}
+            <div className="bg-white border border-[#E8EAED] rounded-3xl p-6 shadow-sm space-y-4">
+              <div className="border-b border-[#E8EAED] pb-3 flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-[#0A0A0B] flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-500" />
+                    <span>1. Ana Sayfa Manşeti & Hero Bölümü</span>
+                  </h3>
+                  <p className="text-xs text-[#64748B] mt-0.5">
+                    Müşteri siteye girdiğinde ilk gördüğü büyük manşet, rozet ve açıklama metni.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#4B5563] mb-1">
+                    Hero Üst Rozet Metni
+                  </label>
+                  <input
+                    type="text"
+                    value={localContent.heroBadge || ''}
+                    onChange={(e) => setLocalContent(prev => ({ ...prev, heroBadge: e.target.value }))}
+                    className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-2xl px-4 py-2.5 text-xs text-[#0A0A0B] focus:outline-none focus:border-black font-medium"
+                    placeholder="Piyasadan %20-30 Daha Uygun Bayi Fiyatı & 81 İl Kargo"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#4B5563] mb-1">
+                    Ana Manşet Başlığı (H1)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={localContent.heroTitle || ''}
+                    onChange={(e) => setLocalContent(prev => ({ ...prev, heroTitle: e.target.value }))}
+                    className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-2xl p-3 text-xs text-[#0A0A0B] focus:outline-none focus:border-black font-semibold resize-none"
+                    placeholder="İster Anahtar Teslim Mimari Tadilat, İster Fabrika Bayi Fiyatıyla Tasarım Malzemeleri."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#4B5563] mb-1">
+                    Alt Açıklama Metni (Paragraf)
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={localContent.heroSubtitle || ''}
+                    onChange={(e) => setLocalContent(prev => ({ ...prev, heroSubtitle: e.target.value }))}
+                    className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-2xl p-3 text-xs text-[#0A0A0B] focus:outline-none focus:border-black resize-none"
+                    placeholder="Usta stresi ve aracı komisyonu olmadan evinizi yenileyin..."
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 2. BÖLÜM: İKİ HİZMET GİRİŞ KAPISI (KARTLAR) */}
+            <div className="bg-white border border-[#E8EAED] rounded-3xl p-6 shadow-sm space-y-4">
+              <div className="border-b border-[#E8EAED] pb-3">
+                <h3 className="text-sm font-bold text-[#0A0A0B] flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-emerald-600" />
+                  <span>2. Ana Sayfadaki İki Giriş Kapısı (Tadilat & Mağaza Kartları)</span>
+                </h3>
+                <p className="text-xs text-[#64748B] mt-0.5">
+                  Müşteriyi "Tadilat Hesapla" veya "Doğrudan Malzeme Satın Al" yönlendiren iki ana interaktif kart.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* Kapı 1: Tadilat Kartı */}
+                <div className="p-5 rounded-2xl bg-[#0A0A0B] text-white border border-white/10 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-emerald-400">🏡 Kapı 1: Tadilat & Mimarlık</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-300 mb-1">Kart Rozeti</label>
+                    <input
+                      type="text"
+                      value={localContent.cardRenovationBadge || ''}
+                      onChange={(e) => setLocalContent(prev => ({ ...prev, cardRenovationBadge: e.target.value }))}
+                      className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-300 mb-1">Kart Başlığı</label>
+                    <input
+                      type="text"
+                      value={localContent.cardRenovationTitle || ''}
+                      onChange={(e) => setLocalContent(prev => ({ ...prev, cardRenovationTitle: e.target.value }))}
+                      className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-300 mb-1">Açıklama</label>
+                    <textarea
+                      rows={2}
+                      value={localContent.cardRenovationDesc || ''}
+                      onChange={(e) => setLocalContent(prev => ({ ...prev, cardRenovationDesc: e.target.value }))}
+                      className="w-full bg-white/10 border border-white/20 rounded-xl p-2 text-xs text-slate-200 focus:outline-none resize-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1">Hizmet Kapsamı Notu</label>
+                      <input
+                        type="text"
+                        value={localContent.cardRenovationNote || ''}
+                        onChange={(e) => setLocalContent(prev => ({ ...prev, cardRenovationNote: e.target.value }))}
+                        className="w-full bg-white/10 border border-white/20 rounded-xl px-2.5 py-1.5 text-xs text-emerald-400 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1">Buton Metni</label>
+                      <input
+                        type="text"
+                        value={localContent.cardRenovationBtnText || ''}
+                        onChange={(e) => setLocalContent(prev => ({ ...prev, cardRenovationBtnText: e.target.value }))}
+                        className="w-full bg-white/10 border border-white/20 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Kapı 2: Mağaza Kartı */}
+                <div className="p-5 rounded-2xl bg-[#F8F9FA] border border-[#CBD5E1] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-amber-800">📦 Kapı 2: Malzeme Mağazası (Kargo)</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#4B5563] mb-1">Kart Rozeti</label>
+                    <input
+                      type="text"
+                      value={localContent.cardStoreBadge || ''}
+                      onChange={(e) => setLocalContent(prev => ({ ...prev, cardStoreBadge: e.target.value }))}
+                      className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-[#0A0A0B] focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#4B5563] mb-1">Kart Başlığı</label>
+                    <input
+                      type="text"
+                      value={localContent.cardStoreTitle || ''}
+                      onChange={(e) => setLocalContent(prev => ({ ...prev, cardStoreTitle: e.target.value }))}
+                      className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-[#0A0A0B] font-bold focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#4B5563] mb-1">Açıklama</label>
+                    <textarea
+                      rows={2}
+                      value={localContent.cardStoreDesc || ''}
+                      onChange={(e) => setLocalContent(prev => ({ ...prev, cardStoreDesc: e.target.value }))}
+                      className="w-full bg-white border border-[#CBD5E1] rounded-xl p-2 text-xs text-[#4B5563] focus:outline-none resize-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-bold text-[#64748B] mb-1">Teslimat Notu</label>
+                      <input
+                        type="text"
+                        value={localContent.cardStoreNote || ''}
+                        onChange={(e) => setLocalContent(prev => ({ ...prev, cardStoreNote: e.target.value }))}
+                        className="w-full bg-white border border-[#CBD5E1] rounded-xl px-2.5 py-1.5 text-xs text-amber-700 font-medium focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-[#64748B] mb-1">Buton Metni</label>
+                      <input
+                        type="text"
+                        value={localContent.cardStoreBtnText || ''}
+                        onChange={(e) => setLocalContent(prev => ({ ...prev, cardStoreBtnText: e.target.value }))}
+                        className="w-full bg-white border border-[#CBD5E1] rounded-xl px-2.5 py-1.5 text-xs text-[#0A0A0B] font-semibold focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* 3. BÖLÜM: "NEDEN RVOBA?" GÜVENCE MODELİ & 3 SÜTUN */}
+            <div className="bg-white border border-[#E8EAED] rounded-3xl p-6 shadow-sm space-y-4">
+              <div className="border-b border-[#E8EAED] pb-3">
+                <h3 className="text-sm font-bold text-[#0A0A0B] flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                  <span>3. "Neden RVOBA?" Güvence Modeli & Slogan</span>
+                </h3>
+                <p className="text-xs text-[#64748B] mt-0.5">
+                  Her sayfanın altında yer alan kurumsal güvence başlığı, sloganı ve 3 ana taahhüt kartı.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#4B5563] mb-1">Üst Küçük Rozet</label>
+                  <input
+                    type="text"
+                    value={localContent.trustBadge || ''}
+                    onChange={(e) => setLocalContent(prev => ({ ...prev, trustBadge: e.target.value }))}
+                    className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-[#0A0A0B] focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#4B5563] mb-1">Ana Slogan Başlığı</label>
+                  <input
+                    type="text"
+                    value={localContent.trustTitle || ''}
+                    onChange={(e) => setLocalContent(prev => ({ ...prev, trustTitle: e.target.value }))}
+                    className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-[#0A0A0B] font-bold focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#4B5563] mb-1">Slogan Alt Açıklaması</label>
+                <textarea
+                  rows={2}
+                  value={localContent.trustSubtitle || ''}
+                  onChange={(e) => setLocalContent(prev => ({ ...prev, trustSubtitle: e.target.value }))}
+                  className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-xl p-2.5 text-xs text-[#0A0A0B] focus:outline-none resize-none"
+                />
+              </div>
+
+              {/* 3 Sütun */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                {/* Sütun 1 */}
+                <div className="p-4 rounded-2xl bg-[#F8F9FA] border border-[#E8EAED] space-y-2">
+                  <span className="text-[11px] font-bold text-slate-500 block">Sütun 01</span>
+                  <input
+                    type="text"
+                    value={localContent.pillar1Title || ''}
+                    onChange={(e) => setLocalContent(prev => ({ ...prev, pillar1Title: e.target.value }))}
+                    className="w-full bg-white border border-[#CBD5E1] rounded-lg px-2.5 py-1.5 text-xs font-bold text-[#0A0A0B] focus:outline-none"
+                    placeholder="Sütun Başlığı"
+                  />
+                  <textarea
+                    rows={3}
+                    value={localContent.pillar1Desc || ''}
+                    onChange={(e) => setLocalContent(prev => ({ ...prev, pillar1Desc: e.target.value }))}
+                    className="w-full bg-white border border-[#CBD5E1] rounded-lg p-2 text-[11px] text-[#4B5563] focus:outline-none resize-none"
+                    placeholder="Açıklama"
+                  />
+                  <input
+                    type="text"
+                    value={localContent.pillar1Note || ''}
+                    onChange={(e) => setLocalContent(prev => ({ ...prev, pillar1Note: e.target.value }))}
+                    className="w-full bg-white border border-[#CBD5E1] rounded-lg px-2.5 py-1 text-[11px] text-emerald-700 font-semibold focus:outline-none"
+                    placeholder="Alt Onay Metni"
+                  />
+                </div>
+
+                {/* Sütun 2 */}
+                <div className="p-4 rounded-2xl bg-[#F8F9FA] border border-[#E8EAED] space-y-2">
+                  <span className="text-[11px] font-bold text-slate-500 block">Sütun 02</span>
+                  <input
+                    type="text"
+                    value={localContent.pillar2Title || ''}
+                    onChange={(e) => setLocalContent(prev => ({ ...prev, pillar2Title: e.target.value }))}
+                    className="w-full bg-white border border-[#CBD5E1] rounded-lg px-2.5 py-1.5 text-xs font-bold text-[#0A0A0B] focus:outline-none"
+                    placeholder="Sütun Başlığı"
+                  />
+                  <textarea
+                    rows={3}
+                    value={localContent.pillar2Desc || ''}
+                    onChange={(e) => setLocalContent(prev => ({ ...prev, pillar2Desc: e.target.value }))}
+                    className="w-full bg-white border border-[#CBD5E1] rounded-lg p-2 text-[11px] text-[#4B5563] focus:outline-none resize-none"
+                    placeholder="Açıklama"
+                  />
+                  <input
+                    type="text"
+                    value={localContent.pillar2Note || ''}
+                    onChange={(e) => setLocalContent(prev => ({ ...prev, pillar2Note: e.target.value }))}
+                    className="w-full bg-white border border-[#CBD5E1] rounded-lg px-2.5 py-1 text-[11px] text-emerald-700 font-semibold focus:outline-none"
+                    placeholder="Alt Onay Metni"
+                  />
+                </div>
+
+                {/* Sütun 3 */}
+                <div className="p-4 rounded-2xl bg-[#F8F9FA] border border-[#E8EAED] space-y-2">
+                  <span className="text-[11px] font-bold text-slate-500 block">Sütun 03</span>
+                  <input
+                    type="text"
+                    value={localContent.pillar3Title || ''}
+                    onChange={(e) => setLocalContent(prev => ({ ...prev, pillar3Title: e.target.value }))}
+                    className="w-full bg-white border border-[#CBD5E1] rounded-lg px-2.5 py-1.5 text-xs font-bold text-[#0A0A0B] focus:outline-none"
+                    placeholder="Sütun Başlığı"
+                  />
+                  <textarea
+                    rows={3}
+                    value={localContent.pillar3Desc || ''}
+                    onChange={(e) => setLocalContent(prev => ({ ...prev, pillar3Desc: e.target.value }))}
+                    className="w-full bg-white border border-[#CBD5E1] rounded-lg p-2 text-[11px] text-[#4B5563] focus:outline-none resize-none"
+                    placeholder="Açıklama"
+                  />
+                  <input
+                    type="text"
+                    value={localContent.pillar3Note || ''}
+                    onChange={(e) => setLocalContent(prev => ({ ...prev, pillar3Note: e.target.value }))}
+                    className="w-full bg-white border border-[#CBD5E1] rounded-lg px-2.5 py-1 text-[11px] text-emerald-700 font-semibold focus:outline-none"
+                    placeholder="Alt Onay Metni"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 4. BÖLÜM: MAĞAZA (STORE) VE VİTRİN KUTUSU */}
+            <div className="bg-white border border-[#E8EAED] rounded-3xl p-6 shadow-sm space-y-4">
+              <div className="border-b border-[#E8EAED] pb-3">
+                <h3 className="text-sm font-bold text-[#0A0A0B] flex items-center gap-2">
+                  <ShoppingBag className="w-4 h-4 text-emerald-600" />
+                  <span>4. Mağaza (Store) Başlıkları & "Haftanın Yıldızı" Vitrini</span>
+                </h3>
+                <p className="text-xs text-[#64748B] mt-0.5">
+                  Ürün mağazasının en üstünde yer alan karşılama bannerı, kargo/taksit rozetleri ve sağdaki vitrin ürünü.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#4B5563] mb-1">Mağaza Banner Rozeti</label>
+                  <input
+                    type="text"
+                    value={localContent.storeBadge || ''}
+                    onChange={(e) => setLocalContent(prev => ({ ...prev, storeBadge: e.target.value }))}
+                    className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-[#0A0A0B] focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#4B5563] mb-1">Mağaza Ana Başlığı</label>
+                  <input
+                    type="text"
+                    value={localContent.storeTitle || ''}
+                    onChange={(e) => setLocalContent(prev => ({ ...prev, storeTitle: e.target.value }))}
+                    className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-[#0A0A0B] font-bold focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#4B5563] mb-1">Mağaza Açıklama Metni</label>
+                <textarea
+                  rows={2}
+                  value={localContent.storeSubtitle || ''}
+                  onChange={(e) => setLocalContent(prev => ({ ...prev, storeSubtitle: e.target.value }))}
+                  className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-xl p-2.5 text-xs text-[#0A0A0B] focus:outline-none resize-none"
+                />
+              </div>
+
+              {/* 3 Perks */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-[#64748B] mb-1">Rozet 1 (Kargo)</label>
+                  <input
+                    type="text"
+                    value={localContent.storePerk1 || ''}
+                    onChange={(e) => setLocalContent(prev => ({ ...prev, storePerk1: e.target.value }))}
+                    className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-xl px-3 py-1.5 text-xs text-[#0A0A0B] focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-[#64748B] mb-1">Rozet 2 (Taksit)</label>
+                  <input
+                    type="text"
+                    value={localContent.storePerk2 || ''}
+                    onChange={(e) => setLocalContent(prev => ({ ...prev, storePerk2: e.target.value }))}
+                    className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-xl px-3 py-1.5 text-xs text-[#0A0A0B] focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-[#64748B] mb-1">Rozet 3 (Montaj)</label>
+                  <input
+                    type="text"
+                    value={localContent.storePerk3 || ''}
+                    onChange={(e) => setLocalContent(prev => ({ ...prev, storePerk3: e.target.value }))}
+                    className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-xl px-3 py-1.5 text-xs text-[#0A0A0B] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Spotlight Card Details */}
+              <div className="mt-4 p-5 rounded-2xl bg-gradient-to-r from-[#18181B] to-[#0A0A0B] text-white border border-white/10 space-y-3">
+                <span className="text-xs font-bold text-amber-400 block">✨ Vitrin Kutusu (Haftanın Yıldızı) Detayları:</span>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Kutu Rozeti</label>
+                    <input
+                      type="text"
+                      value={localContent.spotlightBadge || ''}
+                      onChange={(e) => setLocalContent(prev => ({ ...prev, spotlightBadge: e.target.value }))}
+                      className="w-full bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Alt Seri Başlığı</label>
+                    <input
+                      type="text"
+                      value={localContent.spotlightSub || ''}
+                      onChange={(e) => setLocalContent(prev => ({ ...prev, spotlightSub: e.target.value }))}
+                      className="w-full bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 text-xs text-emerald-400 font-mono focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Ürün Adı</label>
+                    <input
+                      type="text"
+                      value={localContent.spotlightTitle || ''}
+                      onChange={(e) => setLocalContent(prev => ({ ...prev, spotlightTitle: e.target.value }))}
+                      className="w-full bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 text-xs text-white font-bold focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Kısa Açıklama</label>
+                    <input
+                      type="text"
+                      value={localContent.spotlightDesc || ''}
+                      onChange={(e) => setLocalContent(prev => ({ ...prev, spotlightDesc: e.target.value }))}
+                      className="w-full bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Eski Fiyat (Üstü Çizili)</label>
+                    <input
+                      type="text"
+                      value={localContent.spotlightOldPrice || ''}
+                      onChange={(e) => setLocalContent(prev => ({ ...prev, spotlightOldPrice: e.target.value }))}
+                      className="w-full bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 text-xs text-slate-400 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Kampanyalı Fiyat</label>
+                    <input
+                      type="text"
+                      value={localContent.spotlightPrice || ''}
+                      onChange={(e) => setLocalContent(prev => ({ ...prev, spotlightPrice: e.target.value }))}
+                      className="w-full bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 text-xs text-emerald-400 font-bold focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Birim</label>
+                    <input
+                      type="text"
+                      value={localContent.spotlightUnit || ''}
+                      onChange={(e) => setLocalContent(prev => ({ ...prev, spotlightUnit: e.target.value }))}
+                      className="w-full bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 5. BÖLÜM: ÜST DUYURU BANDI */}
+            <div className="bg-white border border-[#E8EAED] rounded-3xl p-6 shadow-sm space-y-4">
+              <div className="border-b border-[#E8EAED] pb-3">
+                <h3 className="text-sm font-bold text-[#0A0A0B] flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-emerald-600" />
+                  <span>5. Sitenin En Üstündeki Siyah Duyuru Bandı Metinleri</span>
+                </h3>
+                <p className="text-xs text-[#64748B] mt-0.5">
+                  Sayfanın en tepesinde sürekli görünen 3 kısa avantaj ve bildirim metni.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#4B5563] mb-1">Duyuru 1 (Yeşil İkonlu)</label>
+                  <input
+                    type="text"
+                    value={localContent.announcementText1 || ''}
+                    onChange={(e) => setLocalContent(prev => ({ ...prev, announcementText1: e.target.value }))}
+                    className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-[#0A0A0B] focus:outline-none font-medium"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#4B5563] mb-1">Duyuru 2</label>
+                  <input
+                    type="text"
+                    value={localContent.announcementText2 || ''}
+                    onChange={(e) => setLocalContent(prev => ({ ...prev, announcementText2: e.target.value }))}
+                    className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-[#0A0A0B] focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#4B5563] mb-1">Duyuru 3</label>
+                  <input
+                    type="text"
+                    value={localContent.announcementText3 || ''}
+                    onChange={(e) => setLocalContent(prev => ({ ...prev, announcementText3: e.target.value }))}
+                    className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-[#0A0A0B] focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Save Bar */}
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={handleSaveContent}
+                className="btn-pill-black bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-3 px-8 font-bold shadow-xl flex items-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                <span>Tüm Sayfa Değişikliklerini Canlı Siteye Kaydet</span>
+              </button>
+            </div>
+
+          </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* MODÜL 4: TABAN İŞÇİLİK FİYATLARI ("Elimde Malzeme Var")   */}
         {/* ======================================================== */}
         {adminTab === 'labor_rates' && (
           <div className="space-y-6">
@@ -1713,6 +2332,44 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   <span>Şifreyi Değiştir & Kaydet</span>
                 </button>
               </form>
+            </div>
+
+            {/* Tehlikeli Bölge: Fabrika Ayarlarına Dön */}
+            <div className="bg-rose-50 border border-rose-200 rounded-3xl p-6 shadow-sm mt-6">
+              <div className="flex items-center gap-3 mb-1">
+                <div className="w-9 h-9 rounded-2xl bg-rose-600 text-white flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-display font-extrabold text-rose-900">
+                    Tehlikeli Bölge: Fabrika Ayarlarına Sıfırla
+                  </h2>
+                  <p className="text-xs text-rose-700">
+                    Bu işlem tüm katalog ürünlerini, m² fiyatlarını ve ayarları sistemin orijinal ilk kurulum ayarlarına döndürür.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-rose-200/60 flex items-center justify-between flex-wrap gap-4">
+                <p className="text-xs text-rose-800 max-w-lg">
+                  ⚠️ Bu işlem geri alınamaz. Kendi eklediğiniz özel ürünler ve fiyat değişiklikleri silinir.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm('DİKKAT: Tüm özel ürünleriniz, fiyat değişiklikleriniz ve ayarlarınız sıfırlanacaktır. Fabrika ayarlarına dönmek istediğinize emin misiniz?')) {
+                      if (window.confirm('SON ONAY: Bu işlem geri alınamaz! Gerçekten sıfırlansın mı?')) {
+                        onResetDefaults();
+                        showToast('Sistem fabrika ayarlarına sıfırlandı.');
+                      }
+                    }
+                  }}
+                  className="px-4 py-2 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Tüm Verileri Fabrika Ayarlarına Sıfırla</span>
+                </button>
+              </div>
             </div>
           </div>
         )}

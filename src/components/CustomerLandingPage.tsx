@@ -16,13 +16,14 @@ import {
   CalendarCheck
 } from 'lucide-react';
 import { BeforeAfterSlider } from './BeforeAfterSlider';
-import { BeforeAfterProject } from '../types';
+import { BeforeAfterProject, SiteContentSettings } from '../types';
 
 interface CustomerLandingPageProps {
   onStartConfiguring: () => void;
   onOpenInspection: () => void;
   onNavigateStore?: () => void;
   projects?: BeforeAfterProject[];
+  content?: SiteContentSettings;
 }
 
 export const CustomerLandingPage: React.FC<CustomerLandingPageProps> = ({
@@ -30,6 +31,7 @@ export const CustomerLandingPage: React.FC<CustomerLandingPageProps> = ({
   onOpenInspection,
   onNavigateStore,
   projects,
+  content,
 }) => {
   return (
     <div className="space-y-24 pb-20">
@@ -46,17 +48,17 @@ export const CustomerLandingPage: React.FC<CustomerLandingPageProps> = ({
           {/* Tag */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#0A0A0B] text-white text-xs font-semibold mb-8 shadow-sm">
             <TrendingDown className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Piyasadan %20-30 Daha Uygun Bayi Fiyatı & 81 İl Kargo</span>
+            <span>{content?.heroBadge || 'Piyasadan %20-30 Daha Uygun Bayi Fiyatı & 81 İl Kargo'}</span>
           </div>
 
           {/* Main Title */}
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-display font-extrabold tracking-tight text-[#0A0A0B] leading-[1.08] max-w-4xl mx-auto">
-            İster Anahtar Teslim Mimari Tadilat, İster Fabrika Bayi Fiyatıyla Tasarım Malzemeleri.
+            {content?.heroTitle || 'İster Anahtar Teslim Mimari Tadilat, İster Fabrika Bayi Fiyatıyla Tasarım Malzemeleri.'}
           </h1>
 
           {/* Subtitle */}
           <p className="mt-6 text-base sm:text-lg text-[#4B5563] max-w-2xl mx-auto font-normal leading-relaxed">
-            Usta stresi ve aracı komisyonu olmadan evinizi yenileyin. RVOBA® ile ister anahtar teslim komple uygulama yaptırabilir, ister 1. sınıf mimari tasarım malzemelerini Türkiye geneli 81 ile doğrudan kargo teslim satın alabilirsiniz.
+            {content?.heroSubtitle || 'Usta stresi ve aracı komisyonu olmadan evinizi yenileyin. RVOBA® ile ister anahtar teslim komple uygulama yaptırabilir, ister 1. sınıf mimari tasarım malzemelerini Türkiye geneli 81 ile doğrudan kargo teslim satın alabilirsiniz.'}
           </p>
 
           {/* 2 Clear Primary Paths / Service Gateways */}
@@ -70,25 +72,25 @@ export const CustomerLandingPage: React.FC<CustomerLandingPageProps> = ({
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-white text-[11px] font-bold">
-                    <span>🏡 Hizmet & Mimarlık</span>
+                    <span>{content?.cardRenovationBadge || '🏡 Hizmet & Mimarlık'}</span>
                   </span>
                   <div className="w-8 h-8 rounded-full bg-white/10 group-hover:bg-white group-hover:text-black flex items-center justify-center transition">
                     <ArrowUpRight className="w-4 h-4" />
                   </div>
                 </div>
                 <h3 className="text-2xl font-display font-black text-white tracking-tight">
-                  Anahtar Teslim Tadilat & Keşif
+                  {content?.cardRenovationTitle || 'Anahtar Teslim Tadilat & Keşif'}
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-300 mt-2.5 leading-relaxed font-normal">
-                  Evinizi iç mimarlarımız ve profesyonel usta kadromuz yönetsin. Malzeme + Usta + Sabit Bütçe tek resmi sözleşmeyle.
+                  {content?.cardRenovationDesc || 'Evinizi iç mimarlarımız ve profesyonel usta kadromuz yönetsin. Malzeme + Usta + Sabit Bütçe tek resmi sözleşmeyle.'}
                 </p>
                 <div className="mt-3 text-[11px] text-emerald-400 font-semibold flex items-center gap-1.5">
-                  <span>✓ 3 İlde Hizmet: İstanbul, Ankara, İzmir</span>
+                  <span>{content?.cardRenovationNote || '✓ 3 İlde Hizmet: İstanbul, Ankara, İzmir'}</span>
                 </div>
               </div>
 
               <div className="mt-6 pt-4 border-t border-white/10 flex items-center justify-between text-xs font-bold text-white">
-                <span className="underline underline-offset-4 decoration-emerald-400">Tadilat Bütçeni Hesapla</span>
+                <span className="underline underline-offset-4 decoration-emerald-400">{content?.cardRenovationBtnText || 'Tadilat Bütçeni Hesapla'}</span>
                 <span className="text-emerald-400">Ücretsiz Lazer Keşif →</span>
               </div>
             </div>
@@ -102,25 +104,25 @@ export const CustomerLandingPage: React.FC<CustomerLandingPageProps> = ({
                 <div className="flex items-center justify-between mb-4">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-[11px] font-bold">
                     <Sparkles className="w-3 h-3 text-amber-600" />
-                    <span>📦 E-Ticaret & Malzeme (Kargo)</span>
+                    <span>{content?.cardStoreBadge || '📦 E-Ticaret & Malzeme (Kargo)'}</span>
                   </span>
                   <div className="w-8 h-8 rounded-full bg-slate-100 group-hover:bg-[#0A0A0B] group-hover:text-white flex items-center justify-center transition">
                     <ArrowUpRight className="w-4 h-4" />
                   </div>
                 </div>
                 <h3 className="text-2xl font-display font-black text-[#0A0A0B] tracking-tight">
-                  Doğrudan Malzeme Satın Al
+                  {content?.cardStoreTitle || 'Doğrudan Malzeme Satın Al'}
                 </h3>
                 <p className="text-xs sm:text-sm text-[#64748B] mt-2.5 leading-relaxed font-normal">
-                  Usta aramıyorum, sadece 1. sınıf toptan bayi malzemelerini (Akustik panel, çıta, boya, batarya) kapıma kargoyla istiyorum.
+                  {content?.cardStoreDesc || 'Usta aramıyorum, sadece 1. sınıf toptan bayi malzemelerini (Akustik panel, çıta, boya, batarya) kapıma kargoyla istiyorum.'}
                 </p>
                 <div className="mt-3 text-[11px] text-amber-700 font-semibold flex items-center gap-1.5">
-                  <span>✓ Tüm Türkiye (81 İl) Kargo ile Kapıya Teslim</span>
+                  <span>{content?.cardStoreNote || '✓ Tüm Türkiye (81 İl) Kargo ile Kapıya Teslim'}</span>
                 </div>
               </div>
 
               <div className="mt-6 pt-4 border-t border-[#E8EAED] flex items-center justify-between text-xs font-bold text-[#0A0A0B]">
-                <span className="underline underline-offset-4 decoration-amber-500">Ürünleri İncele & Satın Al</span>
+                <span className="underline underline-offset-4 decoration-amber-500">{content?.cardStoreBtnText || 'Ürünleri İncele & Satın Al'}</span>
                 <span className="text-amber-800">81 İl Kapıya Teslim →</span>
               </div>
             </div>

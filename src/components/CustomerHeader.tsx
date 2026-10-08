@@ -1,6 +1,6 @@
 import React from 'react';
 import { ShoppingBag, ArrowUpRight, ArrowLeft, Phone, Sparkles, Truck } from 'lucide-react';
-import { CartItem } from '../types';
+import { CartItem, SiteContentSettings } from '../types';
 
 interface CustomerHeaderProps {
   currentView: 'landing' | 'configurator' | 'store';
@@ -10,9 +10,9 @@ interface CustomerHeaderProps {
   onNavigateStore: () => void;
   onOpenCart: () => void;
   onOpenInspection: () => void;
-  onNavigateAdmin: () => void;
   supportPhone?: string;
   phoneNumber?: string;
+  content?: SiteContentSettings;
 }
 
 export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
@@ -23,9 +23,9 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
   onNavigateStore,
   onOpenCart,
   onOpenInspection,
-  onNavigateAdmin,
   supportPhone = '0850 123 45 67',
   phoneNumber = '905550000000',
+  content,
 }) => {
   const totalCount = cart.length;
   const totalPrice = cart.reduce((sum, item) => {
@@ -45,12 +45,12 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
           <div className="flex items-center gap-3 sm:gap-5 overflow-x-auto whitespace-nowrap scrollbar-none">
             <span className="flex items-center gap-1.5 font-bold text-emerald-400">
               <Truck className="w-3.5 h-3.5" />
-              <span>3.000 TL Üzeri Ücretsiz Kargo</span>
+              <span>{content?.announcementText1 || '3.000 TL Üzeri Ücretsiz Kargo'}</span>
             </span>
             <span className="text-white/30 hidden sm:inline">•</span>
-            <span className="hidden sm:inline text-slate-300">💳 Tüm Kredi Kartlarına 12 Taksit</span>
+            <span className="hidden sm:inline text-slate-300">{content?.announcementText2 || '💳 Tüm Kredi Kartlarına 12 Taksit'}</span>
             <span className="text-white/30 hidden md:inline">•</span>
-            <span className="hidden md:inline text-slate-300">⚡ Fabrikadan Doğrudan Hızlı Sevk</span>
+            <span className="hidden md:inline text-slate-300">{content?.announcementText3 || '⚡ Fabrikadan Doğrudan Hızlı Sevk'}</span>
           </div>
 
           <a

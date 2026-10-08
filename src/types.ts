@@ -31,6 +31,7 @@ export interface Product {
   isStoreProduct?: boolean;  // Doğrudan mağazada tekil satışa açık ürün
   inStock?: boolean;         // Stok durumu
   specs?: string[];          // Teknik / malzeme özellikleri
+  packageInfo?: string;      // Kapsam / paket bilgisi (örn: "1 Paket = 1.83 m²", "12 Çerçeve Hazır Set")
 }
 
 export interface CustomRequestItem {
@@ -72,6 +73,7 @@ export interface LeadRequest {
   id: string;
   fullName: string;
   phone: string;
+  email?: string;
   city: string;
   district: string;
   address?: string;
@@ -83,7 +85,10 @@ export interface LeadRequest {
   status?: 'bekliyor' | 'arandi' | 'kesif_verildi' | 'sozlesme_imzalandi';
   adminNotes?: string;
   isCallback?: boolean;
-  leadType?: 'kesif' | 'whatsapp' | 'callback' | 'store_order';
+  leadType?: 'kesif' | 'whatsapp' | 'callback' | 'store_order' | 'web_order';
+  orderNumber?: string;
+  paymentMethod?: 'credit_card' | 'bank_transfer' | 'cash_on_delivery';
+  shippingCost?: number;
   items: { 
     name: string; 
     brand: string; 
@@ -96,6 +101,69 @@ export interface LeadRequest {
     purchaseType?: 'with_installation' | 'material_only';
   }[];
   createdAt: string;
+}
+
+export interface SiteContentSettings {
+  // 1. Hero / Karşılama
+  heroBadge: string;
+  heroTitle: string;
+  heroSubtitle: string;
+  
+  // Kapı 1: Anahtar Teslim Tadilat & Keşif Kartı
+  cardRenovationBadge: string;
+  cardRenovationTitle: string;
+  cardRenovationDesc: string;
+  cardRenovationNote: string;
+  cardRenovationBtnText: string;
+
+  // Kapı 2: Doğrudan Malzeme & E-Ticaret Kartı
+  cardStoreBadge: string;
+  cardStoreTitle: string;
+  cardStoreDesc: string;
+  cardStoreNote: string;
+  cardStoreBtnText: string;
+
+  // 2. Güvence & Değer Vaatleri (Trust Section)
+  trustBadge: string;
+  trustTitle: string;
+  trustSubtitle: string;
+  
+  // Pillar 1
+  pillar1Title: string;
+  pillar1Desc: string;
+  pillar1Note: string;
+  
+  // Pillar 2
+  pillar2Title: string;
+  pillar2Desc: string;
+  pillar2Note: string;
+  
+  // Pillar 3
+  pillar3Title: string;
+  pillar3Desc: string;
+  pillar3Note: string;
+
+  // 3. Mağaza & Vitrin (Store Banner)
+  storeBadge: string;
+  storeTitle: string;
+  storeSubtitle: string;
+  storePerk1: string;
+  storePerk2: string;
+  storePerk3: string;
+
+  // Vitrin Öne Çıkan Ürün Kutusu (Spotlight card)
+  spotlightBadge: string;
+  spotlightSub: string;
+  spotlightTitle: string;
+  spotlightDesc: string;
+  spotlightOldPrice: string;
+  spotlightPrice: string;
+  spotlightUnit: string;
+
+  // 4. Duyuru Bandı (Header Announcement Bar)
+  announcementText1: string;
+  announcementText2: string;
+  announcementText3: string;
 }
 
 export interface SiteSettings {
@@ -117,4 +185,5 @@ export interface SiteSettings {
     stage2Percent: number;
     stage3Percent: number;
   };
+  content?: SiteContentSettings; // Canlı site metin ve vitrin yönetimi
 }

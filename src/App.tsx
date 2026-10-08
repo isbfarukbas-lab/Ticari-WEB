@@ -254,6 +254,57 @@ export const App: React.FC = () => {
     navigateToStore();
   };
 
+  // Store navigation & filtering state (shared between CustomerHeader and CustomerStore)
+  const [storeSearchQuery, setStoreSearchQuery] = useState('');
+  const [storeSelectedCategory, setStoreSelectedCategory] = useState('all');
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [favorites, setFavorites] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('rvoba_favs_v1');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('rvoba_favs_v1', JSON.stringify(favorites));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [favorites]);
+
+  const handleToggleFavorite = (productId: string) => {
+    setFavorites((prev) => ({ ...prev, [productId]: !prev[productId] }));
+  };
+
+  const favoritesCount = Object.values(favorites).filter(Boolean).length;
+
+  const handleToggleFavoritesOnly = () => {
+    if (currentView !== 'store') {
+      navigateToStore();
+    }
+    setShowFavoritesOnly((prev) => !prev);
+    if (!showFavoritesOnly) {
+      setStoreSelectedCategory('all');
+    }
+    setTimeout(() => {
+      const el = document.getElementById('katalog-bolumu');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
+  };
+
+  const handleSelectCategory = (cat: string) => {
+    setShowFavoritesOnly(false);
+    setStoreSelectedCategory(cat);
+    if (currentView !== 'store') {
+      navigateToStore();
+    }
+  };
+
   // Cart operations
   const handleAddToCart = (
     product: Product,
@@ -456,6 +507,13 @@ export const App: React.FC = () => {
         supportPhone={settings.supportPhone}
         phoneNumber={settings.phoneNumber}
         content={settings.content}
+        searchQuery={storeSearchQuery}
+        onSearchChange={setStoreSearchQuery}
+        selectedCategory={storeSelectedCategory}
+        onSelectCategory={handleSelectCategory}
+        favoritesCount={favoritesCount}
+        onToggleFavoritesOnly={handleToggleFavoritesOnly}
+        showFavoritesOnly={showFavoritesOnly}
       />
 
       {/* Main View Switcher */}
@@ -485,6 +543,14 @@ export const App: React.FC = () => {
             phoneNumber={settings.phoneNumber}
             supportPhone={settings.supportPhone}
             content={settings.content}
+            selectedCategory={storeSelectedCategory}
+            onSelectCategory={handleSelectCategory}
+            searchQuery={storeSearchQuery}
+            onSearchChange={setStoreSearchQuery}
+            favorites={favorites}
+            onToggleFavorite={handleToggleFavorite}
+            showFavoritesOnly={showFavoritesOnly}
+            onToggleFavoritesOnly={handleToggleFavoritesOnly}
           />
         ) : (
           /* ======================================================== */

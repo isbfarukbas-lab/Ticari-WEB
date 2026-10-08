@@ -36,6 +36,14 @@ interface CustomerStoreProps {
   onNavigateConfigurator?: () => void;
   onSaveLead?: (lead: LeadRequest) => void;
   content?: SiteContentSettings;
+  selectedCategory: string;
+  onSelectCategory: (cat: string) => void;
+  searchQuery: string;
+  onSearchChange: (q: string) => void;
+  favorites: Record<string, boolean>;
+  onToggleFavorite: (id: string) => void;
+  showFavoritesOnly: boolean;
+  onToggleFavoritesOnly: () => void;
 }
 
 export const CustomerStore: React.FC<CustomerStoreProps> = ({
@@ -48,33 +56,23 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
   onNavigateConfigurator,
   onSaveLead,
   content,
+  selectedCategory,
+  onSelectCategory,
+  searchQuery,
+  onSearchChange,
+  favorites,
+  onToggleFavorite,
+  showFavoritesOnly,
+  onToggleFavoritesOnly,
 }) => {
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'featured' | 'price_asc' | 'price_desc' | 'discount'>('featured');
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
   const [recentlyAddedId, setRecentlyAddedId] = useState<string | null>(null);
-  const [favorites, setFavorites] = useState<Record<string, boolean>>(() => {
-    try {
-      const saved = localStorage.getItem('rvoba_favs_v1');
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
   const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
 
-  useEffect(() => {
-    try {
-      localStorage.setItem('rvoba_favs_v1', JSON.stringify(favorites));
-    } catch (e) {
-      console.error(e);
-    }
-  }, [favorites]);
-
-  const toggleFavorite = (id: string, e: React.MouseEvent) => {
+  const handleToggleFav = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
+    onToggleFavorite(id);
   };
 
   // Filter store products (products marked as isStoreProduct, or fallback to active items)
@@ -85,40 +83,6 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
     return true;
   });
 
-  // Dynamic categories extracted from current active products
-  const dynamicCategories = useMemo(() => {
-    const defaultMeta: Record<string, { label: string; icon: string }> = {
-      all: { label: 'Tüm Koleksiyon', icon: '✨' },
-      ozel: { label: 'Akustik Ahşap Paneller', icon: '🪵' },
-      alci_tavan: { label: 'Duvar Çıtaları', icon: '🖼️' },
-      boya: { label: 'Boya & Astar', icon: '🎨' },
-      parke: { label: 'Zemin & Parke', icon: '🪵' },
-      mutfak_banyo: { label: 'Banyo & Batarya', icon: '🚿' },
-      elektrik: { label: 'LED & Elektrik', icon: '💡' },
-      seramik: { label: 'Seramik & Fayans', icon: '🧱' },
-    };
-
-    const counts: Record<string, number> = { all: storeItems.length };
-    storeItems.forEach((p) => {
-      if (p.category) {
-        counts[p.category] = (counts[p.category] || 0) + 1;
-      }
-    });
-
-    const categoryKeys = ['all', ...Object.keys(counts).filter((k) => k !== 'all')];
-    return categoryKeys.map((key) => {
-      const meta = defaultMeta[key] || {
-        label: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '),
-        icon: '📦',
-      };
-      return {
-        key,
-        label: meta.label,
-        icon: meta.icon,
-        count: counts[key] || 0,
-      };
-    });
-  }, [storeItems]);
 
   // Curated best seller products for the showcase section
   const bestSellers = useMemo(() => {
@@ -143,8 +107,19 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
     return picked;
   }, [storeItems]);
 
+  const categoryLabels: Record<string, string> = {
+    all: 'Tüm Koleksiyon',
+    ozel: 'Akustik Ahşap Paneller',
+    alci_tavan: 'Duvar Çıtaları',
+    boya: 'Boya & Astar',
+    parke: 'Zemin & Parke',
+    mutfak_banyo: 'Banyo & Batarya',
+    elektrik: 'LED & Elektrik',
+    seramik: 'Seramik & Fayans',
+  };
+
   const scrollToCatalog = (catKey?: string) => {
-    if (catKey) setSelectedCategory(catKey);
+    if (catKey) onSelectCategory(catKey);
     const el = document.getElementById('katalog-bolumu');
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });
@@ -160,8 +135,10 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
 
   const filteredProducts = storeItems
     .filter((p) => {
+      if (showFavoritesOnly && !favorites[p.id]) return false;
       const matchesCategory = selectedCategory === 'all' || p.category === selectedCategory;
       const matchesSearch = 
+        !searchQuery ||
         p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.code.toLowerCase().includes(searchQuery.toLowerCase());
@@ -252,122 +229,58 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
     <div className="space-y-8 sm:space-y-12 pb-32">
 
       {/* ======================================================== */}
-      {/* 1. COMPACT RETAIL HERO SPOTLIGHT                         */}
+      {/* 1. CLEAN BOUTIQUE STORE HERO BANNER                      */}
       {/* ======================================================== */}
       <section className="relative overflow-hidden pt-8 pb-10 sm:pt-12 sm:pb-14 border-b border-[#E8EAED] bg-white">
-        <div className="absolute inset-0 halftone-texture opacity-30 pointer-events-none" />
+        <div className="absolute inset-0 halftone-texture opacity-25 pointer-events-none" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-12">
+          <div className="max-w-3xl mx-auto text-center">
             
-            {/* Left Content */}
-            <div className="max-w-2xl text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#0A0A0B] text-white text-[11px] font-semibold mb-4 shadow-sm">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>{content?.storeBadge || 'RVOBA® 2026 MİMARİ ÜRÜN & MALZEME KOLEKSİYONU'}</span>
-              </div>
-
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display font-black tracking-tight text-[#0A0A0B] leading-tight">
-                {content?.storeTitle || 'Evinizin Havasını Değiştiren Tasarım Malzemeleri.'}
-              </h1>
-
-              <p className="mt-3 text-xs sm:text-sm text-[#4B5563] leading-relaxed">
-                {content?.storeSubtitle || 'Trend akustik ahşap paneller, poliüretan çıta setleri, 1. sınıf boyalar ve zemin çözümleri doğrudan üretici bayi fiyatıyla Türkiye geneli kapınıza teslim.'}
-              </p>
-
-              {/* Quick Perks Strip */}
-              <div className="mt-5 flex flex-wrap items-center justify-center lg:justify-start gap-2 text-xs">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-800 font-semibold border border-slate-200">
-                  <Truck className="w-3.5 h-3.5 text-blue-600" />
-                  <span>{content?.storePerk1 || '3.000 ₺ Üzeri Ücretsiz Kargo'}</span>
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-800 font-semibold border border-slate-200">
-                  <CreditCard className="w-3.5 h-3.5 text-purple-600" />
-                  <span>{content?.storePerk2 || '12 Taksit İmkanı'}</span>
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-800 font-semibold border border-slate-200">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>{content?.storePerk3 || 'Faturalı & Orijinal Bayi Garantisi'}</span>
-                </span>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="mt-6 flex flex-wrap items-center justify-center lg:justify-start gap-3">
-                <button
-                  onClick={() => scrollToCatalog()}
-                  className="btn-pill-black text-xs py-3 px-6 font-bold shadow-lg flex items-center gap-2 hover:bg-slate-800"
-                >
-                  <ShoppingBag className="w-4 h-4" />
-                  <span>Tüm Koleksiyonu Keşfet ↓</span>
-                </button>
-                <button
-                  onClick={() => scrollToBestSellers()}
-                  className="btn-pill-outline text-xs py-3 px-5 font-bold flex items-center gap-2 border-slate-300 hover:border-black text-slate-800 hover:text-black transition bg-white shadow-xs"
-                >
-                  <span>🔥 Çok Satanlar & Fırsatlar</span>
-                </button>
-              </div>
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#0A0A0B] text-white text-[11px] font-semibold mb-4 shadow-sm">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>{content?.storeBadge || 'RVOBA® 2026 MİMARİ ÜRÜN & MALZEME KOLEKSİYONU'}</span>
             </div>
 
-            {/* Right Spotlight Highlight Card (Visually Captivating Lifestyle Product Card) */}
-            <div className="w-full lg:w-[420px] shrink-0">
-              <div 
-                onClick={() => {
-                  const p = storeItems.find(item => item.id === 'store-rvoba-tv-panel');
-                  if (p) setPreviewProduct(p);
-                  else scrollToCatalog('ozel');
-                }}
-                className="group relative rounded-3xl overflow-hidden text-white shadow-2xl border border-white/20 cursor-pointer transform hover:-translate-y-1 transition duration-500 min-h-[380px] sm:min-h-[420px] flex flex-col justify-between p-6"
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display font-black tracking-tight text-[#0A0A0B] leading-tight">
+              {content?.storeTitle || 'Evinizin Havasını Değiştiren Tasarım Malzemeleri.'}
+            </h1>
+
+            <p className="mt-3 text-xs sm:text-sm text-[#4B5563] leading-relaxed max-w-2xl mx-auto">
+              {content?.storeSubtitle || 'Trend akustik ahşap paneller, poliüretan çıta setleri, 1. sınıf boyalar ve zemin çözümleri doğrudan üretici bayi fiyatıyla Türkiye geneli kapınıza teslim.'}
+            </p>
+
+            {/* Quick Perks Strip */}
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5 text-xs">
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-50 text-slate-800 font-semibold border border-slate-200">
+                <Truck className="w-3.5 h-3.5 text-blue-600" />
+                <span>{content?.storePerk1 || '3.000 ₺ Üzeri Ücretsiz Kargo'}</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-50 text-slate-800 font-semibold border border-slate-200">
+                <CreditCard className="w-3.5 h-3.5 text-purple-600" />
+                <span>{content?.storePerk2 || '12 Taksit İmkanı'}</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-50 text-slate-800 font-semibold border border-slate-200">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                <span>{content?.storePerk3 || 'Faturalı & Orijinal Bayi Garantisi'}</span>
+              </span>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <button
+                onClick={() => scrollToCatalog()}
+                className="btn-pill-black text-xs py-3 px-6 font-bold shadow-lg flex items-center gap-2 hover:bg-slate-800"
               >
-                {/* Background Lifestyle Image */}
-                <img
-                  src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80"
-                  alt="Akustik Ahşap TV Arkası Çıta Paneli"
-                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                />
-                
-                {/* Vignette & Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-black/25" />
-
-                {/* Top Badges */}
-                <div className="relative z-10 flex items-center justify-between">
-                  <span className="bg-black/60 backdrop-blur-md text-emerald-400 text-[10px] font-mono font-bold px-3 py-1 rounded-full uppercase tracking-wider border border-white/10">
-                    {content?.spotlightSub || 'RVOBA Atelier Özel Tasarım'}
-                  </span>
-                  <span className="bg-rose-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-lg flex items-center gap-1">
-                    <Sparkles className="w-3 h-3" />
-                    <span>{content?.spotlightBadge || 'Haftanın Yıldızı'}</span>
-                  </span>
-                </div>
-
-                {/* Bottom Overlay Info */}
-                <div className="relative z-10 pt-16">
-                  <h3 className="text-xl sm:text-2xl font-display font-extrabold text-white group-hover:text-emerald-300 transition leading-snug drop-shadow-md">
-                    {content?.spotlightTitle || 'Akustik Ahşap TV Arkası Çıta Paneli'}
-                  </h3>
-
-                  <p className="text-xs text-slate-200 mt-2 line-clamp-2 leading-relaxed drop-shadow">
-                    {content?.spotlightDesc || 'Doğal meşe kaplama ahşap çıtalar ve ses yutan yüksek yoğunluklu siyah akustik keçe.'}
-                  </p>
-
-                  <div className="mt-4 pt-4 border-t border-white/20 flex items-center justify-between">
-                    <div>
-                      <span className="text-xs text-slate-300 line-through font-mono drop-shadow">
-                        {content?.spotlightOldPrice || '4.200 ₺'}
-                      </span>
-                      <div className="text-2xl font-mono font-black text-white drop-shadow-lg flex items-baseline gap-1">
-                        <span>{content?.spotlightPrice || '2.450 ₺'}</span>
-                        <span className="text-xs font-normal text-slate-300">{content?.spotlightUnit || '/ adet'}</span>
-                      </div>
-                    </div>
-
-                    <span className="btn-pill-black bg-white text-black group-hover:bg-emerald-400 group-hover:text-black text-xs py-2.5 px-4 font-bold transition flex items-center gap-1.5 shadow-xl">
-                      <span>İncele & Al</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </span>
-                  </div>
-                </div>
-              </div>
+                <ShoppingBag className="w-4 h-4" />
+                <span>Tüm Koleksiyonu Keşfet ↓</span>
+              </button>
+              <button
+                onClick={() => scrollToBestSellers()}
+                className="btn-pill-outline text-xs py-3 px-5 font-bold flex items-center gap-2 border-slate-300 hover:border-black text-slate-800 hover:text-black transition bg-white shadow-xs"
+              >
+                <span>🔥 Çok Satanlar & Fırsatlar</span>
+              </button>
             </div>
 
           </div>
@@ -447,7 +360,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
 
                     <button
                       type="button"
-                      onClick={(e) => toggleFavorite(product.id, e)}
+                      onClick={(e) => handleToggleFav(product.id, e)}
                       className={`w-7 h-7 rounded-full flex items-center justify-center transition shadow-sm ${
                         isFav 
                           ? 'bg-rose-50 text-rose-600' 
@@ -602,91 +515,87 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
       </section>
 
       {/* ======================================================== */}
-      {/* 3. DYNAMIC CATEGORY TABS & CATALOG TOOLBAR               */}
+      {/* 3. PRODUCT CATALOG TOOLBAR & ACTIVE FILTERS              */}
       {/* ======================================================== */}
       <section id="katalog-bolumu" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 space-y-4">
         
-        {/* Section Heading */}
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 pb-2">
+        {/* Section Heading & Filter Indicators */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 pb-3 border-b border-[#E8EAED]">
           <div>
             <h2 className="text-xl sm:text-2xl font-display font-black text-[#0A0A0B]">
               Tüm Ürün Koleksiyonu
             </h2>
             <p className="text-xs text-[#64748B] mt-0.5">
-              Kategorilere göre filtreleyin, toptan bayi fiyatıyla sepetinize ekleyin.
+              Üretici bayi fiyatlarıyla 81 il kapıya sigortalı sevk edilen orijinal malzemeler.
             </p>
-          </div>
-          {selectedCategory !== 'all' && (
-            <button
-              onClick={() => setSelectedCategory('all')}
-              className="text-xs font-semibold text-rose-600 hover:underline self-start sm:self-auto"
-            >
-              ✕ Kategori Filtresini Temizle
-            </button>
-          )}
-        </div>
 
-        {/* Dynamic Scrollable Horizontal Category Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-          {dynamicCategories.map((cat) => {
-            const isSelected = selectedCategory === cat.key;
-            return (
-              <button
-                key={`cat-tab-${cat.key}`}
-                type="button"
-                onClick={() => setSelectedCategory(cat.key)}
-                className={`px-4 py-2.5 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-200 flex items-center gap-2 shrink-0 ${
-                  isSelected
-                    ? 'bg-[#0A0A0B] text-white shadow-md ring-2 ring-black/20 scale-[1.02]'
-                    : 'bg-white text-slate-700 hover:text-black border border-slate-200 hover:border-slate-400 hover:shadow-xs'
-                }`}
-              >
-                <span>{cat.icon}</span>
-                <span>{cat.label}</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                  isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
-                }`}>
-                  {cat.count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+            {/* Active Filter Pills (displayed when any filter is applied) */}
+            {(selectedCategory !== 'all' || showFavoritesOnly || searchQuery) && (
+              <div className="flex flex-wrap items-center gap-2 mt-2 pt-1">
+                <span className="text-[11px] font-bold text-slate-400">Aktif Filtreler:</span>
+                
+                {selectedCategory !== 'all' && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 text-white text-[11px] font-bold shadow-xs">
+                    <span>{categoryLabels[selectedCategory] || selectedCategory}</span>
+                    <button 
+                      onClick={() => onSelectCategory('all')} 
+                      className="hover:text-amber-300 ml-0.5"
+                      title="Kategori Filtresini Kaldır"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                )}
 
-        {/* Top Controls: Search Bar + Sort Dropdown + Product Count */}
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 pt-2 pb-3 border-b border-[#E8EAED]">
-          
-          {/* Search Box */}
-          <div className="relative max-w-md w-full">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Ürün adı, marka veya kod ara (örn: Akustik panel, VitrA, Filli Boya)..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white border border-[#D1D5DB] rounded-full pl-9 pr-9 py-2.5 text-xs text-[#0A0A0B] placeholder:text-slate-400 focus:outline-none focus:border-black focus:ring-1 focus:ring-black shadow-xs transition"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="w-5 h-5 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold transition"
-                title="Aramayı Temizle"
-              >
-                ✕
-              </button>
+                {showFavoritesOnly && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-600 text-white text-[11px] font-bold shadow-xs">
+                    <span>❤️ Sadece Favorilerim</span>
+                    <button 
+                      onClick={onToggleFavoritesOnly} 
+                      className="hover:text-amber-200 ml-0.5"
+                      title="Favori Filtresini Kaldır"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                )}
+
+                {searchQuery && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-200 text-slate-800 text-[11px] font-bold">
+                    <span>Arama: "{searchQuery}"</span>
+                    <button 
+                      onClick={() => onSearchChange('')} 
+                      className="hover:text-black ml-0.5"
+                      title="Aramayı Temizle"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                )}
+
+                <button
+                  onClick={() => {
+                    onSelectCategory('all');
+                    onSearchChange('');
+                    if (showFavoritesOnly) onToggleFavoritesOnly();
+                  }}
+                  className="text-xs font-semibold text-rose-600 hover:underline ml-1"
+                >
+                  Tümünü Temizle
+                </button>
+              </div>
             )}
           </div>
 
           {/* Right Toolbar: Sort Dropdown & Counter */}
-          <div className="flex items-center justify-between md:justify-end gap-3 text-xs">
+          <div className="flex items-center justify-between sm:justify-end gap-3 text-xs shrink-0">
             <div className="flex items-center gap-2">
               <span className="text-[#64748B] hidden sm:inline">Sırala:</span>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
                 aria-label="Ürünleri Sırala"
-                className="bg-white border border-[#D1D5DB] rounded-full px-3 py-1.5 text-xs font-semibold text-[#0A0A0B] focus:outline-none focus:border-black"
+                className="bg-white border border-[#D1D5DB] rounded-full px-3 py-1.5 text-xs font-semibold text-[#0A0A0B] focus:outline-none focus:border-black shadow-xs cursor-pointer"
               >
                 <option value="featured">✨ Öne Çıkanlar</option>
                 <option value="price_asc">Fiyat: Düşükten Yükseğe</option>
@@ -716,7 +625,11 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
             <h3 className="text-base font-bold text-[#0A0A0B]">Aramanızla Eşleşen Ürün Bulunamadı</h3>
             <p className="text-xs text-[#64748B] mt-1">Farklı bir kelime deneyebilir veya kategoriyi değiştirebilirsiniz.</p>
             <button
-              onClick={() => { setSelectedCategory('all'); setSearchQuery(''); }}
+              onClick={() => { 
+                onSelectCategory('all'); 
+                onSearchChange(''); 
+                if (showFavoritesOnly) onToggleFavoritesOnly();
+              }}
               className="mt-4 btn-pill-black text-xs py-2 px-4 font-bold"
             >
               Tüm Ürünleri Göster
@@ -773,7 +686,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
 
                       <button
                         type="button"
-                        onClick={(e) => toggleFavorite(product.id, e)}
+                        onClick={(e) => handleToggleFav(product.id, e)}
                         className={`w-7 h-7 rounded-full flex items-center justify-center transition shadow-sm ${
                           isFav 
                             ? 'bg-rose-50 text-rose-600' 

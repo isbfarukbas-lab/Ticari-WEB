@@ -124,30 +124,30 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
             >
               <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
               <span className="hidden sm:inline">
-                {totalCount > 0 ? `${totalCount} Kalem • ${totalPrice.toLocaleString('tr-TR')} ₺` : 'Sepetim (0)'}
+                {totalCount > 0 
+                  ? `${totalCount} ${currentView === 'store' ? 'Ürün' : 'Kalem'} • ${totalPrice.toLocaleString('tr-TR')} ₺` 
+                  : 'Sepetim (0)'}
               </span>
               <span className="sm:hidden font-mono font-bold">
                 ({totalCount})
               </span>
             </button>
 
-            {/* Primary High-Ticket Renovation Proposal CTA */}
+            {/* High-Ticket Renovation Proposal Secondary Navigation */}
             {currentView !== 'configurator' ? (
               <button
                 onClick={onNavigateConfigurator}
-                className="btn-pill-black text-xs py-2 px-3 sm:px-4 shadow-sm whitespace-nowrap shrink-0 flex items-center gap-1.5"
+                className="btn-pill-outline text-xs py-2 px-3 sm:px-4 border-slate-300 hover:border-black whitespace-nowrap shrink-0 flex items-center gap-1.5 font-semibold text-slate-700 hover:text-black transition"
               >
-                <span className="text-sm">🏡</span>
-                <span className="hidden sm:inline">Komple Ev Tadilatı Teklifi</span>
-                <span className="sm:hidden">Tadilat Teklifi</span>
-                <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
+                <span>🏡 Anahtar Teslim Tadilat</span>
+                <ArrowUpRight className="w-3.5 h-3.5 shrink-0 text-slate-500" />
               </button>
             ) : (
               <button
                 onClick={onNavigateStore}
-                className="btn-pill-outline text-xs py-2 px-3.5 border-slate-300 hover:border-black whitespace-nowrap shrink-0 flex items-center gap-1.5"
+                className="btn-pill-black text-xs py-2 px-3.5 shadow-sm whitespace-nowrap shrink-0 flex items-center gap-1.5"
               >
-                <span>Mağazaya Dön</span>
+                <span>🛍️ Ürün Mağazasına Dön</span>
                 <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
               </button>
             )}

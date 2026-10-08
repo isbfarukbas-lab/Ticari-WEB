@@ -13,7 +13,8 @@ import {
   Truck,
   CreditCard,
   Check,
-  ArrowRight
+  ArrowRight,
+  ShoppingBag
 } from 'lucide-react';
 import { CartItem } from '../types';
 import { LegalTabKey } from './CustomerLegalModal';
@@ -34,6 +35,7 @@ interface CustomerCartDrawerProps {
   selectedDistrict?: string;
   estimatedDays?: { min: number; max: number };
   kdvNotice?: string;
+  mode?: 'store' | 'configurator';
 }
 
 export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
@@ -52,6 +54,7 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
   selectedDistrict,
   estimatedDays,
   kdvNotice,
+  mode = 'store',
 }) => {
   if (!isOpen) return null;
 
@@ -69,11 +72,12 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
 
   const grandTotal = totalMaterial + totalLabor;
 
-  // Distinguish between pure material orders vs renovation service
+  // Strict separation: Store mode is 100% retail product shopping
+  const isStoreMode = mode === 'store';
   const hasRenovationItems = cart.some((item) => 
     item.isCustom || (item.product && item.purchaseType !== 'material_only')
   );
-  const isMaterialOnlyCart = cart.length > 0 && !hasRenovationItems;
+  const isMaterialOnlyCart = isStoreMode || (cart.length > 0 && !hasRenovationItems);
 
   // Estimated market price total for comparison
   const marketTotal = cart.reduce((sum, item) => {
@@ -91,11 +95,13 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
   const handleWhatsApp = () => {
     if (cart.length === 0) return;
 
-    let msg = isMaterialOnlyCart
-      ? `*RVOBA® — Online Malzeme Sipariş Talebi (rvoba.com)*\n\n`
-      : `*RVOBA® — Online Tadilat & Keşif Talebi (rvoba.com)*\n\n`;
+    let msg = isStoreMode
+      ? `*RVOBA® — Online Mağaza Sipariş Talebi (rvoba.com)*\n\n`
+      : isMaterialOnlyCart
+        ? `*RVOBA® — Online Malzeme Sipariş Talebi (rvoba.com)*\n\n`
+        : `*RVOBA® — Online Tadilat & Keşif Talebi (rvoba.com)*\n\n`;
 
-    if (isMaterialOnlyCart) {
+    if (isStoreMode || isMaterialOnlyCart) {
       msg += `🚚 *Teslimat Şekli:* Tüm Türkiye'ye Kapıya Teslim Kargo / Ambar Sevk\n`;
     } else {
       if (selectedCity && selectedDistrict) {
@@ -192,14 +198,16 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
           <div className="p-6 border-b border-[#E8EAED] flex items-center justify-between bg-white">
             <div>
               <h2 className="text-xl font-display font-extrabold text-[#0A0A0B]">
-                {isMaterialOnlyCart ? '📦 Malzeme Sipariş Sepeti' : '🏡 Mimari Tadilat Teklifi'}
+                {isStoreMode ? '🛍️ Alışveriş Sepetim' : isMaterialOnlyCart ? '📦 Malzeme Sipariş Sepeti' : '🏡 Mimari Tadilat Teklifi'}
               </h2>
               <p className="text-xs text-[#64748B] mt-0.5">
                 {cart.length > 0 
-                  ? isMaterialOnlyCart 
-                    ? `${cart.length} Kalem • 81 İl Kargo ile Kapıya Teslim (Usta Hariç)`
-                    : `${cart.length} Kalem • Malzeme + Uzman İşçilik Dahil`
-                  : 'Sepetiniz henüz boş'}
+                  ? isStoreMode
+                    ? `${cart.length} Ürün • 81 İl Kargo ile Kapıya Teslim`
+                    : isMaterialOnlyCart 
+                      ? `${cart.length} Kalem • 81 İl Kargo ile Kapıya Teslim (Usta Hariç)`
+                      : `${cart.length} Kalem • Malzeme + Uzman İşçilik Dahil`
+                  : isStoreMode ? 'Sepetiniz henüz boş' : 'Teklif listeniz henüz boş'}
               </p>
             </div>
 
@@ -215,8 +223,17 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
             {cart.length === 0 ? (
               <div className="text-center py-20 text-[#64748B] text-xs">
-                <p>Sepetinizde ürün bulunmuyor.</p>
-                <p className="mt-1">Katalogdan boya veya parke seçebilir, ya da özel istek ekleyebilirsiniz.</p>
+                <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-400">
+                  <ShoppingBag className="w-7 h-7" />
+                </div>
+                <p className="font-bold text-sm text-[#0A0A0B]">
+                  {isStoreMode ? 'Sepetiniz Henüz Boş' : 'Teklif Listeniz Henüz Boş'}
+                </p>
+                <p className="mt-1 text-slate-500 max-w-xs mx-auto">
+                  {isStoreMode 
+                    ? 'Kataloğumuzdaki trend dekorasyon ve yapı ürünlerini inceleyip sepetinize ekleyebilirsiniz.'
+                    : 'Tadilat sihirbazından oda seçebilir, malzeme ve özel istek ekleyebilirsiniz.'}
+                </p>
               </div>
             ) : (
               <>
@@ -430,14 +447,34 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
           {cart.length > 0 && (
             <div className="p-6 border-t border-[#E8EAED] bg-white space-y-4">
               <div className="space-y-1.5 text-xs text-[#4B5563]">
-                <div className="flex justify-between">
-                  <span>Toplam Malzeme:</span>
-                  <span className="font-mono font-semibold text-[#0A0A0B]">{totalMaterial.toLocaleString('tr-TR')} ₺</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Uygulama & İşçilik:</span>
-                  <span className="font-mono font-semibold text-[#0A0A0B]">+{totalLabor.toLocaleString('tr-TR')} ₺</span>
-                </div>
+                {isStoreMode ? (
+                  <>
+                    <div className="flex justify-between">
+                      <span>Ara Toplam:</span>
+                      <span className="font-mono font-semibold text-[#0A0A0B]">{totalMaterial.toLocaleString('tr-TR')} ₺</span>
+                    </div>
+                    <div className="flex justify-between items-center text-emerald-700">
+                      <span className="flex items-center gap-1">
+                        <Truck className="w-3.5 h-3.5" />
+                        <span>Kargo & Sevkiyat:</span>
+                      </span>
+                      <span className="font-mono font-bold">
+                        {grandTotal >= 3000 ? 'ÜCRETSİZ' : 'Standart Kargo'}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-between">
+                      <span>Toplam Malzeme:</span>
+                      <span className="font-mono font-semibold text-[#0A0A0B]">{totalMaterial.toLocaleString('tr-TR')} ₺</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Uygulama & İşçilik:</span>
+                      <span className="font-mono font-semibold text-[#0A0A0B]">+{totalLabor.toLocaleString('tr-TR')} ₺</span>
+                    </div>
+                  </>
+                )}
                 <div className="pt-2 border-t border-[#E8EAED] flex justify-between items-baseline text-base font-extrabold text-[#0A0A0B]">
                   <span>GENEL TOPLAM:</span>
                   <span className="font-mono text-xl font-black">{grandTotal.toLocaleString('tr-TR')} ₺</span>
@@ -448,11 +485,11 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
               </div>
 
               {/* Info Badge (Different for Material vs Renovation) */}
-              {isMaterialOnlyCart ? (
+              {isStoreMode || isMaterialOnlyCart ? (
                 <div className="p-3 rounded-2xl bg-blue-50 border border-blue-200 text-[11px] text-blue-900 flex items-start gap-2">
                   <Truck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
                   <span>
-                    <strong>Kargo & Ambar Sevkiyatı:</strong> Seçtiğiniz ürünler faturalı ve orijinal garantili olarak kapınıza sevk edilir. Usta montajı dahil değildir.
+                    <strong>81 İl Kargo ile Kapıya Teslim:</strong> Siparişiniz darbelere dayanıklı özel ambalajında ve resmi üretici garantisiyle doğrudan adresinize sevk edilir.
                   </span>
                 </div>
               ) : (
@@ -466,7 +503,7 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
 
               {/* Actions */}
               <div className="space-y-2 pt-1">
-                {isMaterialOnlyCart ? (
+                {isStoreMode ? (
                   <>
                     {onOpenCheckout && (
                       <button
@@ -490,16 +527,30 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
                       <span>WhatsApp ile Hızlı Danış & Sipariş Ver</span>
                       <ArrowUpRight className="w-3.5 h-3.5" />
                     </button>
+                  </>
+                ) : isMaterialOnlyCart ? (
+                  <>
+                    {onOpenCheckout && (
+                      <button
+                        onClick={() => {
+                          onClose();
+                          onOpenCheckout();
+                        }}
+                        className="w-full btn-pill-black bg-[#0A0A0B] text-white hover:bg-slate-800 justify-center py-3.5 text-xs font-bold shadow-lg flex items-center gap-2"
+                      >
+                        <CreditCard className="w-4 h-4 text-emerald-400" />
+                        <span>Siparişi Tamamla (Adres & Teslimat)</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    )}
 
                     <button
-                      onClick={() => {
-                        onClose();
-                        onOpenInspection();
-                      }}
-                      className="w-full text-center text-[11px] text-slate-500 hover:text-black py-1 transition flex items-center justify-center gap-1"
+                      onClick={handleWhatsApp}
+                      className="w-full btn-pill-outline justify-center py-2.5 text-xs text-slate-700 hover:text-black flex items-center gap-1.5"
                     >
-                      <Calendar className="w-3 h-3 text-slate-400" />
-                      <span>Bu ürünler için montaj ustası randevusu da iste</span>
+                      <Send className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>WhatsApp ile Hızlı Danış & Sipariş Ver</span>
+                      <ArrowUpRight className="w-3.5 h-3.5" />
                     </button>
                   </>
                 ) : (

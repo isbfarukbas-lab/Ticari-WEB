@@ -116,7 +116,6 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
     }
   });
   const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
-  const [cardPurchaseTypes, setCardPurchaseTypes] = useState<Record<string, 'material_only' | 'with_installation'>>({});
 
   useEffect(() => {
     try {
@@ -129,11 +128,6 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
   const toggleFavorite = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setFavorites((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const getPurchaseType = (id: string) => cardPurchaseTypes[id] || 'material_only';
-  const setPurchaseType = (id: string, type: 'material_only' | 'with_installation') => {
-    setCardPurchaseTypes((prev) => ({ ...prev, [id]: type }));
   };
 
   // Filter store products (products marked as isStoreProduct, or fallback to active items)
@@ -172,7 +166,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
     }));
   };
 
-  const handleAddProduct = (product: Product, purchaseType: 'material_only' | 'with_installation') => {
+  const handleAddProduct = (product: Product, purchaseType: 'material_only' | 'with_installation' = 'material_only') => {
     const qty = getQty(product.id);
     onAddToCart(product, qty, 'Doğrudan Sipariş', purchaseType);
     
@@ -185,12 +179,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
 
   const handleFastWhatsAppOrder = (product: Product) => {
     const qty = getQty(product.id);
-    const purchaseType = getPurchaseType(product.id);
-    const isInstalled = purchaseType === 'with_installation';
-    const unitPrice = isInstalled 
-      ? (product.materialPrice + product.workmanshipPrice) 
-      : product.materialPrice;
-    const price = unitPrice * qty;
+    const price = product.materialPrice * qty;
 
     // Log lead to CRM
     onSaveLead?.({
@@ -211,7 +200,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
           quantity: qty,
           unit: product.unit,
           total: price,
-          purchaseType,
+          purchaseType: 'material_only',
         },
       ],
       createdAt: new Date().toISOString(),
@@ -221,7 +210,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
       `📦 *Ürün:* ${product.brand} - ${product.name}\n` +
       `🏷️ *Ürün Kodu:* ${product.code}\n` +
       `🔢 *Miktar:* ${qty} ${product.unit}\n` +
-      `🛠️ *Hizmet Tipi:* ${isInstalled ? 'Malzeme + Uzman Montaj Dahil' : 'Sadece Malzeme (Kargo ile Kapıya Teslim)'}\n` +
+      `🚚 *Teslimat:* 81 İl Kargo ile Kapıya Teslim\n` +
       `💰 *Tutar:* ${price.toLocaleString('tr-TR')} ₺ (KDV Dahil Net Fiyat)\n\n` +
       `Bu ürünü toptan bayi avantajıyla doğrudan sipariş vermek ve teslimat/kargo detaylarını netleştirmek istiyorum.`;
 
@@ -271,7 +260,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
               </h1>
 
               <p className="mt-3 text-xs sm:text-sm text-[#4B5563] leading-relaxed">
-                {content?.storeSubtitle || 'Trend akustik ahşap TV panelleri, poliüretan duvar çıtaları, 1. sınıf boyalar ve zemin çözümleri doğrudan üretici bayi fiyatıyla kapınıza teslim. İster sadece malzemeyi alın, ister usta montaj hizmetimizi ekleyin.'}
+                {content?.storeSubtitle || 'Trend akustik ahşap paneller, poliüretan çıta setleri, 1. sınıf boyalar ve zemin çözümleri doğrudan üretici bayi fiyatıyla Türkiye geneli kapınıza teslim.'}
               </p>
 
               {/* Quick Perks Strip */}
@@ -285,8 +274,8 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                   <span>{content?.storePerk2 || '12 Taksit İmkanı'}</span>
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-800 font-semibold border border-slate-200">
-                  <Wrench className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>{content?.storePerk3 || 'İsteğe Bağlı Montaj (İst, Ank, İzm)'}</span>
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{content?.storePerk3 || 'Faturalı & Orijinal Bayi Garantisi'}</span>
                 </span>
               </div>
 
@@ -294,21 +283,11 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
               <div className="mt-6 flex flex-wrap items-center justify-center lg:justify-start gap-3">
                 <button
                   onClick={() => scrollToCatalog()}
-                  className="btn-pill-black text-xs py-2.5 px-5 font-bold shadow-md flex items-center gap-2"
+                  className="btn-pill-black text-xs py-2.5 px-6 font-bold shadow-md flex items-center gap-2 hover:bg-slate-800"
                 >
                   <ShoppingBag className="w-4 h-4" />
                   <span>Ürünleri İncele</span>
                 </button>
-
-                {onNavigateConfigurator && (
-                  <button
-                    onClick={onNavigateConfigurator}
-                    className="btn-pill-outline text-xs py-2.5 px-4 font-semibold flex items-center gap-2 hover:bg-slate-100 border-slate-300"
-                  >
-                    <span>🏡 Komple Ev Tadilatı Teklifi</span>
-                    <ArrowUpRight className="w-3.5 h-3.5 text-slate-600" />
-                  </button>
-                )}
               </div>
             </div>
 
@@ -495,21 +474,14 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
             {filteredProducts.map((product) => {
               const qty = getQty(product.id);
-              const purchaseType = getPurchaseType(product.id);
-              const isInstalled = purchaseType === 'with_installation';
               const isRecentlyAdded = recentlyAddedId === product.id;
               const isFav = !!favorites[product.id];
               
-              // Pricing calculations
-              const unitPrice = isInstalled 
-                ? (product.materialPrice + product.workmanshipPrice) 
-                : product.materialPrice;
-              const lineTotal = unitPrice * qty;
-
-              const materialTotal = product.materialPrice * qty;
-              const marketUnitPrice = product.marketPrice || Math.round(product.materialPrice * 1.4);
+              // Pricing calculations (Pure material retail store)
+              const lineTotal = product.materialPrice * qty;
+              const marketUnitPrice = product.marketPrice || Math.round(product.materialPrice * 1.35);
               const marketTotal = marketUnitPrice * qty;
-              const savings = Math.max(0, marketTotal - materialTotal);
+              const savings = Math.max(0, marketTotal - lineTotal);
               const discountPercent = Math.round(((marketUnitPrice - product.materialPrice) / marketUnitPrice) * 100);
 
               return (
@@ -613,32 +585,16 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                     {/* Pricing & Purchase Mode Section */}
                     <div className="pt-2 border-t border-[#F1F3F5] space-y-2.5">
                       
-                      {/* Optional Workmanship Checkbox */}
-                      {product.workmanshipPrice > 0 ? (
-                        <label className={`flex items-center justify-between p-2 rounded-xl border cursor-pointer transition text-[11px] select-none ${
-                          isInstalled 
-                            ? 'bg-emerald-50/80 border-emerald-300 text-emerald-950 font-bold' 
-                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                        }`}>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={isInstalled}
-                              onChange={(e) => setPurchaseType(product.id, e.target.checked ? 'with_installation' : 'material_only')}
-                              className="w-3.5 h-3.5 rounded text-emerald-600 focus:ring-emerald-500 accent-emerald-600 cursor-pointer"
-                            />
-                            <span>Usta Montajı Ekle</span>
-                          </div>
-                          <span className="font-mono font-bold text-emerald-700 text-[10px]">
-                            +{(product.workmanshipPrice * qty).toLocaleString('tr-TR')} ₺
-                          </span>
-                        </label>
-                      ) : (
-                        <div className="text-[10px] text-slate-500 font-medium py-1 px-1 flex items-center gap-1.5">
-                          <Truck className="w-3 h-3 text-slate-400" />
-                          <span>Tüm Türkiye'ye Hızlı Kargo Teslim</span>
-                        </div>
-                      )}
+                      {/* Shipping & Stock Reassurance Badge */}
+                      <div className="flex items-center justify-between text-[11px] text-slate-600 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-100">
+                        <span className="flex items-center gap-1.5 font-medium text-slate-700">
+                          <Truck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                          <span>81 İl Kargo ile Kapıya Teslim</span>
+                        </span>
+                        <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
+                          Stokta
+                        </span>
+                      </div>
 
                       {/* Price Display */}
                       <div className="flex items-end justify-between">
@@ -647,7 +603,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                             <span className="text-lg sm:text-xl font-black font-mono text-[#0A0A0B]">
                               {lineTotal.toLocaleString('tr-TR')} ₺
                             </span>
-                            {!isInstalled && marketTotal > materialTotal && (
+                            {marketTotal > lineTotal && (
                               <span className="text-[10px] text-slate-400 font-mono line-through">
                                 {marketTotal.toLocaleString('tr-TR')} ₺
                               </span>
@@ -655,10 +611,10 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                           </div>
                           <div className="flex items-center gap-1 mt-0.5">
                             <span className="text-[9px] text-[#64748B] font-medium">
-                              {isInstalled ? 'Malzeme + Montaj Dahil' : 'Toptan Bayi Fiyatı (KDV Dahil)'}
+                              Toptan Bayi Fiyatı (KDV Dahil)
                             </span>
-                            {savings > 0 && !isInstalled && (
-                              <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded font-mono">
+                            {savings > 0 && (
+                              <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-mono">
                                 {savings.toLocaleString('tr-TR')} ₺ Tasarruf
                               </span>
                             )}
@@ -666,11 +622,12 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                         </div>
 
                         {/* Quantity Stepper */}
-                        <div className="flex items-center border border-[#D1D5DB] rounded-full bg-white px-1.5 py-0.5">
+                        <div className="flex items-center border border-[#D1D5DB] rounded-full bg-white px-1.5 py-0.5 shadow-xs">
                           <button
                             type="button"
                             onClick={() => setQty(product.id, qty - 1)}
                             className="w-5 h-5 rounded-full hover:bg-slate-100 flex items-center justify-center font-bold text-xs"
+                            aria-label="Miktarı Azalt"
                           >
                             -
                           </button>
@@ -681,6 +638,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                             type="button"
                             onClick={() => setQty(product.id, qty + 1)}
                             className="w-5 h-5 rounded-full hover:bg-slate-100 flex items-center justify-center font-bold text-xs"
+                            aria-label="Miktarı Artır"
                           >
                             +
                           </button>
@@ -691,7 +649,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                       <div className="flex items-center gap-1.5 pt-0.5">
                         <button
                           type="button"
-                          onClick={() => handleAddProduct(product, purchaseType)}
+                          onClick={() => handleAddProduct(product, 'material_only')}
                           className={`flex-1 rounded-full text-xs py-2 px-3 justify-center flex items-center gap-1.5 shadow-sm font-bold transition-all duration-200 ${
                             isRecentlyAdded
                               ? 'bg-emerald-600 text-white scale-[1.02]'
@@ -761,11 +719,11 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
 
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center shrink-0">
-              <Wrench className="w-5 h-5" />
+              <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-[#0A0A0B]">İsteğe Bağlı Montaj</h4>
-              <p className="text-[11px] text-[#64748B] mt-0.5">Kendi usta kadromuzla anahtar teslim.</p>
+              <h4 className="text-xs font-bold text-[#0A0A0B]">%100 Orijinal & Faturalı</h4>
+              <p className="text-[11px] text-[#64748B] mt-0.5">Doğrudan yetkili bayi üretici garantisi.</p>
             </div>
           </div>
 
@@ -837,14 +795,15 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                 </div>
               )}
 
-              {/* Geographic Scope */}
+              {/* Geographic Scope & Guarantee */}
               <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-blue-900">
                 <div className="flex items-center gap-2 font-semibold">
                   <Truck className="w-4 h-4 text-blue-600 shrink-0" />
                   <span>📦 Tüm Türkiye'ye (81 İl) Kargo ile Kapıya Teslim</span>
                 </div>
-                <div className="text-[11px] text-blue-700">
-                  🛠️ Montaj Hizmeti: İstanbul, Ankara, İzmir
+                <div className="text-[11px] text-blue-700 font-semibold flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                  <span>%100 Orijinal & Üretici Bayi Faturalı</span>
                 </div>
               </div>
 

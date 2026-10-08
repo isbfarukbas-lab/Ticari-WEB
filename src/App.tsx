@@ -545,7 +545,7 @@ export const App: React.FC = () => {
               </div>
               <div>
                 <div className="text-[11px] text-slate-300">
-                  {cart.length} Kalem • {cart.some(c => !c.isCustom && c.purchaseType !== 'material_only') ? 'Malzeme + İşçilik' : 'Toptan Bayi Ürünleri'}
+                  {cart.length} {currentView === 'store' ? 'Ürün' : 'Kalem'} • {currentView === 'store' ? 'Kapıya Teslim Kargo' : cart.some(c => !c.isCustom && c.purchaseType !== 'material_only') ? 'Malzeme + İşçilik' : 'Toptan Bayi Ürünleri'}
                 </div>
                 <div className="text-sm font-extrabold font-mono text-white">
                   {cartTotal.toLocaleString('tr-TR')} ₺
@@ -554,12 +554,14 @@ export const App: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setIsInspectionOpen(true)}
-                className="hidden sm:inline-flex text-xs font-semibold px-3 py-1.5 rounded-full hover:bg-white/10 transition text-slate-200"
-              >
-                Ücretsiz Keşif
-              </button>
+              {currentView === 'configurator' && (
+                <button
+                  onClick={() => setIsInspectionOpen(true)}
+                  className="hidden sm:inline-flex text-xs font-semibold px-3 py-1.5 rounded-full hover:bg-white/10 transition text-slate-200"
+                >
+                  Ücretsiz Keşif
+                </button>
+              )}
               <button
                 onClick={() => setIsCartOpen(true)}
                 className="btn-pill-black bg-white text-[#0A0A0B] hover:bg-slate-200 text-xs py-2 px-4 shadow-sm"
@@ -589,6 +591,7 @@ export const App: React.FC = () => {
         selectedDistrict={selectedDistrict}
         estimatedDays={{ min: 10, max: 14 }}
         kdvNotice={settings.kdvNotice}
+        mode={currentView === 'configurator' ? 'configurator' : 'store'}
       />
 
       {/* Direct Online Checkout Modal */}

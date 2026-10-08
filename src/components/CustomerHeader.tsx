@@ -15,6 +15,21 @@ interface CustomerHeaderProps {
   content?: SiteContentSettings;
 }
 
+const formatPhoneDisplay = (phone?: string): string => {
+  if (!phone) return '0544 768 51 37';
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length === 10) {
+    return `0${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 8)} ${digits.slice(8, 10)}`;
+  }
+  if (digits.length === 11 && digits.startsWith('0')) {
+    return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7, 9)} ${digits.slice(9, 11)}`;
+  }
+  if (digits.length === 12 && digits.startsWith('90')) {
+    return `0${digits.slice(2, 5)} ${digits.slice(5, 8)} ${digits.slice(8, 10)} ${digits.slice(10, 12)}`;
+  }
+  return phone;
+};
+
 export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
   currentView,
   cart,
@@ -23,8 +38,8 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
   onNavigateStore,
   onOpenCart,
   onOpenInspection,
-  supportPhone = '0850 123 45 67',
-  phoneNumber = '905550000000',
+  supportPhone = '0544 768 51 37',
+  phoneNumber = '905447685137',
   content,
 }) => {
   const totalCount = cart.length;
@@ -36,6 +51,8 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
       : (item.product.materialPrice + item.product.workmanshipPrice) * item.quantity;
     return sum + line;
   }, 0);
+
+  const displayPhone = formatPhoneDisplay(supportPhone);
 
   return (
     <>
@@ -58,7 +75,7 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
             className="hidden sm:flex items-center gap-1.5 text-slate-300 hover:text-white transition font-medium shrink-0 ml-4"
           >
             <Phone className="w-3 h-3 text-emerald-400" />
-            <span>Danışma: {supportPhone}</span>
+            <span>Müşteri Danışma: <strong className="text-white font-mono">{displayPhone}</strong></span>
           </a>
         </div>
       </div>
@@ -102,16 +119,6 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
 
           {/* Right side actions */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            
-            {/* Quick Support Phone (Desktop) */}
-            <a
-              href={`tel:${supportPhone.replace(/\s+/g, '')}`}
-              className="hidden xl:flex items-center gap-1.5 text-xs font-semibold text-[#64748B] hover:text-[#0A0A0B] whitespace-nowrap shrink-0 transition px-2 py-1"
-              title="Müşteri ve Danışma Hattı"
-            >
-              <Phone className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-              <span>{supportPhone}</span>
-            </a>
 
             {/* Cart Trigger */}
             <button

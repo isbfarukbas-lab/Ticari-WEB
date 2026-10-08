@@ -399,7 +399,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     brand: 'RVOBA Atelier',
     name: 'Salon Duvar Çıtalama Hazır Montaj Seti (12 Çerçeve)',
     code: 'RV-CITA-12',
-    image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1618219908412-a29a1bb7b86e?auto=format&fit=crop&w=800&q=80',
     description: '12 adet simetrik salon duvar çerçevesi oluşturmak için 45° açılı hazır kesilmiş, boyanabilir sert polimer çıtalar ve montaj mastiği.',
     unit: 'set',
     materialPrice: 2900,

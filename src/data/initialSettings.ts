@@ -143,10 +143,10 @@ export const INITIAL_SETTINGS: SiteSettings = {
     // 3. Mağaza & Vitrin
     storeBadge: 'RVOBA® 2026 MİMARİ ÜRÜN & MALZEME KOLEKSİYONU',
     storeTitle: 'Evinizin Havasını Değiştiren Tasarım Malzemeleri.',
-    storeSubtitle: 'Trend akustik ahşap TV panelleri, poliüretan duvar çıtaları, 1. sınıf boyalar ve zemin çözümleri doğrudan üretici bayi fiyatıyla kapınıza teslim. İster sadece malzemeyi alın, ister usta montaj hizmetimizi ekleyin.',
+    storeSubtitle: 'Trend akustik ahşap paneller, poliüretan çıta setleri, 1. sınıf boyalar ve zemin kaplamaları toptan bayi fiyatıyla Türkiye geneli kapınıza teslim.',
     storePerk1: '3.000 ₺ Üzeri Ücretsiz Kargo',
     storePerk2: '12 Taksit İmkanı',
-    storePerk3: 'İsteğe Bağlı Montaj (İst, Ank, İzm)',
+    storePerk3: 'Faturalı & Orijinal Bayi Garantisi',
 
     spotlightBadge: '🔥 Haftanın Yıldızı',
     spotlightSub: 'RVOBA Atelier Özel Tasarım',

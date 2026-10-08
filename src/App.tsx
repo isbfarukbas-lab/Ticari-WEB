@@ -64,7 +64,9 @@ export const App: React.FC = () => {
           return {
             ...initProd,
             ...existing,
+            image: initProd.image || existing.image,
             isStoreProduct: existing.isStoreProduct ?? initProd.isStoreProduct,
+            packageInfo: initProd.packageInfo || existing.packageInfo,
             specs: existing.specs && existing.specs.length > 0 ? existing.specs : initProd.specs,
           };
         });
@@ -175,13 +177,21 @@ export const App: React.FC = () => {
       const saved = localStorage.getItem('rvoba_settings_v1') || localStorage.getItem('restolab_settings_v5');
       if (saved) {
         const parsed = JSON.parse(saved);
+        const mergedContent = {
+          ...INITIAL_SETTINGS.content,
+          ...(parsed.content || {}),
+        };
+        // Automatically sanitize legacy texts containing "montaj"
+        if (mergedContent.storeSubtitle && mergedContent.storeSubtitle.includes('montaj')) {
+          mergedContent.storeSubtitle = INITIAL_SETTINGS.content?.storeSubtitle || '';
+        }
+        if (mergedContent.storePerk3 && mergedContent.storePerk3.includes('Montaj')) {
+          mergedContent.storePerk3 = INITIAL_SETTINGS.content?.storePerk3 || '';
+        }
         return {
           ...INITIAL_SETTINGS,
           ...parsed,
-          content: {
-            ...INITIAL_SETTINGS.content,
-            ...(parsed.content || {}),
-          },
+          content: mergedContent,
         };
       }
     } catch (e) {

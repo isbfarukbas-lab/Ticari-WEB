@@ -22,7 +22,8 @@ import {
   MessageCircle,
   CreditCard,
   RotateCcw,
-  Percent
+  Percent,
+  Package
 } from 'lucide-react';
 import { Product, CartItem, LeadRequest, SiteContentSettings } from '../types';
 
@@ -204,12 +205,12 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
     });
 
     const msg = `*RVOBA® — Hızlı Ürün Siparişi (rvoba.com)*\n\n` +
-      `📦 *Ürün:* ${product.brand} - ${product.name}\n` +
-      `🏷️ *Ürün Kodu:* ${product.code}\n` +
-      `🔢 *Miktar:* ${qty} ${product.unit}\n` +
-      `🚚 *Teslimat:* 81 İl Kargo ile Kapıya Teslim\n` +
-      `💰 *Tutar:* ${price.toLocaleString('tr-TR')} ₺ (KDV Dahil Net Fiyat)\n\n` +
-      `Bu ürünü toptan bayi avantajıyla doğrudan sipariş vermek ve teslimat/kargo detaylarını netleştirmek istiyorum.`;
+      `*Ürün:* ${product.brand} - ${product.name}\n` +
+      `*Ürün Kodu:* ${product.code}\n` +
+      `*Miktar:* ${qty} ${product.unit}\n` +
+      `*Teslimat:* 81 İl Kargo ile Kapıya Teslim\n` +
+      `*Tutar:* ${price.toLocaleString('tr-TR')} ₺ (KDV Dahil Net Fiyat)\n\n` +
+      `Bu ürünü doğrudan üretici fiyatı avantajıyla sipariş vermek ve teslimat/kargo detaylarını netleştirmek istiyorum.`;
 
     window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(msg)}`, '_blank');
   };
@@ -279,7 +280,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                 onClick={() => scrollToBestSellers()}
                 className="btn-pill-outline text-xs py-3 px-5 font-bold flex items-center gap-2 border-slate-300 hover:border-black text-slate-800 hover:text-black transition bg-white shadow-xs"
               >
-                <span>🔥 Çok Satanlar & Fırsatlar</span>
+                <span>Öne Çıkan Koleksiyon</span>
               </button>
             </div>
 
@@ -293,15 +294,14 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
       <section id="cok-satanlar" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 text-[10px] font-black uppercase tracking-wider mb-1.5 border border-rose-200">
-              <Zap className="w-3 h-3 fill-current text-rose-600" />
-              <span>Haftanın En Çok Satanları</span>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 text-[10px] font-bold uppercase tracking-wider mb-1.5 border border-slate-200">
+              <span>MİMARİ KOLEKSİYON</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-display font-black text-[#0A0A0B]">
-              Trend Mimari Dekorasyon Fırsatları
+              Öne Çıkan Tasarım Malzemeleri
             </h2>
             <p className="text-xs text-[#64748B] mt-0.5">
-              Müşterilerimizin evlerinde en çok tercih ettiği, doğrudan stoktan kapıya sevk edilen popüler ürünler.
+              Projelerde en çok tercih edilen, doğrudan üretici ve merkez depomuzdan sevk edilen ürünler.
             </p>
           </div>
 
@@ -340,11 +340,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
 
                   {/* Top Left Badges */}
                   <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 items-start z-10">
-                    <span className="bg-rose-600 text-white text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow flex items-center gap-1">
-                      <Sparkles className="w-2.5 h-2.5" />
-                      <span>Çok Satan</span>
-                    </span>
-                    <span className="bg-[#0A0A0B]/85 backdrop-blur-md text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow">
+                    <span className="bg-[#0A0A0B] text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow">
                       {product.brand}
                     </span>
                   </div>
@@ -352,9 +348,8 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                   {/* Top Right: Discount & Favorite */}
                   <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
                     {discountPercent > 5 && (
-                      <span className="bg-rose-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow flex items-center gap-0.5">
-                        <Percent className="w-2.5 h-2.5" />
-                        <span>{discountPercent} İndirim</span>
+                      <span className="bg-[#0A0A0B] text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow flex items-center gap-0.5 font-mono">
+                        <span>-%{discountPercent}</span>
                       </span>
                     )}
 
@@ -403,8 +398,9 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
 
                     {product.packageInfo && (
                       <div className="mt-1">
-                        <span className="inline-flex items-center text-[10px] font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
-                          📦 {product.packageInfo}
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                          <Package className="w-3 h-3 text-slate-500" />
+                          <span>{product.packageInfo}</span>
                         </span>
                       </div>
                     )}
@@ -534,7 +530,8 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
 
                 {showFavoritesOnly && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-600 text-white text-[11px] font-bold shadow-xs">
-                    <span>❤️ Sadece Favorilerim</span>
+                    <Heart className="w-3.5 h-3.5 fill-current text-white" />
+                    <span>Sadece Favorilerim</span>
                     <button 
                       onClick={onToggleFavoritesOnly} 
                       className="hover:text-amber-200 ml-0.5"
@@ -582,10 +579,10 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                 aria-label="Ürünleri Sırala"
                 className="bg-white border border-[#D1D5DB] rounded-full px-3 py-1.5 text-xs font-semibold text-[#0A0A0B] focus:outline-none focus:border-black shadow-xs cursor-pointer"
               >
-                <option value="featured">✨ Öne Çıkanlar</option>
+                <option value="featured">Öne Çıkanlar</option>
                 <option value="price_asc">Fiyat: Düşükten Yükseğe</option>
                 <option value="price_desc">Fiyat: Yüksekten Düşüğe</option>
-                <option value="discount">🔥 En Çok İndirim</option>
+                <option value="discount">Fiyat Avantajı</option>
               </select>
             </div>
 
@@ -604,8 +601,8 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
 
         {filteredProducts.length === 0 ? (
           <div className="py-20 text-center bg-white rounded-3xl border border-[#E8EAED] p-8">
-            <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto text-xl mb-3">
-              🔍
+            <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center mx-auto mb-3">
+              <Search className="w-6 h-6" />
             </div>
             <h3 className="text-base font-bold text-[#0A0A0B]">Aramanızla Eşleşen Ürün Bulunamadı</h3>
             <p className="text-xs text-[#64748B] mt-1">Farklı bir kelime deneyebilir veya kategoriyi değiştirebilirsiniz.</p>
@@ -649,23 +646,16 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
 
                     {/* Top Left Badges */}
                     <div className="absolute top-2.5 left-2.5 flex flex-col gap-1 items-start z-10">
-                      <span className="bg-[#0A0A0B]/90 backdrop-blur-md text-white text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow">
+                      <span className="bg-[#0A0A0B]/90 backdrop-blur-md text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow">
                         {product.brand}
                       </span>
-                      {product.inStock !== false && (
-                        <span className="bg-emerald-600/90 backdrop-blur-md text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow flex items-center gap-1">
-                          <Zap className="w-2.5 h-2.5 fill-current" />
-                          <span>Aynı Gün Kargo</span>
-                        </span>
-                      )}
                     </div>
 
                     {/* Top Right: Discount Tag + Favorite Heart */}
                     <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
                       {discountPercent > 5 && (
-                        <span className="bg-rose-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow flex items-center gap-0.5">
-                          <Percent className="w-2.5 h-2.5" />
-                          <span>{discountPercent} İndirim</span>
+                        <span className="bg-[#0A0A0B] text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow flex items-center gap-0.5 font-mono">
+                          <span>-%{discountPercent}</span>
                         </span>
                       )}
 
@@ -715,8 +705,8 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
 
                       {product.packageInfo && (
                         <div className="mt-1">
-                          <span className="inline-flex items-center text-[10px] font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
-                            📦 {product.packageInfo}
+                          <span className="inline-flex items-center text-[10px] font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                            {product.packageInfo}
                           </span>
                         </div>
                       )}
@@ -744,7 +734,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                           </div>
                           <div className="flex items-center gap-1 mt-0.5">
                             <span className="text-[9px] text-[#64748B] font-medium">
-                              Toptan Bayi Fiyatı (KDV Dahil)
+                              Doğrudan Üretici Fiyatı (KDV Dahil)
                             </span>
                             {savings > 0 && (
                               <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-mono">
@@ -932,7 +922,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
               <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-800">
                 <div className="flex items-center gap-2 font-semibold">
                   <Truck className="w-4 h-4 text-slate-700 shrink-0" />
-                  <span>📦 Sigortalı Hızlı Kargo / Ambar Sevkiyatı</span>
+                  <span>Sigortalı Hızlı Kargo / Ambar Sevkiyatı</span>
                 </div>
                 <div className="text-[11px] text-emerald-700 font-bold flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
@@ -942,7 +932,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
 
               <div className="pt-4 border-t border-[#E8EAED] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <span className="text-[10px] text-[#64748B] block font-semibold">Toptan Bayi Fiyatı:</span>
+                  <span className="text-[10px] text-[#64748B] block font-semibold">Doğrudan Üretici Fiyatı (KDV Dahil):</span>
                   <div className="text-2xl font-black font-mono text-[#0A0A0B]">
                     {previewProduct.materialPrice.toLocaleString('tr-TR')} ₺ / {previewProduct.unit}
                   </div>

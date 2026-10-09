@@ -21,7 +21,7 @@ export const CustomerInspectionModal: React.FC<CustomerInspectionModalProps> = (
   cart,
   currentUser,
   onSaveLead,
-  phoneNumber = '905550000000',
+  phoneNumber = '905447685137',
   selectedCity = 'İstanbul',
   selectedDistrict = 'Kadıköy',
   serviceAreas = [],
@@ -134,19 +134,19 @@ export const CustomerInspectionModal: React.FC<CustomerInspectionModalProps> = (
 
     // WhatsApp Notification
     let msg = `*YENİ ÜCRETSİZ KEŞİF TALEBİ — RVOBA® (rvoba.com)*\n\n`;
-    msg += `👤 *Müşteri:* ${fullName}\n`;
-    msg += `📞 *Telefon:* ${phone}\n`;
-    msg += `📍 *Konum:* ${city} / ${district}\n`;
-    if (address) msg += `🏠 *Adres:* ${address}\n`;
-    msg += `📅 *İstenen Gün:* ${preferredDate || 'En Kısa Sürede'} (${timeSlot})\n`;
-    msg += `💰 *Sepet Tutarı:* ${totalAmount.toLocaleString('tr-TR')} ₺\n`;
+    msg += `*Müşteri:* ${fullName}\n`;
+    msg += `*Telefon:* ${phone}\n`;
+    msg += `*Konum:* ${city} / ${district}\n`;
+    if (address) msg += `*Adres:* ${address}\n`;
+    msg += `*İstenen Gün:* ${preferredDate || 'En Kısa Sürede'} (${timeSlot})\n`;
+    msg += `*Sepet Tutarı:* ${totalAmount.toLocaleString('tr-TR')} ₺\n`;
     if (totalSavings > 0) {
-      msg += `📉 *Tasarruf Tutarı:* -${totalSavings.toLocaleString('tr-TR')} ₺\n`;
+      msg += `*Piyasa Avantajı:* -${totalSavings.toLocaleString('tr-TR')} ₺\n`;
     }
 
     const customCount = cart.filter((c) => c.isCustom).length;
     if (customCount > 0) {
-      msg += `📷 *Özel İstek:* Müşteri ${customCount} adet özel istek/fotoğraf ekledi.\n`;
+      msg += `*Özel İstek:* Müşteri ${customCount} adet özel istek/fotoğraf ekledi.\n`;
     }
 
     const encoded = encodeURIComponent(msg);

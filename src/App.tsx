@@ -92,30 +92,19 @@ export const App: React.FC = () => {
     }
   }, [products]);
 
-  // Cart state with localStorage persistence
+  // Cart state with localStorage persistence (starts clean with 0 items)
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
-      const saved = localStorage.getItem('rvoba_cart_v1') || localStorage.getItem('restolab_cart_v5');
-      if (saved) return JSON.parse(saved);
+      const saved = localStorage.getItem('rvoba_cart_v1');
+      if (saved) {
+        const parsed: CartItem[] = JSON.parse(saved);
+        // Clean out any legacy sample items if present
+        return parsed.filter((item) => item.id !== 'sample-1' && item.id !== 'sample-2');
+      }
     } catch (e) {
       console.error(e);
     }
-    return [
-      {
-        id: 'sample-1',
-        productId: 'filli-aydan',
-        product: INITIAL_PRODUCTS[0],
-        quantity: 200,
-        roomType: 'Komple Ev Duvarları',
-      },
-      {
-        id: 'sample-2',
-        productId: 'yildiz-vario-lizbon',
-        product: INITIAL_PRODUCTS[7],
-        quantity: 65,
-        roomType: 'Salon ve Odalar',
-      },
-    ];
+    return [];
   });
 
   useEffect(() => {

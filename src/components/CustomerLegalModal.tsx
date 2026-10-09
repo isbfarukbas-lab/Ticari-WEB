@@ -16,7 +16,7 @@ export const CustomerLegalModal: React.FC<CustomerLegalModalProps> = ({
   onClose,
   defaultTab = 'sozlesme',
   companyName = 'RVOBA® Mimarlık ve Yapı Çözümleri A.Ş.',
-  supportPhone = '0850 123 45 67',
+  supportPhone = '0544 768 51 37',
 }) => {
   const [activeTab, setActiveTab] = useState<LegalTabKey>(defaultTab);
 
@@ -135,7 +135,7 @@ export const CustomerLegalModal: React.FC<CustomerLegalModalProps> = ({
               <div>
                 <h4 className="font-bold text-[#0A0A0B] mb-1">MADDE 1 — TARAFLAR</h4>
                 <p><strong>SATICI / YÜKLENİCİ:</strong> {companyName}<br />
-                Mersis No: 0735000000000001 • Adres: Levent / Beşiktaş, İstanbul<br />
+                Mersis No: 0735000000000001 • Adres: Kadıköy / İstanbul<br />
                 Destek & Müşteri Danışma Hattı: {supportPhone} • E-Posta: destek@rvoba.com</p>
                 <p className="mt-1.5"><strong>ALICI / İŞ SAHİBİ:</strong> Platform üzerinden malzeme siparişi veren veya mimari keşif ve tadilat taahhüdü başlatan müşteri.</p>
               </div>

@@ -32,8 +32,8 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
   cart,
   currentUser,
   onOrderCompleted,
-  phoneNumber = '905550000000',
-  supportPhone = '0850 123 45 67',
+  phoneNumber = '905447685137',
+  supportPhone = '0544 768 51 37',
 }) => {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -152,18 +152,18 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
 
   const handleSendWhatsAppNotification = (order: LeadRequest) => {
     const msg = `*RVOBA® — Yeni Web Siparişi Teyidi*\n\n` +
-      `🏷️ *Sipariş No:* ${order.orderNumber}\n` +
-      `👤 *Müşteri:* ${order.fullName}\n` +
-      `📞 *Telefon:* ${order.phone}\n` +
-      `📍 *Teslimat:* ${order.district} / ${order.city}\n` +
-      `💳 *Ödeme:* ${
+      `*Sipariş No:* ${order.orderNumber}\n` +
+      `*Müşteri:* ${order.fullName}\n` +
+      `*Telefon:* ${order.phone}\n` +
+      `*Teslimat:* ${order.district} / ${order.city}\n` +
+      `*Ödeme:* ${
         order.paymentMethod === 'credit_card' 
           ? 'Kredi Kartı' 
           : order.paymentMethod === 'bank_transfer' 
           ? 'Banka Havalesi/EFT' 
           : 'Kapıda/Ambar Ödeme'
       }\n` +
-      `💰 *Net Tutar:* ${order.totalAmount.toLocaleString('tr-TR')} ₺ (KDV Dahil)\n\n` +
+      `*Net Tutar:* ${order.totalAmount.toLocaleString('tr-TR')} ₺ (KDV Dahil)\n\n` +
       `Siparişimin hazırlandığını teyit etmek ve kargo ambar takip detaylarını almak istiyorum.`;
 
     window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(msg)}`, '_blank');
@@ -255,16 +255,16 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
 
               {/* Bank Details Note if Bank Transfer */}
               {createdOrder.paymentMethod === 'bank_transfer' && (
-                <div className="max-w-md mx-auto p-4 rounded-2xl bg-amber-50 border border-amber-200 text-left text-xs text-amber-950 space-y-1.5">
-                  <div className="font-bold flex items-center gap-1.5 text-amber-900">
-                    <Building2 className="w-4 h-4 text-amber-700" />
+                <div className="max-w-md mx-auto p-4 rounded-2xl bg-slate-50 border border-slate-200 text-left text-xs text-slate-800 space-y-1.5">
+                  <div className="font-bold flex items-center gap-1.5 text-[#0A0A0B]">
+                    <Building2 className="w-4 h-4 text-slate-700" />
                     <span>Havale / EFT Hesap Bilgilerimiz:</span>
                   </div>
-                  <div className="text-[11px] font-mono space-y-0.5 text-amber-900">
+                  <div className="text-[11px] font-mono space-y-0.5 text-slate-700">
                     <p><strong>Banka:</strong> Garanti BBVA / QNB Finansbank</p>
                     <p><strong>Alıcı:</strong> RVOBA Mimarlık Yapı Sistemleri A.Ş.</p>
                     <p><strong>IBAN:</strong> TR00 0000 0000 0000 0000 0000 00</p>
-                    <p className="text-[10px] text-amber-800 pt-1">
+                    <p className="text-[10px] text-slate-500 pt-1">
                       * Açıklama kısmına <strong>{createdOrder.orderNumber}</strong> numarasını yazmayı unutmayınız.
                     </p>
                   </div>
@@ -500,7 +500,7 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
                     <div>
                       <div className="text-xs font-bold">Havale / EFT</div>
                       <div className={`text-[10px] mt-0.5 ${paymentMethod === 'bank_transfer' ? 'text-emerald-300 font-bold' : 'text-emerald-700 font-semibold'}`}>
-                        ⚡ %3 Nakit İndirimi
+                        %3 Havale / EFT İndirimi
                       </div>
                     </div>
                   </label>

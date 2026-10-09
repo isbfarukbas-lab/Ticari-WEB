@@ -23,7 +23,12 @@ import {
   HelpCircle,
   Clock,
   MapPin,
-  Phone
+  Phone,
+  Home,
+  Armchair,
+  Info,
+  AlertCircle,
+  Package
 } from 'lucide-react';
 import { CategoryInfo, CategoryKey, Product, CartItem, CustomRequestItem, SiteSettings } from '../types';
 import { BeforeAfterSlider } from './BeforeAfterSlider';
@@ -107,7 +112,7 @@ export const CustomerConfigurator: React.FC<CustomerConfiguratorProps> = ({
   setActiveRoom,
   defaultSqM,
   setDefaultSqM,
-  phoneNumber = '905550000000',
+  phoneNumber = '905447685137',
   selectedCity = 'İstanbul',
   setSelectedCity,
   selectedDistrict = 'Kadıköy',
@@ -554,13 +559,13 @@ export const CustomerConfigurator: React.FC<CustomerConfiguratorProps> = ({
     }
 
     let msg = `*RVOBA® — Şeffaf Tadilat Teklifi Talebi (rvoba.com)*\n`;
-    msg += `📍 *Lokasyon:* ${city} / ${district}\n`;
-    msg += `📐 *Daire Bilgisi:* ${activeRoom} (${defaultSqM} m²)\n`;
-    msg += `🏠 *Daire Durumu:* ${propertyCondition === 'empty' ? 'Boş Daire (Hemen Başlanabilir)' : 'Eşyalı Daire (Eşya Maskeleme & Koruma Dahil)'}\n\n`;
+    msg += `*Lokasyon:* ${city} / ${district}\n`;
+    msg += `*Daire Bilgisi:* ${activeRoom} (${defaultSqM} m²)\n`;
+    msg += `*Daire Durumu:* ${propertyCondition === 'empty' ? 'Boş Daire (Hemen Başlanabilir)' : 'Eşyalı Daire (Eşya Maskeleme & Koruma Dahil)'}\n\n`;
 
     const standardItems = cart.filter((c) => !c.isCustom && c.product);
     if (standardItems.length > 0) {
-      msg += `📋 *SEÇİLEN MALZEME VE İŞÇİLİK KALEMLERİ:*\n`;
+      msg += `*SEÇİLEN MALZEME VE İŞÇİLİK KALEMLERİ:*\n`;
       standardItems.forEach((c, idx) => {
         if (!c.product) return;
         const line = (c.product.materialPrice + c.product.workmanshipPrice) * c.quantity;
@@ -588,7 +593,7 @@ export const CustomerConfigurator: React.FC<CustomerConfiguratorProps> = ({
 
     const customItems = cart.filter((c) => c.isCustom && c.customData);
     if (customItems.length > 0) {
-      msg += `📷 *ÖZEL İSTEKLER VE MÜŞTERİ NOTLARI:*\n`;
+      msg += `*ÖZEL İSTEKLER VE MÜŞTERİ NOTLARI:*\n`;
       customItems.forEach((c, idx) => {
         if (!c.customData) return;
         msg += `${idx + 1}. *${c.customData.title}* (${c.customData.roomType})\n`;
@@ -601,11 +606,11 @@ export const CustomerConfigurator: React.FC<CustomerConfiguratorProps> = ({
     }
 
     msg += `━━━━━━━━━━━━━━━━━━━━\n`;
-    msg += `💰 *RVOBA ANAHTAR TESLİM TUTAR:* ${grandTotal.toLocaleString('tr-TR')} ₺\n`;
+    msg += `*RVOBA ANAHTAR TESLİM TUTAR:* ${grandTotal.toLocaleString('tr-TR')} ₺\n`;
     if (totalSavings > 0) {
-      msg += `✨ *Tahmini Piyasa Tasarrufu:* ${totalSavings.toLocaleString('tr-TR')} ₺\n`;
+      msg += `*Tahmini Piyasa Avantajı:* ${totalSavings.toLocaleString('tr-TR')} ₺\n`;
     }
-    msg += `🛡️ *Güvence:* Kademeli Hakediş Ödeme Modeli & Sözleşmeli Sabit Bütçe\n\n`;
+    msg += `*Güvence:* Kademeli Hakediş Ödeme Modeli & Sözleşmeli Sabit Bütçe\n\n`;
     msg += `Bu seçimlerime istinaden yerinde ücretsiz lazer keşif ve sözleşme detayları için görüşmek istiyorum.`;
 
     const encoded = encodeURIComponent(msg);
@@ -627,21 +632,21 @@ export const CustomerConfigurator: React.FC<CustomerConfiguratorProps> = ({
 
       {/* Quick Bridge to Material Store */}
       {onNavigateStore && currentStep === 1 && (
-        <div className="mb-6 p-3.5 sm:p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
+        <div className="mb-6 p-3.5 sm:p-4 rounded-2xl bg-[#0A0A0B] text-white border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-left shadow-md">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 text-sm shadow-sm">
-              📦
+            <div className="w-8 h-8 rounded-xl bg-white/10 text-white flex items-center justify-center shrink-0 text-sm shadow-sm border border-white/10">
+              <Package className="w-4 h-4 text-emerald-400" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-amber-950">Usta İstemiyor, Sadece Malzeme mi Almak İstiyorsunuz?</h4>
-              <p className="text-[11px] text-amber-800 mt-0.5">Akustik panel, çıta, boya ve batarya modellerimizi toptan bayi fiyatıyla kargo ile doğrudan satın alabilirsiniz.</p>
+              <h4 className="text-xs font-bold text-white">Yalnızca Malzeme Satın Almak mı İstiyorsunuz?</h4>
+              <p className="text-[11px] text-slate-300 mt-0.5">Akustik panel, çıta, boya ve batarya koleksiyonumuzu doğrudan üretici fiyatıyla 81 il kargo ile satın alabilirsiniz.</p>
             </div>
           </div>
           <button
             onClick={onNavigateStore}
-            className="btn-pill-black text-[11px] py-1.5 px-3.5 whitespace-nowrap shrink-0"
+            className="btn-pill-black bg-white text-[#0A0A0B] hover:bg-slate-200 text-[11px] py-1.5 px-3.5 whitespace-nowrap shrink-0 font-bold"
           >
-            <span>Ürün Mağazasına Git</span>
+            <span>Malzeme Mağazasına Git</span>
             <ArrowRight className="w-3 h-3" />
           </button>
         </div>
@@ -779,7 +784,8 @@ export const CustomerConfigurator: React.FC<CustomerConfiguratorProps> = ({
               >
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-xs font-bold flex items-center gap-1.5">
-                    <span>🏠</span> Boş Daire
+                    <Home className="w-3.5 h-3.5" />
+                    <span>Boş Daire</span>
                   </span>
                   {propertyCondition === 'empty' && (
                     <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full text-white font-semibold">Seçili</span>
@@ -801,7 +807,8 @@ export const CustomerConfigurator: React.FC<CustomerConfiguratorProps> = ({
               >
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-xs font-bold flex items-center gap-1.5">
-                    <span>🛋️</span> Eşyalı Daire
+                    <Armchair className="w-3.5 h-3.5" />
+                    <span>Eşyalı Daire</span>
                   </span>
                   {propertyCondition === 'furnished' && (
                     <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full text-white font-semibold">Seçili</span>
@@ -816,7 +823,7 @@ export const CustomerConfigurator: React.FC<CustomerConfiguratorProps> = ({
 
           {/* Mimari Metraj Açıklaması */}
           <div className="p-4 rounded-2xl bg-[#F8F9FA] border border-[#E2E4E8] flex items-start gap-3 text-xs text-[#4B5563] mb-8">
-            <span className="text-lg leading-none mt-0.5">💡</span>
+            <Info className="w-4 h-4 text-slate-700 shrink-0 mt-0.5" />
             <div>
               <strong className="text-[#0A0A0B] block mb-0.5 text-xs font-bold">
                 Mimari Yüzey & Metraj Hesabı:
@@ -929,8 +936,9 @@ export const CustomerConfigurator: React.FC<CustomerConfiguratorProps> = ({
           <div className="pt-6 border-t border-[#F1F3F5] flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-xs text-[#64748B]">
               {selectedCount === 0 ? (
-                <span className="text-amber-600 font-semibold">
-                  ⚠️ Lütfen devam etmek için en az bir işlem seçin.
+                <span className="text-rose-600 font-semibold flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>Lütfen devam etmek için en az bir işlem seçin.</span>
                 </span>
               ) : (
                 <span>

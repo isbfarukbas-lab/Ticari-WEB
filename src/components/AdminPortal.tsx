@@ -2191,7 +2191,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     <input
                       type="text"
                       required
-                      placeholder="905550000000"
+                      placeholder="905447685137"
                       value={localPhone}
                       onChange={(e) => setLocalPhone(e.target.value)}
                       className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-xl px-3.5 py-2.5 text-xs text-[#0A0A0B] font-mono font-bold focus:outline-none focus:border-black"
@@ -2208,7 +2208,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     <input
                       type="text"
                       required
-                      placeholder="0850 123 45 67"
+                      placeholder="0544 768 51 37"
                       value={localSupportPhone}
                       onChange={(e) => setLocalSupportPhone(e.target.value)}
                       className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-xl px-3.5 py-2.5 text-xs text-[#0A0A0B] font-bold focus:outline-none focus:border-black"

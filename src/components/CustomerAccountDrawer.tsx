@@ -116,13 +116,33 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
   const getStatusBadge = (status: LeadRequest['status']) => {
     switch (status) {
       case 'sozlesme_imzalandi':
-        return <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">🟢 Sözleşme İmzalandı</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-[10px]">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+            <span>Sözleşme İmzalandı</span>
+          </span>
+        );
       case 'kesif_verildi':
-        return <span className="px-2.5 py-1 rounded-full bg-purple-100 text-purple-800 font-bold text-[10px]">🟣 Keşif Randevusu Verildi</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-50 text-purple-800 border border-purple-200 font-bold text-[10px]">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0" />
+            <span>Keşif Randevusu Verildi</span>
+          </span>
+        );
       case 'arandi':
-        return <span className="px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 font-bold text-[10px]">🔵 Mimar Aradı</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-blue-800 border border-blue-200 font-bold text-[10px]">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
+            <span>Mimar Aradı</span>
+          </span>
+        );
       default:
-        return <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-bold text-[10px]">🟡 İşleme Alındı</span>;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-800 border border-slate-200 font-bold text-[10px]">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0" />
+            <span>İşleme Alındı</span>
+          </span>
+        );
     }
   };
 

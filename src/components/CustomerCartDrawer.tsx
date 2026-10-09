@@ -49,7 +49,7 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
   onOpenProforma,
   onOpenLegal,
   onOpenCheckout,
-  phoneNumber = '905550000000',
+  phoneNumber = '905447685137',
   selectedCity,
   selectedDistrict,
   estimatedDays,
@@ -102,13 +102,13 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
         : `*RVOBA® — Online Tadilat & Keşif Talebi (rvoba.com)*\n\n`;
 
     if (isStoreMode || isMaterialOnlyCart) {
-      msg += `🚚 *Teslimat Şekli:* Tüm Türkiye'ye Kapıya Teslim Kargo / Ambar Sevk\n`;
+      msg += `*Teslimat Şekli:* Tüm Türkiye'ye Kapıya Teslim Kargo / Ambar Sevk\n`;
     } else {
       if (selectedCity && selectedDistrict) {
-        msg += `📍 *Hizmet Lokasyonu:* ${selectedCity} / ${selectedDistrict}\n`;
+        msg += `*Hizmet Lokasyonu:* ${selectedCity} / ${selectedDistrict}\n`;
       }
       if (estimatedDays) {
-        msg += `⏱️ *Tahmini Teslimat Süresi:* ${estimatedDays.min} - ${estimatedDays.max} İş Günü\n`;
+        msg += `*Tahmini Teslimat Süresi:* ${estimatedDays.min} - ${estimatedDays.max} İş Günü\n`;
       }
     }
     msg += `\n`;
@@ -116,7 +116,7 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
     // Standard products
     const standardItems = cart.filter((c) => !c.isCustom && c.product);
     if (standardItems.length > 0) {
-      msg += `📋 *SEÇİLEN KALEMLER VE ÜRÜNLER:*\n`;
+      msg += `*SEÇİLEN KALEMLER VE ÜRÜNLER:*\n`;
       standardItems.forEach((c, idx) => {
         if (!c.product) return;
         const isMaterialOnly = c.purchaseType === 'material_only';
@@ -130,7 +130,7 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
           msg += `${idx + 1}. *${c.product.brand} - ${c.product.name}*\n`;
           msg += `   • Durum: [Doğrudan Ürün Satışı / Kargo Teslim]\n`;
           msg += `   • Miktar: ${c.quantity} ${c.product.unit}\n`;
-          msg += `   • Tutar: ${line.toLocaleString('tr-TR')} ₺ (Toptan Bayi Fiyatı)\n\n`;
+          msg += `   • Tutar: ${line.toLocaleString('tr-TR')} ₺ (Doğrudan Fiyat)\n\n`;
         } else if (isLaborOnly) {
           msg += `${idx + 1}. *${c.product.name}*\n`;
           msg += `   • Durum: [Elimde Malzeme Var — Yalnızca Usta İşçiliği]\n`;
@@ -153,7 +153,7 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
     // Custom requests & uploaded photos
     const customItems = cart.filter((c) => c.isCustom && c.customData);
     if (customItems.length > 0) {
-      msg += `📷 *ÖZEL İSTEKLER VE MÜŞTERİ NOTLARI:*\n`;
+      msg += `*ÖZEL İSTEKLER VE MÜŞTERİ NOTLARI:*\n`;
       customItems.forEach((c, idx) => {
         if (!c.customData) return;
         msg += `${idx + 1}. *${c.customData.title}* (${c.customData.roomType})\n`;
@@ -166,16 +166,16 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
     }
 
     msg += `━━━━━━━━━━━━━━━━━━━━\n`;
-    msg += `💰 *RVOBA NET TOPLAM:* ${grandTotal.toLocaleString('tr-TR')} ₺\n`;
+    msg += `*RVOBA NET TOPLAM:* ${grandTotal.toLocaleString('tr-TR')} ₺\n`;
     if (totalSavings > 0) {
-      msg += `📉 *Piyasa Tasarrufunuz:* -${totalSavings.toLocaleString('tr-TR')} ₺ (Toptan Bayi Avantajı)\n`;
+      msg += `*Piyasa Avantajı:* -${totalSavings.toLocaleString('tr-TR')} ₺ (Doğrudan Üretici Avantajı)\n`;
     }
     msg += `✓ *${kdvNotice || 'KDV dahil net tutardır.'}*\n`;
     
     if (isMaterialOnlyCart) {
-      msg += `📦 *Kargo teslimat ve fatura bilgilerimi ileterek siparişimi tamamlamak istiyorum.*`;
+      msg += `*Kargo teslimat ve fatura bilgilerimi ileterek siparişimi tamamlamak istiyorum.*`;
     } else {
-      msg += `🛡️ *Tek Kurumsal Muhatap & Sözleşmeli Sabit Bütçe*\n\n`;
+      msg += `*Kurumsal Sözleşme & Sabit Fiyat Güvencesi*\n\n`;
       msg += `Bu sepet ve tadilat talebim hakkında mimarınızla görüşmek istiyorum.`;
     }
 
@@ -198,7 +198,7 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
           <div className="p-6 border-b border-[#E8EAED] flex items-center justify-between bg-white">
             <div>
               <h2 className="text-xl font-display font-extrabold text-[#0A0A0B]">
-                {isStoreMode ? '🛍️ Alışveriş Sepetim' : isMaterialOnlyCart ? '📦 Malzeme Sipariş Sepeti' : '🏡 Mimari Tadilat Teklifi'}
+                {isStoreMode ? 'Alışveriş Sepeti' : isMaterialOnlyCart ? 'Malzeme Sipariş Sepeti' : 'Mimari Proje & Uygulama Sepeti'}
               </h2>
               <p className="text-xs text-[#64748B] mt-0.5">
                 {cart.length > 0 
@@ -250,7 +250,7 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
                       </div>
                     </div>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white/20 text-white">
-                      Toptan Bayi
+                      Doğrudan Üretici
                     </span>
                   </div>
                 )}
@@ -260,7 +260,7 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
                   <div className="p-3 rounded-2xl bg-white border border-[#E8EAED] flex items-start gap-2.5 shadow-sm text-xs text-[#4B5563]">
                     <ShieldCheck className="w-4 h-4 text-[#0A0A0B] shrink-0 mt-0.5" />
                     <span>
-                      <strong className="text-[#0A0A0B]">Usta ile sıfır temas:</strong> Tüm süreci İç Mimarımız yönetir. Sözleşme şartları onaylanmadan 1 TL dahi ödemezsiniz.
+                      <strong className="text-[#0A0A0B]">Mimar Yönetimli Süreç:</strong> Tüm süreci iç mimarlarımız ve teknik kadromuz koordine eder. Sözleşme şartları onaylanmadan hiçbir ödeme alınmaz.
                     </span>
                   </div>
                 )}

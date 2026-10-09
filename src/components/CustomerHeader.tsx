@@ -19,18 +19,17 @@ import { CartItem, SiteContentSettings, CustomerUser } from '../types';
 export interface HeaderCategoryItem {
   key: string;
   label: string;
-  icon: string;
 }
 
 export const HEADER_CATEGORIES: HeaderCategoryItem[] = [
-  { key: 'all', label: 'Tüm Koleksiyon', icon: '✨' },
-  { key: 'ozel', label: 'Akustik Ahşap Paneller', icon: '🪵' },
-  { key: 'alci_tavan', label: 'Duvar Çıtaları', icon: '🖼️' },
-  { key: 'boya', label: 'Boya & Astar', icon: '🎨' },
-  { key: 'parke', label: 'Zemin & Parke', icon: '🪵' },
-  { key: 'mutfak_banyo', label: 'Banyo & Batarya', icon: '🚿' },
-  { key: 'elektrik', label: 'LED & Elektrik', icon: '💡' },
-  { key: 'seramik', label: 'Seramik & Fayans', icon: '🧱' },
+  { key: 'all', label: 'Tüm Koleksiyon' },
+  { key: 'ozel', label: 'Akustik Ahşap Paneller' },
+  { key: 'alci_tavan', label: 'Duvar Çıtaları' },
+  { key: 'boya', label: 'Boya & Yüzey' },
+  { key: 'parke', label: 'Zemin & Parke' },
+  { key: 'mutfak_banyo', label: 'Banyo & Batarya' },
+  { key: 'elektrik', label: 'LED & Elektrik' },
+  { key: 'seramik', label: 'Seramik & Taş' },
 ];
 
 export interface CustomerHeaderProps {
@@ -253,8 +252,7 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
                               : 'text-slate-800 hover:bg-slate-100'
                           }`}
                         >
-                          <div className="flex items-center gap-2.5">
-                            <span className="text-base">{cat.icon}</span>
+                          <div className="flex items-center gap-2">
                             <span>{cat.label}</span>
                           </div>
                           <ArrowRight className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-slate-400'}`} />
@@ -274,8 +272,8 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
                       className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-900 hover:bg-slate-200 transition"
                     >
                       <div className="flex items-center gap-2">
-                        <span>🏡</span>
-                        <span>Anahtar Teslim Komple Tadilat</span>
+                        <Layers className="w-3.5 h-3.5 text-slate-700" />
+                        <span>Anahtar Teslim Mimari Proje & Uygulama</span>
                       </div>
                       <ArrowUpRight className="w-3.5 h-3.5 text-slate-600" />
                     </button>
@@ -402,7 +400,7 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
                 onClick={onNavigateConfigurator}
                 className="hidden lg:flex btn-pill-outline text-xs py-2 px-3 sm:px-4 border-slate-300 hover:border-black whitespace-nowrap shrink-0 items-center gap-1.5 font-semibold text-slate-700 hover:text-black transition"
               >
-                <span>🏡 Anahtar Teslim Tadilat</span>
+                <span>Mimari Tadilat & Keşif</span>
                 <ArrowUpRight className="w-3.5 h-3.5 shrink-0 text-slate-500" />
               </button>
             ) : (
@@ -410,7 +408,7 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
                 onClick={onNavigateStore}
                 className="btn-pill-black text-xs py-2 px-3.5 shadow-sm whitespace-nowrap shrink-0 flex items-center gap-1.5"
               >
-                <span>🛍️ Ürün Mağazası</span>
+                <span>Ürün Kataloğu</span>
                 <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
               </button>
             )}
@@ -420,7 +418,7 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
         </div>
 
         {/* ======================================================== */}
-        {/* ROW 2: ETSY-STYLE MINIMALIST HORIZONTAL CATEGORY LINKS   */}
+        {/* ROW 2: MINIMALIST HORIZONTAL CATEGORY LINKS              */}
         {/* ======================================================== */}
         <div className="border-t border-[#E8EAED] bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -432,13 +430,12 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
                     key={`header-cat-${cat.key}`}
                     type="button"
                     onClick={() => handleCategoryClick(cat.key)}
-                    className={`transition-all py-1 relative flex items-center gap-1.5 shrink-0 ${
+                    className={`transition-all py-1 relative shrink-0 ${
                       isActive
                         ? 'font-bold text-[#0A0A0B] border-b-2 border-black -mb-[1px]'
                         : 'text-slate-600 hover:text-[#0A0A0B] font-medium hover:border-b-2 hover:border-slate-300'
                     }`}
                   >
-                    <span>{cat.icon}</span>
                     <span>{cat.label}</span>
                   </button>
                 );

@@ -321,7 +321,7 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
             {/* Quick Demo Credentials hint */}
             {users.length === 0 && (
               <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 text-center text-[11px] text-slate-600">
-                <span>💡 Henüz bir hesabınız yok mu? Hemen yukarıdan <strong>"Üye Ol"</strong> sekmesine geçebilirsiniz.</span>
+                <span>Henüz bir hesabınız yok mu? Hemen yukarıdan <strong>"Üye Ol"</strong> sekmesine geçebilirsiniz.</span>
               </div>
             )}
           </form>

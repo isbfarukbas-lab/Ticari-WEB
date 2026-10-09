@@ -1,8 +1,8 @@
 import { SiteSettings } from '../types';
 
 export const INITIAL_SETTINGS: SiteSettings = {
-  phoneNumber: '905550000000',
-  supportPhone: '0850 123 45 67',
+  phoneNumber: '905447685137',
+  supportPhone: '0544 768 51 37',
   companyName: 'RVOBA® Mimarlık ve Yapı Çözümleri A.Ş.',
   coverageNotice: 'İstanbul, Ankara ve İzmir genelinde mimari lazer keşif servisimiz aktiftir.',
   kdvNotice: 'Fiyatlarımız bireysel müşterilerimiz için anahtar teslim KDV dahil net tutardır.',
@@ -105,50 +105,50 @@ export const INITIAL_SETTINGS: SiteSettings = {
   },
   content: {
     // 1. Hero / Karşılama
-    heroBadge: 'Piyasadan %20-30 Daha Uygun Bayi Fiyatı & 81 İl Kargo',
-    heroTitle: 'İster Anahtar Teslim Mimari Tadilat, İster Fabrika Bayi Fiyatıyla Tasarım Malzemeleri.',
-    heroSubtitle: 'Usta stresi ve aracı komisyonu olmadan evinizi yenileyin. RVOBA® ile ister anahtar teslim komple uygulama yaptırabilir, ister 1. sınıf mimari tasarım malzemelerini Türkiye geneli 81 ile doğrudan kargo teslim satın alabilirsiniz.',
+    heroBadge: 'Doğrudan Üreticiden Mimari Malzemeler & Profesyonel Uygulama',
+    heroTitle: 'Modern Yaşam Alanları İçin Mimari Tasarım Malzemeleri ve Uygulama Çözümleri.',
+    heroSubtitle: 'Doğal ahşap akustik paneller, poliüretan duvar profilleri ve seçkin yüzey malzemeleri. İster projeniz için doğrudan malzeme sipariş edin, ister anahtar teslim mimari uygulama hizmeti alın.',
     
     // Kapı 1
-    cardRenovationBadge: '🏡 Hizmet & Mimarlık',
-    cardRenovationTitle: 'Anahtar Teslim Tadilat & Keşif',
-    cardRenovationDesc: 'Evinizi iç mimarlarımız ve profesyonel usta kadromuz yönetsin. Malzeme + Usta + Sabit Bütçe tek resmi sözleşmeyle.',
-    cardRenovationNote: '✓ 3 İlde Hizmet: İstanbul, Ankara, İzmir',
-    cardRenovationBtnText: 'Tadilat Bütçeni Hesapla',
+    cardRenovationBadge: 'Mimari Proje & Uygulama',
+    cardRenovationTitle: 'Anahtar Teslim Mimari Proje & Uygulama',
+    cardRenovationDesc: 'İç mimar ve uzman şantiye kadromuzla keşiften teslime kadar tüm süreci tek resmi sözleşmeyle yönetiyoruz.',
+    cardRenovationNote: '✓ İstanbul, Ankara ve İzmir Genelinde Aktif Saha Servisi',
+    cardRenovationBtnText: 'Proje Bütçeni Hesapla',
 
     // Kapı 2
-    cardStoreBadge: '📦 E-Ticaret & Malzeme (Kargo)',
-    cardStoreTitle: 'Doğrudan Malzeme Satın Al',
-    cardStoreDesc: 'Usta aramıyorum, sadece 1. sınıf toptan bayi malzemelerini (Akustik panel, çıta, boya, batarya) kapıma kargoyla istiyorum.',
-    cardStoreNote: '✓ Tüm Türkiye (81 İl) Kargo ile Kapıya Teslim',
-    cardStoreBtnText: 'Ürünleri İncele & Satın Al',
+    cardStoreBadge: 'Mimari Malzeme & Koleksiyon',
+    cardStoreTitle: 'Tasarım Malzemeleri Kataloğu',
+    cardStoreDesc: 'Akustik ahşap paneller, duvar profilleri, 1. sınıf boyalar ve zemin kaplamaları adrese sigortalı teslim.',
+    cardStoreNote: '✓ Türkiye Geneline Sigortalı Fabrika Sevkiyatı',
+    cardStoreBtnText: 'Koleksiyonu İncele & Sipariş Ver',
 
     // 2. Güvence & Değer Vaatleri (Trust)
-    trustBadge: 'KURUMSAL GÜVENCE MODELİ',
-    trustTitle: 'Müşteri Usta İle Asla Muhatap Olmaz.',
-    trustSubtitle: 'Klasik tadilat süreçlerindeki usta arama derdine, telefonlara çıkmayan taşeronlara ve sürekli artan masraflara RVOBA ile son veriyoruz.',
+    trustBadge: 'RVOBA® KURUMSAL YÖNETİM MODELİ',
+    trustTitle: 'Şeffaf Süreç, Tek Sözleşme ve Kesinleşmiş Bütçe',
+    trustSubtitle: 'Tüm mimari malzeme ve uygulama süreçlerini kurumsal güvence ve yazılı şartnameyle yönetiyoruz.',
     
     pillar1Title: 'Tek Kurumsal Muhatap',
-    pillar1Desc: 'Tüm süreci bünyemizde görevli İç Mimar ve Şantiye Şefimiz yönetir. Boyacı, parkeci veya tesisatçı ile tek bir kelime dahi konuşmanıza gerek kalmaz.',
+    pillar1Desc: 'Tüm süreci bünyemizde görevli İç Mimar ve Şantiye Şefimiz yönetir. Malzeme tedarikinden montaja kadar tek kurumsal muhatapla ilerlersiniz.',
     pillar1Note: 'Sıfır Operasyonel Yük',
 
     pillar2Title: 'Sözleşmeli Sabit Bütçe',
-    pillar2Desc: 'Web sitemizde gördüğünüz fiyatlar yerinde ücretsiz lazer ölçüm sonrası resmi sözleşmeye bağlanır. Keşifte belirlenen kapsam dışında kesinlikle ilave fiyat farkı çıkarılmaz.',
+    pillar2Desc: 'Belirlenen malzeme ve uygulama kapsamı resmi sözleşmeye bağlanır. Keşifte onaylanan bütçe dışında kesinlikle ilave fiyat farkı çıkarılmaz.',
     pillar2Note: 'Sürpriz Maliyet Yok',
 
     pillar3Title: 'Mimari Teslim & Eksiksiz Onay',
-    pillar3Desc: 'İş bitiminde iç mimarımızla beraber detaylı kontrol listesi yapılır. Köşe rötuşları, süpürgelik birleşimleri ve tüm detaylar tam yapılmadan ve onayınız alınmadan iş teslim tutanağı kapatılmaz.',
+    pillar3Desc: 'İş bitiminde iç mimarımızla beraber detaylı kontrol listesi yapılır. Tüm detaylar mimari standartlara tam uygun şekilde onayınızla teslim edilir.',
     pillar3Note: 'Eksiksiz & Onaylı Teslimat',
 
     // 3. Mağaza & Vitrin
-    storeBadge: 'RVOBA® 2026 MİMARİ ÜRÜN & MALZEME KOLEKSİYONU',
-    storeTitle: 'Evinizin Havasını Değiştiren Tasarım Malzemeleri.',
-    storeSubtitle: 'Trend akustik ahşap paneller, poliüretan çıta setleri, 1. sınıf boyalar ve zemin kaplamaları toptan bayi fiyatıyla Türkiye geneli kapınıza teslim.',
+    storeBadge: 'RVOBA® 2026 MİMARİ ÜRÜN VE MALZEME KOLEKSİYONU',
+    storeTitle: 'Tasarım ve Mimari Yüzey Çözümleri',
+    storeSubtitle: 'Doğal ahşap akustik paneller, poliüretan duvar profilleri, seçkin boyalar ve zemin kaplamaları doğrudan üretici güvencesiyle kapınızda.',
     storePerk1: '3.000 ₺ Üzeri Ücretsiz Kargo',
     storePerk2: '12 Taksit İmkanı',
     storePerk3: 'Faturalı & Orijinal Bayi Garantisi',
 
-    spotlightBadge: '🔥 Haftanın Yıldızı',
+    spotlightBadge: 'Öne Çıkan Tasarım',
     spotlightSub: 'RVOBA Atelier Özel Tasarım',
     spotlightTitle: 'Akustik Ahşap TV Arkası Çıta Paneli',
     spotlightDesc: 'Doğal meşe kaplama çıtalar, ses yutan yüksek yoğunluklu siyah akustik keçe.',
@@ -158,7 +158,7 @@ export const INITIAL_SETTINGS: SiteSettings = {
 
     // 4. Duyuru Bandı
     announcementText1: '3.000 TL Üzeri Ücretsiz Kargo',
-    announcementText2: '💳 Tüm Kredi Kartlarına 12 Taksit',
-    announcementText3: '⚡ Fabrikadan Doğrudan Hızlı Sevk',
+    announcementText2: 'Tüm Kredi Kartlarına 12 Taksit İmkanı',
+    announcementText3: 'Fabrikadan Doğrudan Sigortalı Sevk',
   },
 };

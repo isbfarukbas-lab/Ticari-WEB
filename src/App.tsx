@@ -595,7 +595,7 @@ export const App: React.FC = () => {
     <div className="min-h-screen bg-[#FBFBFC] text-[#0A0A0B] flex flex-col font-sans selection:bg-[#0A0A0B] selection:text-white">
       
       {/* Header */}
-      <div className="print:hidden">
+      <div className="sticky top-0 z-40 print:hidden">
         <CustomerHeader
           currentView={currentView}
           cart={cart}

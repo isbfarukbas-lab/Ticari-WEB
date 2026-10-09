@@ -348,7 +348,7 @@ export const CustomerConfigurator: React.FC<CustomerConfiguratorProps> = ({
     }
 
     if (catKey === 'boya') {
-      image = 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=700&q=80';
+      image = 'https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&w=700&q=80';
     } else if (catKey === 'parke') {
       image = 'https://images.unsplash.com/photo-1581858726788-75bc0f6a952d?auto=format&fit=crop&w=700&q=80';
     } else if (catKey === 'seramik') {
@@ -392,7 +392,7 @@ export const CustomerConfigurator: React.FC<CustomerConfiguratorProps> = ({
       baseMat = 85;
       baseLabor = 105;
       marketPrice = 250;
-      image = 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=700&q=80';
+      image = 'https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&w=700&q=80';
     } else if (catKey === 'parke') {
       baseMat = 380;
       baseLabor = 120;

@@ -141,9 +141,9 @@ export const INITIAL_SETTINGS: SiteSettings = {
     pillar3Note: 'Eksiksiz & Onaylı Teslimat',
 
     // 3. Mağaza & Vitrin
-    storeBadge: 'RVOBA® 2026 MİMARİ ÜRÜN VE MALZEME KOLEKSİYONU',
-    storeTitle: 'Tasarım ve Mimari Yüzey Çözümleri',
-    storeSubtitle: 'Doğal ahşap akustik paneller, poliüretan duvar profilleri, seçkin boyalar ve zemin kaplamaları doğrudan üretici güvencesiyle kapınızda.',
+    storeBadge: 'RVOBA® DOĞRUDAN ÜRETİCİ SATIŞ MAĞAZASI',
+    storeTitle: 'Evinizi Yenileyen Tasarım Malzemeleri',
+    storeSubtitle: 'Trend akustik ahşap paneller, poliüretan çıta setleri, 1. sınıf boyalar ve zemin kaplamaları toptan bayi fiyatıyla Türkiye geneli kapınıza teslim.',
     storePerk1: '3.000 ₺ Üzeri Ücretsiz Kargo',
     storePerk2: '12 Taksit İmkanı',
     storePerk3: 'Faturalı & Orijinal Bayi Garantisi',

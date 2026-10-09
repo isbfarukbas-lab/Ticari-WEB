@@ -36,12 +36,12 @@ export const QUICK_CATEGORIES = [
   {
     key: 'ozel',
     label: 'Akustik Panel',
-    image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=240&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1538688525198-9b88f6f53126?w=240&auto=format&fit=crop&q=80',
   },
   {
     key: 'alci_tavan',
     label: 'Duvar Çıtaları',
-    image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=240&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1618219908412-a29a1bb7b86e?w=240&auto=format&fit=crop&q=80',
   },
   {
     key: 'parke',
@@ -51,7 +51,7 @@ export const QUICK_CATEGORIES = [
   {
     key: 'boya',
     label: 'Boya & Yüzey',
-    image: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=240&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=240&auto=format&fit=crop&q=80',
   },
   {
     key: 'mutfak_banyo',
@@ -454,8 +454,8 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                   {/* Top Right: Discount & Favorite */}
                   <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
                     {discountPercent > 5 && (
-                      <span className="bg-[#0A0A0B] text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow flex items-center gap-0.5 font-mono">
-                        <span>-%{discountPercent}</span>
+                      <span className="bg-[#0A0A0B] text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md flex items-center border border-white/20">
+                        <span>%{discountPercent} İndirim</span>
                       </span>
                     )}
 
@@ -760,8 +760,8 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                     {/* Top Right: Discount Tag + Favorite Heart */}
                     <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
                       {discountPercent > 5 && (
-                        <span className="bg-[#0A0A0B] text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow flex items-center gap-0.5 font-mono">
-                          <span>-%{discountPercent}</span>
+                        <span className="bg-[#0A0A0B] text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md flex items-center border border-white/20">
+                          <span>%{discountPercent} İndirim</span>
                         </span>
                       )}
 

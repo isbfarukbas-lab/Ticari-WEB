@@ -304,7 +304,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       brand: newBrand,
       name: newName.trim(),
       code: newCode.trim(),
-      image: newImage || 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&w=700&q=80',
+      image: newImage || 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=700&q=80',
       roomImage: newRoomImage || undefined,
       description: newDescription.trim() || `${newBrand} 1. sınıf mimari seri ürün.`,
       unit: (newUnit || categories.find(c => c.key === newCategory)?.unit || 'm²') as Product['unit'],

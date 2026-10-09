@@ -27,6 +27,49 @@ import {
 } from 'lucide-react';
 import { Product, CartItem, LeadRequest, SiteContentSettings } from '../types';
 
+export const QUICK_CATEGORIES = [
+  {
+    key: 'all',
+    label: 'Tüm Ürünler',
+    image: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=240&auto=format&fit=crop&q=80',
+  },
+  {
+    key: 'ozel',
+    label: 'Akustik Panel',
+    image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=240&auto=format&fit=crop&q=80',
+  },
+  {
+    key: 'alci_tavan',
+    label: 'Duvar Çıtaları',
+    image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=240&auto=format&fit=crop&q=80',
+  },
+  {
+    key: 'parke',
+    label: 'Zemin & Parke',
+    image: 'https://images.unsplash.com/photo-1581858726788-75bc0f6a952d?w=240&auto=format&fit=crop&q=80',
+  },
+  {
+    key: 'boya',
+    label: 'Boya & Yüzey',
+    image: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=240&auto=format&fit=crop&q=80',
+  },
+  {
+    key: 'mutfak_banyo',
+    label: 'Banyo & Batarya',
+    image: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=240&auto=format&fit=crop&q=80',
+  },
+  {
+    key: 'elektrik',
+    label: 'LED & Aydınlatma',
+    image: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=240&auto=format&fit=crop&q=80',
+  },
+  {
+    key: 'seramik',
+    label: 'Seramik & Taş',
+    image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=240&auto=format&fit=crop&q=80',
+  },
+];
+
 interface CustomerStoreProps {
   products: Product[];
   cart: CartItem[];
@@ -240,11 +283,11 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
             
             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#0A0A0B] text-white text-[11px] font-semibold mb-4 shadow-sm">
               <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{content?.storeBadge || 'RVOBA® 2026 MİMARİ ÜRÜN & MALZEME KOLEKSİYONU'}</span>
+              <span>{content?.storeBadge || 'RVOBA® DOĞRUDAN ÜRETİCİ SATIŞ MAĞAZASI'}</span>
             </div>
 
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display font-black tracking-tight text-[#0A0A0B] leading-tight">
-              {content?.storeTitle || 'Evinizin Havasını Değiştiren Tasarım Malzemeleri.'}
+              {content?.storeTitle || 'Evinizi Yenileyen Tasarım Malzemeleri.'}
             </h1>
 
             <p className="mt-3 text-xs sm:text-sm text-[#4B5563] leading-relaxed max-w-2xl mx-auto">
@@ -271,20 +314,83 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               <button
                 onClick={() => scrollToCatalog()}
-                className="btn-pill-black text-xs py-3 px-6 font-bold shadow-lg flex items-center gap-2 hover:bg-slate-800"
+                className="btn-pill-black text-xs py-3 px-6 font-bold shadow-lg flex items-center gap-2 hover:bg-slate-800 cursor-pointer"
               >
                 <ShoppingBag className="w-4 h-4" />
                 <span>Tüm Koleksiyonu Keşfet ↓</span>
               </button>
               <button
                 onClick={() => scrollToBestSellers()}
-                className="btn-pill-outline text-xs py-3 px-5 font-bold flex items-center gap-2 border-slate-300 hover:border-black text-slate-800 hover:text-black transition bg-white shadow-xs"
+                className="btn-pill-outline text-xs py-3 px-5 font-bold flex items-center gap-2 border-slate-300 hover:border-black text-slate-800 hover:text-black transition bg-white shadow-xs cursor-pointer"
               >
-                <span>Öne Çıkan Koleksiyon</span>
+                <span>Çok Satan Ürünler</span>
               </button>
             </div>
 
           </div>
+        </div>
+      </section>
+
+      {/* ======================================================== */}
+      {/* 1.5. VISUAL QUICK CATEGORY NAVIGATION (E-COMMERCE BAR)   */}
+      {/* ======================================================== */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-2">
+        <div className="flex items-center justify-between mb-3 px-1">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <h2 className="text-xs sm:text-sm font-bold text-[#0A0A0B] uppercase tracking-wider">
+              Kategorilere Göre Keşfet
+            </h2>
+          </div>
+          <button
+            onClick={() => scrollToCatalog('all')}
+            className="text-xs font-semibold text-slate-700 hover:text-black flex items-center gap-1 group cursor-pointer"
+          >
+            <span>Tüm Ürünler ({storeItems.length})</span>
+            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+        </div>
+
+        <div className="flex items-start gap-3 sm:gap-5 overflow-x-auto pb-4 pt-1 scrollbar-none scroll-smooth">
+          {QUICK_CATEGORIES.map((cat) => {
+            const isSelected = selectedCategory === cat.key;
+            return (
+              <button
+                key={cat.key}
+                type="button"
+                onClick={() => scrollToCatalog(cat.key)}
+                className="flex flex-col items-center gap-2 group shrink-0 focus:outline-none cursor-pointer"
+              >
+                <div 
+                  className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden p-1 transition-all duration-300 bg-white ${
+                    isSelected 
+                      ? 'ring-2 ring-[#0A0A0B] shadow-md scale-105' 
+                      : 'border border-[#E8EAED] group-hover:border-slate-400 group-hover:shadow-sm'
+                  }`}
+                >
+                  <div className="w-full h-full rounded-[12px] overflow-hidden bg-slate-100 relative">
+                    <img
+                      src={cat.image}
+                      alt={cat.label}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    {isSelected && (
+                      <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
+                        <Check className="w-4 h-4 text-white drop-shadow-md" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <span 
+                  className={`text-[11px] sm:text-xs font-bold max-w-[85px] sm:max-w-[100px] text-center leading-tight transition-colors line-clamp-2 ${
+                    isSelected ? 'text-[#0A0A0B]' : 'text-slate-600 group-hover:text-black'
+                  }`}
+                >
+                  {cat.label}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </section>
 
@@ -295,7 +401,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
           <div>
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-800 text-[10px] font-bold uppercase tracking-wider mb-1.5 border border-slate-200">
-              <span>MİMARİ KOLEKSİYON</span>
+              <span>ÇOK SATANLAR</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-display font-black text-[#0A0A0B]">
               Öne Çıkan Tasarım Malzemeleri
@@ -520,7 +626,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                     <span>{categoryLabels[selectedCategory] || selectedCategory}</span>
                     <button 
                       onClick={() => onSelectCategory('all')} 
-                      className="hover:text-amber-300 ml-0.5"
+                      className="hover:text-slate-300 ml-0.5"
                       title="Kategori Filtresini Kaldır"
                     >
                       ✕
@@ -534,7 +640,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                     <span>Sadece Favorilerim</span>
                     <button 
                       onClick={onToggleFavoritesOnly} 
-                      className="hover:text-amber-200 ml-0.5"
+                      className="hover:text-rose-200 ml-0.5"
                       title="Favori Filtresini Kaldır"
                     >
                       ✕
@@ -841,8 +947,8 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
           </div>
 
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center shrink-0">
-              <ShieldCheck className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-800 flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-5 h-5 text-emerald-600" />
             </div>
             <div>
               <h4 className="text-xs font-bold text-[#0A0A0B]">%100 Orijinal & Faturalı</h4>
@@ -851,8 +957,8 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
           </div>
 
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
-              <RotateCcw className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-800 flex items-center justify-center shrink-0">
+              <RotateCcw className="w-5 h-5 text-slate-700" />
             </div>
             <div>
               <h4 className="text-xs font-bold text-[#0A0A0B]">14 Gün Koşulsuz İade</h4>
@@ -987,7 +1093,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
             <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
           </span>
           <MessageCircle className="w-4 h-4 fill-white" />
-          <span className="hidden sm:inline font-semibold">Canlı Mimar Desteği</span>
+          <span className="hidden sm:inline font-semibold">Canlı Destek & Sipariş</span>
         </a>
       </aside>
 

@@ -12,7 +12,9 @@ import {
   Sparkles,
   Layers,
   ArrowRight,
-  User
+  User,
+  CreditCard,
+  ShieldCheck
 } from 'lucide-react';
 import { CartItem, SiteContentSettings, CustomerUser } from '../types';
 
@@ -171,9 +173,15 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
               <span>{content?.announcementText1 || '3.000 TL Üzeri Ücretsiz Kargo'}</span>
             </span>
             <span className="text-white/30 hidden sm:inline">•</span>
-            <span className="hidden sm:inline text-slate-300">{content?.announcementText2 || '💳 Tüm Kredi Kartlarına 12 Taksit'}</span>
+            <span className="hidden sm:inline-flex items-center gap-1.5 text-slate-300">
+              <CreditCard className="w-3.5 h-3.5 text-slate-400" />
+              <span>{content?.announcementText2 ? content.announcementText2.replace(/[\uD800-\uDFFF\u2600-\u27BF]/g, '').trim() : 'Tüm Kredi Kartlarına 12 Taksit'}</span>
+            </span>
             <span className="text-white/30 hidden md:inline">•</span>
-            <span className="hidden md:inline text-slate-300">{content?.announcementText3 || '⚡ Fabrikadan Doğrudan Hızlı Sevk'}</span>
+            <span className="hidden md:inline-flex items-center gap-1.5 text-slate-300">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{content?.announcementText3 ? content.announcementText3.replace(/[\uD800-\uDFFF\u2600-\u27BF]/g, '').trim() : 'Fabrikadan Doğrudan Hızlı Sevk'}</span>
+            </span>
           </div>
 
           <a

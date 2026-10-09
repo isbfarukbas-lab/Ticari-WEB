@@ -34,7 +34,8 @@ import {
   LogOut,
   AlertTriangle,
   Globe,
-  ShieldCheck
+  ShieldCheck,
+  Users
 } from 'lucide-react';
 import { 
   CategoryKey, 
@@ -44,7 +45,8 @@ import {
   SiteSettings, 
   BeforeAfterProject,
   ServiceArea,
-  SiteContentSettings 
+  SiteContentSettings,
+  CustomerUser
 } from '../types';
 import { INITIAL_SETTINGS } from '../data/initialSettings';
 
@@ -53,6 +55,8 @@ interface AdminPortalProps {
   products: Product[];
   leads: LeadRequest[];
   settings: SiteSettings;
+  customers?: CustomerUser[];
+  onDeleteCustomer?: (customerId: string) => void;
   onUpdateProduct: (product: Product) => void;
   onAddProduct: (product: Product) => void;
   onDeleteProduct: (productId: string) => void;
@@ -82,6 +86,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   products,
   leads,
   settings,
+  customers = [],
+  onDeleteCustomer,
   onUpdateProduct,
   onAddProduct,
   onDeleteProduct,
@@ -95,8 +101,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 }) => {
   // Active Admin Module Tab
   const [adminTab, setAdminTab] = useState<
-    'products' | 'cms' | 'labor_rates' | 'durations' | 'areas' | 'gallery' | 'leads' | 'settings'
+    'products' | 'cms' | 'labor_rates' | 'durations' | 'areas' | 'gallery' | 'leads' | 'settings' | 'customers'
   >('products');
+
+  const [customerSearch, setCustomerSearch] = useState('');
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -732,6 +740,18 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
           >
             <SettingsIcon className="w-3.5 h-3.5" />
             <span>8. Sistem & Güvenlik</span>
+          </button>
+
+          <button
+            onClick={() => setAdminTab('customers')}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-2 ${
+              adminTab === 'customers'
+                ? 'bg-[#0A0A0B] text-white shadow-sm'
+                : 'text-[#4B5563] hover:bg-[#F1F3F5] hover:text-[#0A0A0B]'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5 text-indigo-500" />
+            <span>9. Kayıtlı Müşteriler ({customers.length})</span>
           </button>
         </div>
       </div>
@@ -2371,6 +2391,270 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* MODÜL 9: KAYITLI MÜŞTERİLER                              */}
+        {/* ======================================================== */}
+        {adminTab === 'customers' && (
+          <div className="space-y-6">
+            
+            {/* Top Toolbar */}
+            <div className="bg-white border border-[#E8EAED] rounded-3xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+              <div>
+                <h2 className="text-xl font-display font-extrabold text-[#0A0A0B] flex items-center gap-2">
+                  <Users className="w-5 h-5 text-indigo-600" />
+                  <span>Kayıtlı Müşteri Portföyü</span>
+                </h2>
+                <p className="text-xs text-[#64748B] mt-0.5">
+                  Siteden kayıt olan müşteriler, kayıtlı teslimat adresleri ve sipariş geçmişi.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="relative w-full sm:w-72">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8]" />
+                  <input
+                    type="text"
+                    placeholder="Müşteri adı, telefon, e-posta veya ilçe ara..."
+                    value={customerSearch}
+                    onChange={(e) => setCustomerSearch(e.target.value)}
+                    className="w-full bg-[#F8F9FA] border border-[#D1D5DB] rounded-full pl-10 pr-4 py-2 text-xs text-[#0A0A0B] placeholder-[#94A3B8] focus:outline-none focus:border-black"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Metrics Bar */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-white border border-[#E8EAED] rounded-2xl p-4 shadow-xs">
+                <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Toplam Kayıtlı Üye</div>
+                <div className="text-2xl font-extrabold text-[#0A0A0B] mt-1 font-mono">
+                  {customers.length}
+                </div>
+              </div>
+
+              <div className="bg-white border border-[#E8EAED] rounded-2xl p-4 shadow-xs">
+                <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Adres Ekleyen Müşteriler</div>
+                <div className="text-2xl font-extrabold text-emerald-600 mt-1 font-mono">
+                  {customers.filter(c => c.addresses && c.addresses.length > 0).length}
+                </div>
+              </div>
+
+              <div className="bg-white border border-[#E8EAED] rounded-2xl p-4 shadow-xs">
+                <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Siparişi / Talebi Bulunanlar</div>
+                <div className="text-2xl font-extrabold text-blue-600 mt-1 font-mono">
+                  {customers.filter(c => leads.some(l => l.customerId === c.id || l.phone.replace(/\D/g, '') === c.phone.replace(/\D/g, ''))).length}
+                </div>
+              </div>
+            </div>
+
+            {/* Customer List / Table */}
+            {(() => {
+              const filteredCustomers = customers.filter(c => {
+                if (!customerSearch.trim()) return true;
+                const q = customerSearch.toLowerCase();
+                return (
+                  c.fullName.toLowerCase().includes(q) ||
+                  c.email.toLowerCase().includes(q) ||
+                  c.phone.includes(q) ||
+                  (c.city && c.city.toLowerCase().includes(q)) ||
+                  (c.district && c.district.toLowerCase().includes(q))
+                );
+              });
+
+              if (filteredCustomers.length === 0) {
+                return (
+                  <div className="bg-white border border-[#E8EAED] rounded-3xl p-12 text-center text-slate-500 shadow-sm">
+                    <Users className="w-12 h-12 mx-auto text-slate-300 mb-3" />
+                    <h3 className="text-sm font-bold text-slate-800">
+                      {customerSearch ? 'Aramanızla eşleşen müşteri bulunamadı.' : 'Henüz kayıtlı müşteri bulunmuyor.'}
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                      Müşteriler web sitesi üst çubuğundaki "Giriş Yap / Üye Ol" butonundan kayıt olduklarında burada listelenir.
+                    </p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-4">
+                  {filteredCustomers.map(customer => {
+                    const customerLeads = leads.filter(l => 
+                      l.customerId === customer.id || 
+                      l.phone.replace(/\D/g, '') === customer.phone.replace(/\D/g, '')
+                    );
+                    const totalSpend = customerLeads.reduce((sum, l) => sum + (l.totalAmount || 0), 0);
+
+                    return (
+                      <div 
+                        key={customer.id} 
+                        className="bg-white border border-[#E8EAED] rounded-3xl p-6 shadow-sm hover:border-black/20 transition"
+                      >
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                          
+                          {/* Name & Identity */}
+                          <div className="flex items-center gap-3.5">
+                            <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-700 flex items-center justify-center font-display font-black text-lg shrink-0">
+                              {customer.fullName.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h3 className="text-base font-bold text-[#0A0A0B]">
+                                  {customer.fullName}
+                                </h3>
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  Aktif Üye
+                                </span>
+                              </div>
+                              <div className="text-xs text-slate-400 mt-0.5 flex items-center gap-2">
+                                <span>Kayıt: {customer.createdAt ? new Date(customer.createdAt).toLocaleDateString('tr-TR') : 'Bilinmiyor'}</span>
+                                <span>•</span>
+                                <span className="font-mono text-[11px] text-slate-500">ID: {customer.id}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Contact & Location Badges */}
+                          <div className="flex flex-wrap items-center gap-2">
+                            <a
+                              href={`tel:${customer.phone.replace(/\s+/g, '')}`}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-mono font-medium border border-slate-200 transition"
+                            >
+                              <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>{customer.phone}</span>
+                            </a>
+
+                            {customer.email && (
+                              <a
+                                href={`mailto:${customer.email}`}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200 transition"
+                              >
+                                <span className="text-slate-400">@</span>
+                                <span>{customer.email}</span>
+                              </a>
+                            )}
+
+                            <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-slate-50 text-slate-700 text-xs font-medium border border-slate-200">
+                              <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                              <span>{customer.district ? `${customer.district}, ` : ''}{customer.city || 'Belirtilmedi'}</span>
+                            </span>
+
+                            {onDeleteCustomer && (
+                              <button
+                                onClick={() => {
+                                  if (window.confirm(`${customer.fullName} isimli müşteriyi silmek istediğinize emin misiniz?`)) {
+                                    onDeleteCustomer(customer.id);
+                                    showToast(`${customer.fullName} silindi.`);
+                                  }
+                                }}
+                                className="p-2 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
+                                title="Müşteri Kaydını Sil"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Customer Details: Addresses & Orders */}
+                        <div className="pt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                          
+                          {/* Saved Addresses */}
+                          <div className="bg-slate-50/60 rounded-2xl p-4 border border-slate-100">
+                            <div className="text-xs font-bold text-slate-700 mb-2 flex items-center justify-between">
+                              <span className="flex items-center gap-1.5">
+                                <MapPin className="w-3.5 h-3.5 text-slate-500" />
+                                <span>Kayıtlı Teslimat Adresleri ({customer.addresses?.length || 0})</span>
+                              </span>
+                            </div>
+
+                            {customer.addresses && customer.addresses.length > 0 ? (
+                              <div className="space-y-2">
+                                {customer.addresses.map((addr) => (
+                                  <div key={addr.id} className="text-xs bg-white p-2.5 rounded-xl border border-slate-200/70">
+                                    <div className="font-bold text-slate-800 flex items-center gap-2">
+                                      <span>{addr.title}</span>
+                                      {addr.isDefault && (
+                                        <span className="text-[9px] bg-slate-900 text-white px-1.5 py-0.5 rounded font-bold">
+                                          Varsayılan
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-slate-600 text-[11px] mt-0.5">
+                                      {addr.fullAddress} — {addr.district} / {addr.city}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-xs text-slate-400 italic">
+                                Henüz adres tanımlanmamış.
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Orders / Leads History */}
+                          <div className="bg-slate-50/60 rounded-2xl p-4 border border-slate-100">
+                            <div className="text-xs font-bold text-slate-700 mb-2 flex items-center justify-between">
+                              <span className="flex items-center gap-1.5">
+                                <ShoppingBag className="w-3.5 h-3.5 text-slate-500" />
+                                <span>Sipariş & Teklif Geçmişi ({customerLeads.length})</span>
+                              </span>
+                              {totalSpend > 0 && (
+                                <span className="font-mono text-emerald-700 font-bold">
+                                  Toplam: {totalSpend.toLocaleString('tr-TR')} ₺
+                                </span>
+                              )}
+                            </div>
+
+                            {customerLeads.length > 0 ? (
+                              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                {customerLeads.map((ld) => (
+                                  <div 
+                                    key={ld.id} 
+                                    onClick={() => setSelectedLeadDetail(ld)}
+                                    className="text-xs bg-white p-2.5 rounded-xl border border-slate-200/70 hover:border-black cursor-pointer transition flex items-center justify-between"
+                                  >
+                                    <div>
+                                      <div className="font-bold text-slate-800 flex items-center gap-2">
+                                        <span>{ld.orderNumber || ld.id}</span>
+                                        <span className="text-[10px] font-bold text-slate-500">
+                                          ({ld.items?.length || 0} Kalem)
+                                        </span>
+                                      </div>
+                                      <div className="text-[11px] text-slate-400">
+                                        {ld.createdAt ? new Date(ld.createdAt).toLocaleDateString('tr-TR') : ''} • Durum: <strong className="text-slate-700 capitalize">{ld.status || 'Bekliyor'}</strong>
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      <div className="font-bold font-mono text-slate-900">
+                                        {ld.totalAmount.toLocaleString('tr-TR')} ₺
+                                      </div>
+                                      <div className="text-[10px] text-blue-600 font-bold hover:underline">
+                                        İncele →
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-xs text-slate-400 italic">
+                                Henüz verilmiş bir sipariş veya keşif talebi bulunmuyor.
+                              </div>
+                            )}
+                          </div>
+
+                        </div>
+
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+
           </div>
         )}
 

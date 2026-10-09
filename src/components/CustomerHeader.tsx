@@ -11,9 +11,10 @@ import {
   ChevronDown,
   Sparkles,
   Layers,
-  ArrowRight
+  ArrowRight,
+  User
 } from 'lucide-react';
-import { CartItem, SiteContentSettings } from '../types';
+import { CartItem, SiteContentSettings, CustomerUser } from '../types';
 
 export interface HeaderCategoryItem {
   key: string;
@@ -35,6 +36,10 @@ export const HEADER_CATEGORIES: HeaderCategoryItem[] = [
 export interface CustomerHeaderProps {
   currentView: 'landing' | 'configurator' | 'store';
   cart: CartItem[];
+  currentUser?: CustomerUser | null;
+  onOpenAuth: () => void;
+  onOpenAccount: () => void;
+  onNavigateAdmin: () => void;
   onNavigateLanding: () => void;
   onNavigateConfigurator: () => void;
   onNavigateStore: () => void;
@@ -70,6 +75,10 @@ const formatPhoneDisplay = (phone?: string): string => {
 export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
   currentView,
   cart,
+  currentUser,
+  onOpenAuth,
+  onOpenAccount,
+  onNavigateAdmin,
   onNavigateLanding,
   onNavigateConfigurator,
   onNavigateStore,
@@ -87,6 +96,20 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
 }) => {
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const logoClickTimesRef = useRef<number[]>([]);
+
+  // Secret Admin shortcut: 3 quick clicks on the RVOBA logo within 1.2s
+  const handleLogoClick = (e: React.MouseEvent) => {
+    const now = Date.now();
+    logoClickTimesRef.current = [...logoClickTimesRef.current.filter(t => now - t < 1200), now];
+    if (logoClickTimesRef.current.length >= 3) {
+      logoClickTimesRef.current = [];
+      e.preventDefault();
+      onNavigateAdmin();
+      return;
+    }
+    onNavigateStore();
+  };
 
   const totalCount = cart.length;
   const totalPrice = cart.reduce((sum, item) => {
@@ -174,14 +197,14 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
           <div className="flex items-center gap-3 sm:gap-4 shrink-0" ref={menuRef}>
             {/* Logo */}
             <button
-              onClick={onNavigateStore}
-              className="flex items-center gap-1 group text-left"
-              title="RVOBA® Ana Sayfa"
+              onClick={handleLogoClick}
+              className="flex items-center gap-1 group text-left cursor-pointer"
+              title="RVOBA® Ana Sayfa (3 kez hızlı tıklayarak yönetici girişine geçebilirsiniz)"
             >
-              <span className="font-display font-black text-2xl sm:text-3xl tracking-tighter text-[#0A0A0B] group-hover:opacity-90 transition">
+              <span className="font-display font-black text-2xl sm:text-3xl tracking-tighter text-[#0A0A0B] group-hover:opacity-90 transition select-none">
                 RVOBA
               </span>
-              <span className="text-xs font-bold text-[#0A0A0B] -mt-2">®</span>
+              <span className="text-xs font-bold text-[#0A0A0B] -mt-2 select-none">®</span>
             </button>
 
             {/* ☰ Kategoriler Trigger Button */}
@@ -299,9 +322,36 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
             </div>
           </form>
 
-          {/* Right Actions: Favorites + Cart + Turnkey Renovation Button */}
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          {/* Right Actions: User Account + Favorites + Cart + Turnkey Renovation Button */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             
+            {/* User Account / Auth Trigger */}
+            {currentUser ? (
+              <button
+                type="button"
+                onClick={onOpenAccount}
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full border border-slate-300 hover:border-black bg-slate-50 hover:bg-white text-xs font-bold text-slate-800 transition shrink-0 shadow-xs"
+                title={`Hesabım: ${currentUser.fullName}`}
+              >
+                <div className="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px] font-bold">
+                  {currentUser.fullName.charAt(0).toUpperCase()}
+                </div>
+                <span className="hidden sm:inline max-w-[85px] truncate">
+                  {currentUser.fullName.split(' ')[0]}
+                </span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onOpenAuth}
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full border border-slate-300 hover:border-black bg-white hover:bg-slate-50 text-xs font-bold text-slate-800 transition shrink-0 shadow-xs"
+                title="Müşteri Girişi veya Yeni Üyelik"
+              >
+                <User className="w-4 h-4 text-slate-700" />
+                <span className="hidden sm:inline">Giriş Yap</span>
+              </button>
+            )}
+
             {/* Favorites Icon Button */}
             <button
               type="button"

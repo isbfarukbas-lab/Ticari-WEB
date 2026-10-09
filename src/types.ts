@@ -89,6 +89,7 @@ export interface LeadRequest {
   orderNumber?: string;
   paymentMethod?: 'credit_card' | 'bank_transfer' | 'cash_on_delivery';
   shippingCost?: number;
+  customerId?: string;
   items: { 
     name: string; 
     brand: string; 
@@ -186,4 +187,26 @@ export interface SiteSettings {
     stage3Percent: number;
   };
   content?: SiteContentSettings; // Canlı site metin ve vitrin yönetimi
+}
+
+export interface CustomerAddress {
+  id: string;
+  title: string;          // e.g. "Ev Adresim", "İş Yeri"
+  city: string;
+  district: string;
+  fullAddress: string;
+  isDefault?: boolean;
+}
+
+export interface CustomerUser {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  city: string;
+  district: string;
+  password?: string;
+  addresses: CustomerAddress[];
+  favorites?: string[];
+  createdAt: string;
 }

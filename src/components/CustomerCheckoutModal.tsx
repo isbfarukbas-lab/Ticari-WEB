@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   CheckCircle2, 
@@ -11,14 +11,16 @@ import {
   Send,
   Phone,
   Calendar,
-  Sparkles
+  Sparkles,
+  UserCheck
 } from 'lucide-react';
-import { CartItem, LeadRequest } from '../types';
+import { CartItem, LeadRequest, CustomerUser } from '../types';
 
 interface CustomerCheckoutModalProps {
   isOpen: boolean;
   onClose: () => void;
   cart: CartItem[];
+  currentUser?: CustomerUser | null;
   onOrderCompleted: (order: LeadRequest) => void;
   phoneNumber?: string;
   supportPhone?: string;
@@ -28,6 +30,7 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
   isOpen,
   onClose,
   cart,
+  currentUser,
   onOrderCompleted,
   phoneNumber = '905550000000',
   supportPhone = '0850 123 45 67',
@@ -42,6 +45,19 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<'credit_card' | 'bank_transfer' | 'cash_on_delivery'>('credit_card');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdOrder, setCreatedOrder] = useState<LeadRequest | null>(null);
+
+  // Auto-fill from logged-in customer profile
+  useEffect(() => {
+    if (isOpen && currentUser) {
+      if (!fullName) setFullName(currentUser.fullName);
+      if (!phone) setPhone(currentUser.phone);
+      if (!email && currentUser.email) setEmail(currentUser.email);
+      if (currentUser.city) setCity(currentUser.city);
+      if (!district && currentUser.district) setDistrict(currentUser.district);
+      const defaultAddr = currentUser.addresses?.find(a => a.isDefault)?.fullAddress || currentUser.addresses?.[0]?.fullAddress;
+      if (!address && defaultAddr) setAddress(defaultAddr);
+    }
+  }, [isOpen, currentUser]);
 
   if (!isOpen) return null;
 
@@ -90,6 +106,7 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
 
     const newLead: LeadRequest = {
       id: `order-${Date.now()}`,
+      customerId: currentUser?.id,
       orderNumber: orderNo,
       fullName: fullName.trim(),
       phone: phone.trim(),

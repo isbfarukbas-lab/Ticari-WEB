@@ -11,12 +11,14 @@ import { CustomerCallbackModal } from './components/CustomerCallbackModal';
 import { CustomerTrustSection } from './components/CustomerTrustSection';
 import { CustomerFooter } from './components/CustomerFooter';
 import { CustomerLegalModal, LegalTabKey } from './components/CustomerLegalModal';
+import { CustomerAuthModal } from './components/CustomerAuthModal';
+import { CustomerAccountDrawer } from './components/CustomerAccountDrawer';
 import { AdminPortal } from './components/AdminPortal';
 import { AdminLoginScreen } from './components/AdminLoginScreen';
 
 import { CATEGORIES, INITIAL_PRODUCTS } from './data/initialProducts';
 import { INITIAL_SETTINGS } from './data/initialSettings';
-import { CartItem, Product, LeadRequest, CustomRequestItem, CategoryKey, SiteSettings } from './types';
+import { CartItem, Product, LeadRequest, CustomRequestItem, CategoryKey, SiteSettings, CustomerUser } from './types';
 import { ShoppingBag, ArrowUpRight, ArrowLeft } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -222,6 +224,108 @@ export const App: React.FC = () => {
   const [selectedCity, setSelectedCity] = useState('İstanbul');
   const [selectedDistrict, setSelectedDistrict] = useState('Kadıköy');
 
+  // Customer User Authentication & Accounts
+  const [allUsers, setAllUsers] = useState<CustomerUser[]>(() => {
+    try {
+      const saved = localStorage.getItem('rvoba_customers_v1');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return [
+      {
+        id: 'cust-demo-1',
+        fullName: 'Mehmet Demir',
+        email: 'mehmet@rvoba.com',
+        phone: '0532 111 22 33',
+        city: 'İstanbul',
+        district: 'Kadıköy',
+        password: 'demo',
+        addresses: [
+          {
+            id: 'addr-1',
+            title: 'Ev Adresim',
+            city: 'İstanbul',
+            district: 'Kadıköy',
+            fullAddress: 'Moda Cad. No: 14 Kadıköy / İstanbul',
+            isDefault: true,
+          }
+        ],
+        createdAt: new Date().toISOString(),
+      }
+    ];
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('rvoba_customers_v1', JSON.stringify(allUsers));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [allUsers]);
+
+  const [currentUser, setCurrentUser] = useState<CustomerUser | null>(() => {
+    try {
+      const saved = localStorage.getItem('rvoba_customer_user_v1');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error(e);
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    try {
+      if (currentUser) {
+        localStorage.setItem('rvoba_customer_user_v1', JSON.stringify(currentUser));
+      } else {
+        localStorage.removeItem('rvoba_customer_user_v1');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, [currentUser]);
+
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authInitialTab, setAuthInitialTab] = useState<'login' | 'register'>('login');
+  const [isAccountDrawerOpen, setIsAccountDrawerOpen] = useState(false);
+
+  const handleLoginSuccess = (user: CustomerUser) => {
+    setCurrentUser(user);
+    setAllUsers(prev => {
+      const idx = prev.findIndex(u => u.id === user.id);
+      if (idx > -1) {
+        const copy = [...prev];
+        copy[idx] = user;
+        return copy;
+      }
+      return [...prev, user];
+    });
+  };
+
+  const handleRegisterUser = (newUser: CustomerUser) => {
+    setAllUsers(prev => [newUser, ...prev]);
+    setCurrentUser(newUser);
+  };
+
+  const handleUpdateUser = (updatedUser: CustomerUser) => {
+    setCurrentUser(updatedUser);
+    setAllUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+  };
+
+  const handleCustomerLogout = () => {
+    setCurrentUser(null);
+    setIsAccountDrawerOpen(false);
+  };
+
+  const handleDeleteCustomer = (customerId: string) => {
+    setAllUsers(prev => prev.filter(u => u.id !== customerId));
+    if (currentUser && currentUser.id === customerId) {
+      setCurrentUser(null);
+      setIsAccountDrawerOpen(false);
+    }
+  };
+
   // Admin authentication state
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
     try {
@@ -409,7 +513,11 @@ export const App: React.FC = () => {
   };
 
   const handleSaveLead = (newLead: LeadRequest) => {
-    setLeads((prev) => [newLead, ...prev]);
+    const enrichedLead: LeadRequest = {
+      ...newLead,
+      customerId: newLead.customerId || (currentUser ? currentUser.id : undefined),
+    };
+    setLeads((prev) => [enrichedLead, ...prev]);
   };
 
   const handleUpdateSettings = (newSettings: SiteSettings) => {
@@ -478,6 +586,8 @@ export const App: React.FC = () => {
         products={products}
         leads={leads}
         settings={settings}
+        customers={allUsers}
+        onDeleteCustomer={handleDeleteCustomer}
         onUpdateProduct={handleUpdateProduct}
         onAddProduct={handleAddProduct}
         onDeleteProduct={handleDeleteProduct}
@@ -500,6 +610,13 @@ export const App: React.FC = () => {
         <CustomerHeader
           currentView={currentView}
           cart={cart}
+          currentUser={currentUser}
+          onOpenAuth={() => {
+            setAuthInitialTab('login');
+            setIsAuthModalOpen(true);
+          }}
+          onOpenAccount={() => setIsAccountDrawerOpen(true)}
+          onNavigateAdmin={navigateToAdmin}
           onNavigateLanding={navigateToLanding}
           onNavigateConfigurator={navigateToConfigurator}
           onNavigateStore={navigateToStore}
@@ -683,6 +800,7 @@ export const App: React.FC = () => {
         isOpen={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
         cart={cart}
+        currentUser={currentUser}
         onOrderCompleted={(order) => {
           handleSaveLead(order);
           handleClearCart();
@@ -696,6 +814,7 @@ export const App: React.FC = () => {
         isOpen={isInspectionOpen}
         onClose={() => setIsInspectionOpen(false)}
         cart={cart}
+        currentUser={currentUser}
         onSaveLead={handleSaveLead}
         phoneNumber={settings.phoneNumber}
         selectedCity={selectedCity}
@@ -734,6 +853,37 @@ export const App: React.FC = () => {
         companyName={settings.companyName}
         supportPhone={settings.supportPhone}
       />
+
+      {/* Customer Authentication Modal (Giriş Yap / Üye Ol / Şifremi Unuttum) */}
+      <CustomerAuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onLoginSuccess={handleLoginSuccess}
+        users={allUsers}
+        onRegisterUser={handleRegisterUser}
+        serviceAreas={settings.serviceAreas}
+        initialTab={authInitialTab}
+      />
+
+      {/* Customer Account & Orders Drawer (Hesabım & Siparişlerim) */}
+      {currentUser && (
+        <CustomerAccountDrawer
+          isOpen={isAccountDrawerOpen}
+          onClose={() => setIsAccountDrawerOpen(false)}
+          user={currentUser}
+          leads={leads}
+          onLogout={handleCustomerLogout}
+          onUpdateUser={handleUpdateUser}
+          onNavigateStore={() => {
+            setIsAccountDrawerOpen(false);
+            navigateToStore();
+          }}
+          onNavigateConfigurator={() => {
+            setIsAccountDrawerOpen(false);
+            navigateToConfigurator();
+          }}
+        />
+      )}
 
     </div>
   );

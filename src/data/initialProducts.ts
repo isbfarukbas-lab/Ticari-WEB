@@ -309,7 +309,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     brand: 'RVOBA Atelier',
     name: 'Akustik Ahşap TV Arkası Çıta Paneli (280x60 cm)',
     code: 'RV-AKUS-280',
-    image: 'https://images.unsplash.com/photo-1538688525198-9b88f6f53126?auto=format&fit=crop&w=800&q=80',
+    image: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=800&q=80',
     description: 'Doğal meşe kaplama ahşap çıtalar ve arkasında ses yutan yüksek yoğunluklu akustik keçe. Salon TV arkası veya yatak başı için lüks mimari detay.',
     unit: 'adet',
     materialPrice: 2450,

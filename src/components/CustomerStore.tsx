@@ -46,6 +46,7 @@ interface CustomerStoreProps {
   onToggleFavorite: (id: string) => void;
   showFavoritesOnly: boolean;
   onToggleFavoritesOnly: () => void;
+  freeShippingThreshold?: number;
 }
 
 export const CustomerStore: React.FC<CustomerStoreProps> = ({
@@ -67,6 +68,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
   onToggleFavorite,
   showFavoritesOnly,
   onToggleFavoritesOnly,
+  freeShippingThreshold = 3000,
 }) => {
   const [sortBy, setSortBy] = useState<'featured' | 'price_asc' | 'price_desc' | 'discount'>('featured');
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
@@ -924,7 +926,11 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
               <Truck className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-[#0A0A0B]">3.000 ₺ Üzeri Ücretsiz Kargo</h4>
+              <h4 className="text-xs font-bold text-[#0A0A0B]">
+                {freeShippingThreshold > 0
+                  ? `${freeShippingThreshold.toLocaleString('tr-TR')} ₺ Üzeri Ücretsiz Kargo`
+                  : 'Tüm Siparişlerde Ücretsiz Kargo'}
+              </h4>
               <p className="text-[11px] text-[#64748B] mt-0.5">81 ile sigortalı ambar ve kargo teslimatı.</p>
             </div>
           </div>

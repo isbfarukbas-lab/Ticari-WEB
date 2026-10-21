@@ -609,6 +609,34 @@ export const App: React.FC = () => {
     return sum + line;
   }, 0);
 
+  // Calculate dynamic delivery days from cart categories and settings.durationRules
+  const dynamicDeliveryDays = (() => {
+    const activeCats = Array.from(
+      new Set(
+        cart
+          .filter((c) => !c.isCustom && c.product && c.purchaseType !== 'material_only')
+          .map((c) => c.product!.category)
+      )
+    );
+    if (activeCats.length === 0) return { min: 2, max: 4 };
+    const baseDaysMap = settings.durationRules?.baseDays || {};
+    const daysList = activeCats
+      .map((k) => baseDaysMap[k])
+      .filter((d): d is number => typeof d === 'number' && d > 0);
+    if (daysList.length === 0) return { min: 3, max: 6 };
+    let min = Math.max(...daysList);
+    let max = Math.round(min * 1.4);
+    if (daysList.length > 1) {
+      min = Math.min(30, Math.round(min * 1.3));
+      max = Math.min(45, Math.round(max * 1.35));
+    }
+    if (defaultSqM > (settings.durationRules?.sqmThreshold ?? 100)) {
+      min += 2;
+      max += 3;
+    }
+    return { min: Math.max(1, min), max: Math.max(2, max) };
+  })();
+
   // If Admin View is active
   if (currentView === 'admin') {
     if (!isAdminAuthenticated) {
@@ -714,6 +742,7 @@ export const App: React.FC = () => {
             onToggleFavorite={handleToggleFavorite}
             showFavoritesOnly={showFavoritesOnly}
             onToggleFavoritesOnly={handleToggleFavoritesOnly}
+            freeShippingThreshold={settings.freeShippingThreshold}
           />
         ) : (
           /* ======================================================== */
@@ -844,8 +873,10 @@ export const App: React.FC = () => {
         phoneNumber={settings.phoneNumber}
         selectedCity={selectedCity}
         selectedDistrict={selectedDistrict}
-        estimatedDays={{ min: 10, max: 14 }}
+        estimatedDays={dynamicDeliveryDays}
         kdvNotice={settings.kdvNotice}
+        freeShippingThreshold={settings.freeShippingThreshold}
+        standardShippingCost={settings.standardShippingCost}
         mode={currentView === 'configurator' ? 'configurator' : 'store'}
       />
 
@@ -885,7 +916,7 @@ export const App: React.FC = () => {
         settings={settings}
         city={selectedCity}
         district={selectedDistrict}
-        deliveryDays={{ min: 10, max: 14 }}
+        deliveryDays={dynamicDeliveryDays}
       />
 
       {/* Mimar Beni Arasın Modal */}

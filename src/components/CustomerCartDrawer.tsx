@@ -36,6 +36,8 @@ interface CustomerCartDrawerProps {
   selectedDistrict?: string;
   estimatedDays?: { min: number; max: number };
   kdvNotice?: string;
+  freeShippingThreshold?: number;
+  standardShippingCost?: number;
   mode?: 'store' | 'configurator';
 }
 
@@ -56,6 +58,8 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
   selectedDistrict,
   estimatedDays,
   kdvNotice,
+  freeShippingThreshold = 3000,
+  standardShippingCost = 180,
   mode = 'store',
 }) => {
   if (!isOpen) return null;
@@ -466,7 +470,7 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
                         <span>Kargo & Sevkiyat:</span>
                       </span>
                       <span className="font-mono font-bold">
-                        {grandTotal >= 3000 ? 'ÜCRETSİZ' : 'Standart Kargo'}
+                        {grandTotal >= freeShippingThreshold ? 'ÜCRETSİZ' : `${standardShippingCost.toLocaleString('tr-TR')} ₺`}
                       </span>
                     </div>
                   </>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, ShieldCheck, FileText, Scale, Lock, RefreshCw, Printer } from 'lucide-react';
 import { SiteSettings } from '../types';
 
@@ -22,6 +22,11 @@ export const CustomerLegalModal: React.FC<CustomerLegalModalProps> = ({
   settings,
 }) => {
   const [activeTab, setActiveTab] = useState<LegalTabKey>(defaultTab);
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(defaultTab);
+    }
+  }, [defaultTab, isOpen]);
   const legalInfo = settings?.legalInfo || {
     taxOffice: 'Kadıköy Vergi Dairesi',
     taxNumber: 'Kuruluş Aşamasında',

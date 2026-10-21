@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   User, 
@@ -36,6 +36,11 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
   initialTab = 'login',
 }) => {
   const [tab, setTab] = useState<'login' | 'register' | 'forgot'>(initialTab);
+  useEffect(() => {
+    if (isOpen) {
+      setTab(initialTab);
+    }
+  }, [initialTab, isOpen]);
   
   // Login fields
   const [loginIdentifier, setLoginIdentifier] = useState(''); // phone or email

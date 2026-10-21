@@ -187,6 +187,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [newDescription, setNewDescription] = useState('');
   const [newIsStoreProduct, setNewIsStoreProduct] = useState(true);
   const [newUnit, setNewUnit] = useState<Product['unit']>('m²');
+  const [newPackageInfo, setNewPackageInfo] = useState('');
   const [newSpecs, setNewSpecs] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -380,6 +381,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       marketPrice: newMarketPrice,
       isActive: true,
       isStoreProduct: newIsStoreProduct,
+      packageInfo: newPackageInfo.trim() || undefined,
       specs: newSpecs.split('\n').map(s => s.trim()).filter(Boolean),
     };
     onAddProduct(newProduct);
@@ -391,6 +393,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     setNewDescription('');
     setNewIsStoreProduct(true);
     setNewUnit('m²');
+    setNewPackageInfo('');
     setNewSpecs('');
     setNewMarketPrice(0);
     showToast('Yeni ürün kataloğa başarıyla eklendi.');
@@ -1695,90 +1698,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-[#64748B] mb-1">Rozet 3 (Montaj)</label>
+                  <label className="block text-[11px] font-bold text-[#64748B] mb-1">Rozet 3 (Garanti)</label>
                   <input
                     type="text"
                     value={localContent.storePerk3 || ''}
                     onChange={(e) => setLocalContent(prev => ({ ...prev, storePerk3: e.target.value }))}
                     className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-xl px-3 py-1.5 text-xs text-[#0A0A0B] focus:outline-none"
                   />
-                </div>
-              </div>
-
-              {/* Spotlight Card Details */}
-              <div className="mt-4 p-5 rounded-2xl bg-gradient-to-r from-[#18181B] to-[#0A0A0B] text-white border border-white/10 space-y-3">
-                <span className="text-xs font-bold text-amber-400 block">✨ Vitrin Kutusu (Haftanın Yıldızı) Detayları:</span>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Kutu Rozeti</label>
-                    <input
-                      type="text"
-                      value={localContent.spotlightBadge || ''}
-                      onChange={(e) => setLocalContent(prev => ({ ...prev, spotlightBadge: e.target.value }))}
-                      className="w-full bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Alt Seri Başlığı</label>
-                    <input
-                      type="text"
-                      value={localContent.spotlightSub || ''}
-                      onChange={(e) => setLocalContent(prev => ({ ...prev, spotlightSub: e.target.value }))}
-                      className="w-full bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 text-xs text-emerald-400 font-mono focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Ürün Adı</label>
-                    <input
-                      type="text"
-                      value={localContent.spotlightTitle || ''}
-                      onChange={(e) => setLocalContent(prev => ({ ...prev, spotlightTitle: e.target.value }))}
-                      className="w-full bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 text-xs text-white font-bold focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Kısa Açıklama</label>
-                    <input
-                      type="text"
-                      value={localContent.spotlightDesc || ''}
-                      onChange={(e) => setLocalContent(prev => ({ ...prev, spotlightDesc: e.target.value }))}
-                      className="w-full bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Eski Fiyat (Üstü Çizili)</label>
-                    <input
-                      type="text"
-                      value={localContent.spotlightOldPrice || ''}
-                      onChange={(e) => setLocalContent(prev => ({ ...prev, spotlightOldPrice: e.target.value }))}
-                      className="w-full bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 text-xs text-slate-400 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Kampanyalı Fiyat</label>
-                    <input
-                      type="text"
-                      value={localContent.spotlightPrice || ''}
-                      onChange={(e) => setLocalContent(prev => ({ ...prev, spotlightPrice: e.target.value }))}
-                      className="w-full bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 text-xs text-emerald-400 font-bold focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Birim</label>
-                    <input
-                      type="text"
-                      value={localContent.spotlightUnit || ''}
-                      onChange={(e) => setLocalContent(prev => ({ ...prev, spotlightUnit: e.target.value }))}
-                      className="w-full bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none"
-                    />
-                  </div>
                 </div>
               </div>
             </div>
@@ -3365,19 +3291,30 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   </select>
                 </div>
 
-                <div className="pt-2 sm:pt-4">
-                  <label className="flex items-center gap-2 cursor-pointer bg-[#F8F9FA] p-2.5 rounded-xl border border-[#CBD5E1]">
-                    <input
-                      type="checkbox"
-                      checked={newIsStoreProduct}
-                      onChange={(e) => setNewIsStoreProduct(e.target.checked)}
-                      className="rounded text-black focus:ring-black w-4 h-4"
-                    />
-                    <span className="text-xs font-bold text-[#0A0A0B]">
-                      🛍️ Mimari Mağazada (Ürünlerimiz) Sergile
-                    </span>
-                  </label>
+                <div>
+                  <label className="block text-xs font-bold mb-1">Paket / Kutu / Ölçü Bilgisi (Opsiyonel)</label>
+                  <input
+                    type="text"
+                    placeholder="Örn: 15 Litre Kova veya 280x60 cm Panel"
+                    value={newPackageInfo}
+                    onChange={(e) => setNewPackageInfo(e.target.value)}
+                    className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs"
+                  />
                 </div>
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2 cursor-pointer bg-[#F8F9FA] p-2.5 rounded-xl border border-[#CBD5E1]">
+                  <input
+                    type="checkbox"
+                    checked={newIsStoreProduct}
+                    onChange={(e) => setNewIsStoreProduct(e.target.checked)}
+                    className="rounded text-black focus:ring-black w-4 h-4"
+                  />
+                  <span className="text-xs font-bold text-[#0A0A0B]">
+                    🛍️ Mimari Mağazada (Ürünlerimiz) Sergile
+                  </span>
+                </label>
               </div>
 
               <div>
@@ -3444,7 +3381,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               }}
               className="space-y-4"
             >
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold mb-1">Kategori</label>
+                  <select
+                    value={editModalProduct.category}
+                    onChange={(e) => setEditModalProduct({ ...editModalProduct, category: e.target.value as CategoryKey })}
+                    className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs font-bold"
+                  >
+                    {categories.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+                  </select>
+                </div>
                 <div>
                   <label className="block text-xs font-bold mb-1">Marka</label>
                   <input
@@ -3549,19 +3496,30 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   </select>
                 </div>
 
-                <div className="pt-2 sm:pt-4">
-                  <label className="flex items-center gap-2 cursor-pointer bg-[#F8F9FA] p-2.5 rounded-xl border border-[#CBD5E1]">
-                    <input
-                      type="checkbox"
-                      checked={editModalProduct.isStoreProduct === true}
-                      onChange={(e) => setEditModalProduct({ ...editModalProduct, isStoreProduct: e.target.checked })}
-                      className="rounded text-black focus:ring-black w-4 h-4"
-                    />
-                    <span className="text-xs font-bold text-[#0A0A0B]">
-                      🛍️ Mimari Mağazada (Ürünlerimiz) Sergile
-                    </span>
-                  </label>
+                <div>
+                  <label className="block text-xs font-bold mb-1">Paket / Kutu / Ölçü Bilgisi (Opsiyonel)</label>
+                  <input
+                    type="text"
+                    placeholder="Örn: 15 Litre Kova veya 280x60 cm Panel"
+                    value={editModalProduct.packageInfo || ''}
+                    onChange={(e) => setEditModalProduct({ ...editModalProduct, packageInfo: e.target.value || undefined })}
+                    className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs"
+                  />
                 </div>
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2 cursor-pointer bg-[#F8F9FA] p-2.5 rounded-xl border border-[#CBD5E1]">
+                  <input
+                    type="checkbox"
+                    checked={editModalProduct.isStoreProduct === true}
+                    onChange={(e) => setEditModalProduct({ ...editModalProduct, isStoreProduct: e.target.checked })}
+                    className="rounded text-black focus:ring-black w-4 h-4"
+                  />
+                  <span className="text-xs font-bold text-[#0A0A0B]">
+                    🛍️ Mimari Mağazada (Ürünlerimiz) Sergile
+                  </span>
+                </label>
               </div>
 
               <div>

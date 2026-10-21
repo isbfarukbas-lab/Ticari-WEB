@@ -385,36 +385,42 @@ export const CustomerConfigurator: React.FC<CustomerConfiguratorProps> = ({
 
     let baseMat = 85;
     let baseLabor = 105;
-    let marketPrice = 250;
+    let marketPrice = 0;
     let image = 'https://images.unsplash.com/photo-1507089947368-19c1da9775ae?auto=format&fit=crop&w=700&q=80';
 
     if (catKey === 'boya') {
       baseMat = 85;
       baseLabor = 105;
-      marketPrice = 250;
       image = 'https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&w=700&q=80';
     } else if (catKey === 'parke') {
       baseMat = 380;
       baseLabor = 120;
-      marketPrice = 650;
       image = 'https://images.unsplash.com/photo-1581858726788-75bc0f6a952d?auto=format&fit=crop&w=700&q=80';
     } else if (catKey === 'seramik') {
       baseMat = 420;
       baseLabor = 380;
-      marketPrice = 1100;
       image = 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=700&q=80';
     } else if (catKey === 'elektrik') {
       baseMat = 150;
       baseLabor = 250;
-      marketPrice = 550;
     } else if (catKey === 'alci_tavan') {
       baseMat = 280;
       baseLabor = 220;
-      marketPrice = 700;
     } else if (catKey === 'mutfak_banyo') {
       baseMat = 8500;
       baseLabor = 4500;
-      marketPrice = 18000;
+    }
+
+    // Use Admin's actual category product & labor settings when available
+    const activeCatProducts = products.filter((p) => p.category === catKey && p.isActive !== false);
+    if (activeCatProducts.length > 0) {
+      baseMat = activeCatProducts[0].materialPrice;
+      baseLabor = activeCatProducts[0].workmanshipPrice;
+      marketPrice = activeCatProducts[0].marketPrice ?? 0;
+      image = activeCatProducts[0].image || image;
+    } else if (settings?.laborRates?.[catKey]) {
+      baseLabor = settings.laborRates[catKey].laborPrice ?? baseLabor;
+      marketPrice = settings.laborRates[catKey].marketPrice ?? 0;
     }
 
     const noteDesc = note?.trim() ? ` Müşteri Talebi: "${note.trim()}".` : '';

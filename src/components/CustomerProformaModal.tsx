@@ -49,9 +49,9 @@ export const CustomerProformaModal: React.FC<CustomerProformaModalProps> = ({
 
   const grandTotal = totalMaterial + totalLabor;
 
-  const p1 = settings?.paymentStages?.stage1Percent || 35;
-  const p2 = settings?.paymentStages?.stage2Percent || 40;
-  const p3 = settings?.paymentStages?.stage3Percent || 25;
+  const p1 = settings?.paymentStages?.stage1Percent ?? 35;
+  const p2 = settings?.paymentStages?.stage2Percent ?? 40;
+  const p3 = settings?.paymentStages?.stage3Percent ?? 25;
 
   return (
     <div id="proforma-modal-root" className="fixed inset-0 z-50 overflow-hidden flex items-center justify-center p-4">

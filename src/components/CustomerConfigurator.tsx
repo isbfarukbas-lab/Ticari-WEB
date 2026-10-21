@@ -545,7 +545,7 @@ export const CustomerConfigurator: React.FC<CustomerConfiguratorProps> = ({
     const base = item.purchaseType === 'material_only'
       ? item.product.materialPrice
       : item.product.materialPrice + item.product.workmanshipPrice;
-    const market = item.product.marketPrice || Math.round(base * 1.35);
+    const market = item.product.marketPrice && item.product.marketPrice > base ? item.product.marketPrice : base;
     return sum + market * item.quantity;
   }, 0);
 
@@ -1193,8 +1193,8 @@ export const CustomerConfigurator: React.FC<CustomerConfiguratorProps> = ({
                     const isSelected = currentCartItem?.productId === prod.id;
                     const isShowingRoom = activeRoomViewId === prod.id && prod.roomImage;
 
-                    const marketPrice = prod.marketPrice || Math.round(unitTotal * 1.35);
-                    const unitSavings = Math.max(0, marketPrice - unitTotal);
+                    const marketPrice = prod.marketPrice && prod.marketPrice > 0 ? prod.marketPrice : 0;
+                    const unitSavings = marketPrice > unitTotal ? marketPrice - unitTotal : 0;
 
                     return (
                       <div
@@ -1961,9 +1961,11 @@ export const CustomerConfigurator: React.FC<CustomerConfiguratorProps> = ({
                     </strong>
                   </div>
                   <div>
-                    <span className="text-[11px] text-emerald-700 block font-semibold">Tahmini Piyasa Tasarrufunuz:</span>
+                    <span className="text-[11px] text-emerald-700 block font-semibold">
+                      {totalSavings > 0 ? 'Tahmini Piyasa Tasarrufunuz:' : 'Fiyatlandırma Garantisi:'}
+                    </span>
                     <strong className="text-base font-bold font-mono text-emerald-700">
-                      {totalSavings.toLocaleString('tr-TR')} ₺
+                      {totalSavings > 0 ? `${totalSavings.toLocaleString('tr-TR')} ₺` : '%20 KDV Dahil Net'}
                     </strong>
                   </div>
                 </div>

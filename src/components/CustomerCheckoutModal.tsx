@@ -138,7 +138,7 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
     const base = item.purchaseType === 'material_only'
       ? item.product.materialPrice
       : item.product.materialPrice + item.product.workmanshipPrice;
-    const market = item.product.marketPrice || Math.round(base * 1.35);
+    const market = item.product.marketPrice && item.product.marketPrice > base ? item.product.marketPrice : base;
     return sum + market * item.quantity;
   }, 0);
 

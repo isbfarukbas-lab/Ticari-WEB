@@ -81,13 +81,13 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
   );
   const isMaterialOnlyCart = cart.length > 0 && !hasRenovationItems;
 
-  // Estimated market price total for comparison
+  // Estimated market price total for comparison (only if admin set marketPrice > 0)
   const marketTotal = cart.reduce((sum, item) => {
     if (item.isCustom || !item.product) return sum;
     const base = item.purchaseType === 'material_only'
       ? item.product.materialPrice
       : item.product.materialPrice + item.product.workmanshipPrice;
-    const market = item.product.marketPrice || Math.round(base * 1.35);
+    const market = item.product.marketPrice && item.product.marketPrice > base ? item.product.marketPrice : base;
     return sum + market * item.quantity;
   }, 0);
 

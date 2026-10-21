@@ -182,8 +182,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [newImage, setNewImage] = useState('');
   const [newRoomImage, setNewRoomImage] = useState('');
   const [newMaterialPrice, setNewMaterialPrice] = useState<number>(85);
-  const [newLaborPrice, setNewLaborPrice] = useState<number>(105);
-  const [newMarketPrice, setNewMarketPrice] = useState<number>(250);
+  const [newLaborPrice, setNewLaborPrice] = useState<number>(0);
+  const [newMarketPrice, setNewMarketPrice] = useState<number>(0);
   const [newDescription, setNewDescription] = useState('');
   const [newIsStoreProduct, setNewIsStoreProduct] = useState(true);
   const [newUnit, setNewUnit] = useState<Product['unit']>('m²');
@@ -392,6 +392,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     setNewIsStoreProduct(true);
     setNewUnit('m²');
     setNewSpecs('');
+    setNewMarketPrice(0);
     showToast('Yeni ürün kataloğa başarıyla eklendi.');
   };
 
@@ -1182,7 +1183,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                                 className="w-16 bg-[#F8F9FA] border border-[#CBD5E1] rounded px-1.5 py-0.5 text-xs text-right font-bold"
                               />
                             ) : (
-                              `${p.marketPrice || Math.round(unitTotal * 1.35)} ₺`
+                              `${p.marketPrice && p.marketPrice > 0 ? p.marketPrice : 0} ₺`
                             )}
                           </td>
 
@@ -1233,7 +1234,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                                       setEditingId(p.id);
                                       setEditMaterialPrice(p.materialPrice);
                                       setEditLaborPrice(p.workmanshipPrice);
-                                      setEditMarketPrice(p.marketPrice || Math.round(unitTotal * 1.35));
+                                      setEditMarketPrice(p.marketPrice && p.marketPrice > 0 ? p.marketPrice : 0);
                                     }}
                                     className="p-1.5 rounded-lg bg-slate-100 text-[#4B5563] hover:bg-slate-200 transition"
                                     title="Hızlı Fiyat Düzenle"
@@ -1988,7 +1989,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 </h3>
 
                 {categories.map((cat) => {
-                  const days = localDurationRules.baseDays[cat.key] || 2;
+                  const days = localDurationRules.baseDays[cat.key] ?? 2;
                   return (
                     <div key={cat.key} className="flex items-center justify-between p-3 rounded-2xl bg-[#F8F9FA] border border-[#E8EAED]">
                       <span className="text-xs font-bold text-[#0A0A0B]">{cat.label}:</span>

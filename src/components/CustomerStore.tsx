@@ -188,6 +188,19 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
     }, 1500);
   };
 
+  const getProductMarketUnitPrice = (product: Product, mode: 'material_only' | 'with_installation'): number => {
+    if (!product.marketPrice || product.marketPrice <= 0) return 0;
+    if (mode === 'with_installation') {
+      return product.marketPrice > product.materialPrice + product.workmanshipPrice
+        ? product.marketPrice
+        : product.marketPrice + product.workmanshipPrice;
+    }
+    if (product.workmanshipPrice > 0 && product.marketPrice > product.materialPrice + product.workmanshipPrice) {
+      return Math.max(0, product.marketPrice - product.workmanshipPrice);
+    }
+    return product.marketPrice;
+  };
+
   const handleFastWhatsAppOrder = (product: Product) => {
     const qty = getQty(product.id);
     const mode = getPurchaseMode(product);
@@ -195,6 +208,8 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
       ? product.materialPrice + product.workmanshipPrice
       : product.materialPrice;
     const price = unitPrice * qty;
+    const marketUnit = getProductMarketUnitPrice(product, mode);
+    const marketTotal = marketUnit > 0 ? marketUnit * qty : price;
 
     // Log lead to CRM
     onSaveLead?.({
@@ -204,8 +219,8 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
       city: 'Belirtilecek',
       district: 'Belirtilecek',
       totalAmount: price,
-      marketTotalAmount: (product.marketPrice || Math.round(unitPrice * 1.35)) * qty,
-      savingsAmount: Math.max(0, ((product.marketPrice || Math.round(unitPrice * 1.35)) * qty) - price),
+      marketTotalAmount: marketTotal,
+      savingsAmount: Math.max(0, marketTotal - price),
       status: 'bekliyor',
       leadType: 'store_order',
       items: [
@@ -339,11 +354,10 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
             const isRecentlyAdded = recentlyAddedId === product.id;
             const isFav = !!favorites[product.id];
             const lineTotal = unitPrice * qty;
-            const baseMarketUnit = product.marketPrice || Math.round(product.materialPrice * 1.35);
-            const marketUnitPrice = mode === 'with_installation' ? baseMarketUnit + Math.round(product.workmanshipPrice * 1.35) : baseMarketUnit;
+            const marketUnitPrice = getProductMarketUnitPrice(product, mode);
             const marketTotal = marketUnitPrice * qty;
-            const savings = Math.max(0, marketTotal - lineTotal);
-            const discountPercent = Math.round(((marketUnitPrice - unitPrice) / marketUnitPrice) * 100);
+            const savings = marketUnitPrice > unitPrice ? Math.max(0, marketTotal - lineTotal) : 0;
+            const discountPercent = marketUnitPrice > unitPrice ? Math.round(((marketUnitPrice - unitPrice) / marketUnitPrice) * 100) : 0;
 
             return (
               <div
@@ -682,11 +696,10 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
               
               // Pricing calculations (Material or Material + Craftsman installation)
               const lineTotal = unitPrice * qty;
-              const baseMarketUnit = product.marketPrice || Math.round(product.materialPrice * 1.35);
-              const marketUnitPrice = mode === 'with_installation' ? baseMarketUnit + Math.round(product.workmanshipPrice * 1.35) : baseMarketUnit;
+              const marketUnitPrice = getProductMarketUnitPrice(product, mode);
               const marketTotal = marketUnitPrice * qty;
-              const savings = Math.max(0, marketTotal - lineTotal);
-              const discountPercent = Math.round(((marketUnitPrice - unitPrice) / marketUnitPrice) * 100);
+              const savings = marketUnitPrice > unitPrice ? Math.max(0, marketTotal - lineTotal) : 0;
+              const discountPercent = marketUnitPrice > unitPrice ? Math.round(((marketUnitPrice - unitPrice) / marketUnitPrice) * 100) : 0;
 
               return (
                 <div

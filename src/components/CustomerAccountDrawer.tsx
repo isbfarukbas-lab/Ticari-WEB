@@ -250,7 +250,7 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
                 ) : (
                   <div className="space-y-3">
                     {userOrders.map((ord) => {
-                      const isStore = ord.leadType === 'store_order' || ord.id.startsWith('store-order');
+                      const isStore = ord.leadType === 'web_order' || ord.leadType === 'store_order' || ord.id.startsWith('store-order') || ord.id.startsWith('order-');
                       const isInspection = !isStore && !!ord.preferredDate;
 
                       return (
@@ -265,8 +265,13 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
                                 <Package className="w-3.5 h-3.5 text-emerald-600" />
                               )}
                               <span className="font-bold text-black">
-                                {isStore ? 'Mağaza Siparişi' : isInspection ? 'Lazer Keşif Randevusu' : 'Tadilat Teklifi'}
+                                {isStore ? 'Online Sipariş' : isInspection ? 'Lazer Keşif Randevusu' : 'Tadilat Teklifi'}
                               </span>
+                              {ord.orderNumber && (
+                                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-900">
+                                  #{ord.orderNumber}
+                                </span>
+                              )}
                             </div>
                             {getStatusBadge(ord.status)}
                           </div>
@@ -277,6 +282,18 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
                               <span>Tarih:</span>
                               <span className="font-mono text-black">{new Date(ord.createdAt).toLocaleDateString('tr-TR')}</span>
                             </div>
+                            {ord.paymentMethod && (
+                              <div className="flex justify-between">
+                                <span>Ödeme Yöntemi:</span>
+                                <span className="font-semibold text-black">
+                                  {ord.paymentMethod === 'bank_transfer'
+                                    ? 'Banka Havalesi / EFT'
+                                    : ord.paymentMethod === 'cash_on_delivery'
+                                      ? 'Kapıda / Ambar Ödeme'
+                                      : 'Kredi Kartı'}
+                                </span>
+                              </div>
+                            )}
                             {ord.preferredDate && (
                               <div className="flex justify-between text-purple-700 font-semibold">
                                 <span>Randevu:</span>
@@ -293,11 +310,18 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
 
                           {/* Items summary */}
                           {ord.items && ord.items.length > 0 && (
-                            <div className="pt-2 border-t border-[#E8EAED] space-y-1 text-[11px]">
+                            <div className="pt-2 border-t border-[#E8EAED] space-y-1.5 text-[11px]">
                               {ord.items.map((it, idx) => (
-                                <div key={idx} className="flex justify-between text-slate-700">
-                                  <span>{it.quantity} {it.unit} • {it.name}</span>
-                                  <span className="font-mono">{it.total > 0 ? `${it.total.toLocaleString('tr-TR')} ₺` : ''}</span>
+                                <div key={idx} className="flex items-center justify-between gap-2 text-slate-700">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span>{it.quantity} {it.unit} • {it.name}</span>
+                                    {it.purchaseType === 'with_installation' && (
+                                      <span className="text-[9px] font-bold bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded-full">
+                                        +Usta Montaj
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="font-mono shrink-0">{it.total > 0 ? `${it.total.toLocaleString('tr-TR')} ₺` : ''}</span>
                                 </div>
                               ))}
                             </div>

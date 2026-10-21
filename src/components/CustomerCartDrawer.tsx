@@ -25,6 +25,7 @@ interface CustomerCartDrawerProps {
   cart: CartItem[];
   onRemoveItem: (id: string) => void;
   onUpdateQuantity: (id: string, delta: number) => void;
+  onToggleItemPurchaseType?: (id: string) => void;
   onClearCart: () => void;
   onOpenInspection: () => void;
   onOpenProforma: () => void;
@@ -44,6 +45,7 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
   cart,
   onRemoveItem,
   onUpdateQuantity,
+  onToggleItemPurchaseType,
   onClearCart,
   onOpenInspection,
   onOpenProforma,
@@ -72,12 +74,12 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
 
   const grandTotal = totalMaterial + totalLabor;
 
-  // Strict separation: Store mode is 100% retail product shopping
+  // Store mode vs Renovation items check
   const isStoreMode = mode === 'store';
   const hasRenovationItems = cart.some((item) => 
     item.isCustom || (item.product && item.purchaseType !== 'material_only')
   );
-  const isMaterialOnlyCart = isStoreMode || (cart.length > 0 && !hasRenovationItems);
+  const isMaterialOnlyCart = cart.length > 0 && !hasRenovationItems;
 
   // Estimated market price total for comparison
   const marketTotal = cart.reduce((sum, item) => {
@@ -101,8 +103,13 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
         ? `*RVOBA® — Online Malzeme Sipariş Talebi (rvoba.com)*\n\n`
         : `*RVOBA® — Online Tadilat & Keşif Talebi (rvoba.com)*\n\n`;
 
-    if (isStoreMode || isMaterialOnlyCart) {
+    if (isMaterialOnlyCart) {
       msg += `*Teslimat Şekli:* Tüm Türkiye'ye Kapıya Teslim Kargo / Ambar Sevk\n`;
+    } else if (isStoreMode && totalLabor > 0) {
+      msg += `*Hizmet Şekli:* Malzeme Sevkiyatı + Seçili Ürünlerde Usta Montaj Desteği\n`;
+      if (selectedCity && selectedDistrict) {
+        msg += `*Konum:* ${selectedCity} / ${selectedDistrict}\n`;
+      }
     } else {
       if (selectedCity && selectedDistrict) {
         msg += `*Hizmet Lokasyonu:* ${selectedCity} / ${selectedDistrict}\n`;
@@ -365,8 +372,25 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
                             <h4 className="text-xs font-bold text-[#0A0A0B] mt-0.5 leading-snug">
                               {item.product.name}
                             </h4>
-                            <div className="text-[11px] font-mono text-[#64748B]">
-                              Kod: {item.product.code}
+                            <div className="flex items-center justify-between gap-2 mt-1">
+                              <span className="text-[11px] font-mono text-[#64748B]">
+                                Kod: {item.product.code}
+                              </span>
+                              {!isLaborOnly && !isOnSite && item.product.workmanshipPrice > 0 && onToggleItemPurchaseType && (
+                                <button
+                                  type="button"
+                                  onClick={() => onToggleItemPurchaseType(item.id)}
+                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border transition cursor-pointer ${
+                                    isMaterialOnlyItem
+                                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                                      : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
+                                  }`}
+                                >
+                                  {isMaterialOnlyItem
+                                    ? `+Usta Montaj Ekle (+${item.product.workmanshipPrice} ₺/${item.product.unit})`
+                                    : 'Sadece Malzemeye Çevir'}
+                                </button>
+                              )}
                             </div>
                           </div>
 
@@ -497,8 +521,22 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
                         className="w-full btn-pill-black bg-[#0A0A0B] text-white hover:bg-slate-800 justify-center py-3.5 text-xs font-bold shadow-lg flex items-center gap-2"
                       >
                         <CreditCard className="w-4 h-4 text-emerald-400" />
-                        <span>Siparişi Tamamla (Adres & Teslimat)</span>
+                        <span>{totalLabor > 0 ? 'Siparişi Tamamla (Malzeme + Montaj)' : 'Siparişi Tamamla (Adres & Teslimat)'}</span>
                         <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+
+                    {totalLabor > 0 && (
+                      <button
+                        onClick={() => {
+                          onClose();
+                          onOpenInspection();
+                        }}
+                        className="w-full btn-pill-outline border-amber-300 bg-amber-50/70 hover:bg-amber-100 text-amber-950 justify-center py-2.5 text-xs font-bold flex items-center gap-1.5"
+                      >
+                        <Calendar className="w-3.5 h-3.5 text-amber-700" />
+                        <span>Önce Ücretsiz Keşif / Ölçü Randevusu Al</span>
+                        <ArrowUpRight className="w-3.5 h-3.5" />
                       </button>
                     )}
 

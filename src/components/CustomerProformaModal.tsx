@@ -279,7 +279,11 @@ export const CustomerProformaModal: React.FC<CustomerProformaModalProps> = ({
                 <>
                   <div className="flex justify-between text-slate-600">
                     <span>Kargo & Ambar Sevkiyatı:</span>
-                    <span className="font-bold text-emerald-700">Ücretsiz (3.000 ₺ Üzeri)</span>
+                    <span className="font-bold text-emerald-700">
+                      {grandTotal >= (settings?.freeShippingThreshold ?? 3000)
+                        ? `Ücretsiz (${(settings?.freeShippingThreshold ?? 3000).toLocaleString('tr-TR')} ₺ Üzeri)`
+                        : `${(settings?.standardShippingCost ?? 180).toLocaleString('tr-TR')} ₺ (Standart Kargo)`}
+                    </span>
                   </div>
                   <div className="flex justify-between text-slate-600">
                     <span>KDV Durumu:</span>
@@ -319,10 +323,12 @@ export const CustomerProformaModal: React.FC<CustomerProformaModalProps> = ({
                 <div className="bg-white p-3.5 print:p-2 rounded-xl border border-slate-200 shadow-sm print:shadow-none">
                   <div className="font-bold text-slate-900 text-xs print:text-[8.5px] flex items-center gap-1.5">
                     <CreditCard className="w-3.5 h-3.5 print:w-3 print:h-3 text-slate-700" />
-                    <span>12 Taksit İmkanı</span>
+                    <span>{settings?.paymentMethods?.enableCreditCard ? '12 Taksit İmkanı' : `%${settings?.bankInfo?.transferDiscountPercent ?? 3} Havale İndirimi`}</span>
                   </div>
                   <p className="text-[10px] print:text-[7.5px] text-slate-500 mt-1 print:mt-0.5 leading-relaxed print:leading-tight">
-                    Tüm kredi kartlarına vade farksız veya uygun vadeli taksit imkanı.
+                    {settings?.paymentMethods?.enableCreditCard
+                      ? 'Tüm kredi kartlarına vade farksız veya uygun vadeli taksit imkanı.'
+                      : 'Havale/EFT ödemelerinde anında nakit indirimi ve kapıda ödeme imkanı.'}
                   </p>
                 </div>
 

@@ -166,7 +166,7 @@ export const INITIAL_SETTINGS: SiteSettings = {
     storeTitle: 'Evinizi Yenileyen Tasarım Malzemeleri',
     storeSubtitle: 'Trend akustik ahşap paneller, poliüretan çıta setleri, 1. sınıf boyalar ve zemin kaplamaları toptan bayi fiyatıyla Türkiye geneli kapınıza teslim.',
     storePerk1: '3.000 ₺ Üzeri Ücretsiz Kargo',
-    storePerk2: '12 Taksit İmkanı',
+    storePerk2: '%3 Havale İndirimi & Kapıda Ödeme',
     storePerk3: 'Faturalı & Orijinal Bayi Garantisi',
 
     spotlightBadge: 'Öne Çıkan Tasarım',
@@ -179,7 +179,7 @@ export const INITIAL_SETTINGS: SiteSettings = {
 
     // 4. Duyuru Bandı
     announcementText1: '3.000 TL Üzeri Ücretsiz Kargo',
-    announcementText2: 'Tüm Kredi Kartlarına 12 Taksit İmkanı',
+    announcementText2: '%3 Havale İndirimi & Kapıda Ödeme İmkanı',
     announcementText3: 'Fabrikadan Doğrudan Sigortalı Sevk',
   },
 };

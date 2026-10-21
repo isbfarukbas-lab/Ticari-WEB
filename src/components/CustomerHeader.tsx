@@ -177,7 +177,7 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
             <span className="text-white/30 hidden sm:inline">•</span>
             <span className="hidden sm:inline-flex items-center gap-1.5 text-slate-300">
               <CreditCard className="w-3.5 h-3.5 text-slate-400" />
-              <span>{content?.announcementText2 ? content.announcementText2.replace(/[\uD800-\uDFFF\u2600-\u27BF]/g, '').trim() : 'Tüm Kredi Kartlarına 12 Taksit'}</span>
+              <span>{content?.announcementText2 ? content.announcementText2.replace(/[\uD800-\uDFFF\u2600-\u27BF]/g, '').trim() : '%3 Havale İndirimi & Kapıda Ödeme İmkanı'}</span>
             </span>
             <span className="text-white/30 hidden md:inline">•</span>
             <span className="hidden md:inline-flex items-center gap-1.5 text-slate-300">

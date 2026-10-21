@@ -280,7 +280,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
               </span>
               <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-50 text-slate-800 font-semibold border border-slate-200">
                 <CreditCard className="w-3.5 h-3.5 text-slate-700" />
-                <span>{content?.storePerk2 || '12 Taksit İmkanı'}</span>
+                <span>{content?.storePerk2 || '%3 Havale İndirimi & Kapıda Ödeme'}</span>
               </span>
               <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-50 text-slate-800 font-semibold border border-slate-200">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
@@ -919,8 +919,8 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
               <CreditCard className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-[#0A0A0B]">12 Taksit & Güvenli Ödeme</h4>
-              <p className="text-[11px] text-[#64748B] mt-0.5">256-bit SSL şifrelemeli güvenli alışveriş.</p>
+              <h4 className="text-xs font-bold text-[#0A0A0B]">{content?.storePerk2 || '%3 Havale İndirimi & Kapıda Ödeme'}</h4>
+              <p className="text-[11px] text-[#64748B] mt-0.5">Havale/EFT avantajı, kapıda ödeme ve güvenli alışveriş.</p>
             </div>
           </div>
 

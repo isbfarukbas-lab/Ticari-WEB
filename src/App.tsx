@@ -180,6 +180,16 @@ export const App: React.FC = () => {
         if (mergedContent.storePerk3 && mergedContent.storePerk3.includes('Montaj')) {
           mergedContent.storePerk3 = INITIAL_SETTINGS.content?.storePerk3 || '';
         }
+        // Sync "12 Taksit" texts when Credit Card POS is disabled
+        const isCreditCardEnabled = parsed.paymentMethods?.enableCreditCard ?? INITIAL_SETTINGS.paymentMethods?.enableCreditCard;
+        if (!isCreditCardEnabled) {
+          if (mergedContent.announcementText2 && mergedContent.announcementText2.includes('12 Taksit')) {
+            mergedContent.announcementText2 = INITIAL_SETTINGS.content?.announcementText2 || '%3 Havale İndirimi & Kapıda Ödeme İmkanı';
+          }
+          if (mergedContent.storePerk2 && mergedContent.storePerk2.includes('12 Taksit')) {
+            mergedContent.storePerk2 = INITIAL_SETTINGS.content?.storePerk2 || '%3 Havale İndirimi & Kapıda Ödeme';
+          }
+        }
         return {
           ...INITIAL_SETTINGS,
           ...parsed,
@@ -467,6 +477,20 @@ export const App: React.FC = () => {
       prev
         .map((c) => (c.id === id ? { ...c, quantity: Math.max(1, c.quantity + delta) } : c))
         .filter((c) => c.quantity > 0)
+    );
+  };
+
+  const handleToggleItemPurchaseType = (id: string) => {
+    setCart((prev) =>
+      prev.map((c) => {
+        if (c.id !== id) return c;
+        const nextType = c.purchaseType === 'material_only' ? 'with_installation' : 'material_only';
+        return {
+          ...c,
+          purchaseType: nextType,
+          roomType: nextType === 'with_installation' ? 'Malzeme + Usta Montajı' : 'Doğrudan Sipariş',
+        };
+      })
     );
   };
 
@@ -850,6 +874,7 @@ export const App: React.FC = () => {
         cart={cart}
         onRemoveItem={handleRemoveCartItem}
         onUpdateQuantity={handleUpdateQuantity}
+        onToggleItemPurchaseType={handleToggleItemPurchaseType}
         onClearCart={handleClearCart}
         onOpenInspection={() => setIsInspectionOpen(true)}
         onOpenProforma={() => setIsProformaOpen(true)}

@@ -87,9 +87,13 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
     }
   }, [paymentConfig.enableCreditCard, paymentConfig.enableBankTransfer, paymentConfig.enableCashOnDelivery]);
 
-  // Auto-fill from logged-in customer profile
+  // Auto-fill from logged-in customer profile & reset confirmation state on reopen
   useEffect(() => {
-    if (isOpen && currentUser) {
+    if (!isOpen) {
+      setCreatedOrder(null);
+      return;
+    }
+    if (currentUser) {
       if (!fullName) setFullName(currentUser.fullName);
       if (!phone) setPhone(currentUser.phone);
       if (!email && currentUser.email) setEmail(currentUser.email);

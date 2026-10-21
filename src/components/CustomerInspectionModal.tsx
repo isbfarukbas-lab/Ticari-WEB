@@ -36,18 +36,20 @@ export const CustomerInspectionModal: React.FC<CustomerInspectionModalProps> = (
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    if (isOpen) {
-      if (currentUser) {
-        if (!fullName) setFullName(currentUser.fullName);
-        if (!phone) setPhone(currentUser.phone);
-        if (currentUser.city) setCity(currentUser.city);
-        if (currentUser.district) setDistrict(currentUser.district);
-        const defaultAddr = currentUser.addresses?.find(a => a.isDefault)?.fullAddress || currentUser.addresses?.[0]?.fullAddress;
-        if (!address && defaultAddr) setAddress(defaultAddr);
-      } else {
-        if (selectedCity) setCity(selectedCity);
-        if (selectedDistrict) setDistrict(selectedDistrict);
-      }
+    if (!isOpen) {
+      setSubmitted(false);
+      return;
+    }
+    if (currentUser) {
+      if (!fullName) setFullName(currentUser.fullName);
+      if (!phone) setPhone(currentUser.phone);
+      if (currentUser.city) setCity(currentUser.city);
+      if (currentUser.district) setDistrict(currentUser.district);
+      const defaultAddr = currentUser.addresses?.find(a => a.isDefault)?.fullAddress || currentUser.addresses?.[0]?.fullAddress;
+      if (!address && defaultAddr) setAddress(defaultAddr);
+    } else {
+      if (selectedCity) setCity(selectedCity);
+      if (selectedDistrict) setDistrict(selectedDistrict);
     }
   }, [isOpen, currentUser, selectedCity, selectedDistrict]);
 

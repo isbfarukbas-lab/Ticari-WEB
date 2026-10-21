@@ -321,7 +321,10 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
                     if (!item.product) return null;
                     const isLaborOnly = item.product.id.startsWith('labor-');
                     const isOnSite = item.product.id.startsWith('onsite-');
-                    const lineUnit = item.product.materialPrice + item.product.workmanshipPrice;
+                    const isMaterialOnlyItem = item.purchaseType === 'material_only';
+                    const lineUnit = isMaterialOnlyItem
+                      ? item.product.materialPrice
+                      : item.product.materialPrice + item.product.workmanshipPrice;
                     const lineTotal = lineUnit * item.quantity;
 
                     return (
@@ -341,14 +344,21 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
                               <span className="text-[10px] font-bold text-[#64748B] uppercase">
                                 {item.product.brand} • {item.roomType}
                               </span>
-                              {isLaborOnly && (
+                              {isLaborOnly ? (
                                 <span className="text-[9px] font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-full">
                                   Sadece İşçilik (Malzeme 0 ₺)
                                 </span>
-                              )}
-                              {isOnSite && (
+                              ) : isOnSite ? (
                                 <span className="text-[9px] font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded-full">
                                   Keşifte Canlı Seçim
+                                </span>
+                              ) : isMaterialOnlyItem ? (
+                                <span className="text-[9px] font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded-full">
+                                  Sadece Malzeme
+                                </span>
+                              ) : (
+                                <span className="text-[9px] font-bold bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded-full">
+                                  +Usta Montaj Dahil
                                 </span>
                               )}
                             </div>
@@ -417,9 +427,15 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
                 {isStoreMode ? (
                   <>
                     <div className="flex justify-between">
-                      <span>Ara Toplam:</span>
+                      <span>Malzeme Toplamı:</span>
                       <span className="font-mono font-semibold text-[#0A0A0B]">{totalMaterial.toLocaleString('tr-TR')} ₺</span>
                     </div>
+                    {totalLabor > 0 && (
+                      <div className="flex justify-between text-amber-800 font-bold">
+                        <span>Seçilen Usta Montaj Hizmeti:</span>
+                        <span className="font-mono">+{totalLabor.toLocaleString('tr-TR')} ₺</span>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center text-emerald-700">
                       <span className="flex items-center gap-1">
                         <Truck className="w-3.5 h-3.5" />

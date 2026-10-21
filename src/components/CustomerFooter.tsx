@@ -41,7 +41,7 @@ export const CustomerFooter: React.FC<CustomerFooterProps> = ({
               <span>•</span>
               <span className="flex items-center gap-1">
                 <MapPin className="w-3 h-3 text-emerald-600" />
-                Merkez Lojistik & Depo: Kadıköy / İstanbul
+                Merkez Lojistik & Depo: {settings?.legalInfo?.companyAddress || 'Kadıköy / İstanbul'}
               </span>
               <span>•</span>
               <span>Tüm Türkiye'ye Sigortalı Sevk</span>
@@ -119,7 +119,13 @@ export const CustomerFooter: React.FC<CustomerFooterProps> = ({
 
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-[#94A3B8]">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span>© {new Date().getFullYear()} {settings?.companyName || 'RVOBA® Mimarlık Yapı Çözümleri A.Ş.'} • Erenköy V.D. 7350918234 • Tüm hakları saklıdır (rvoba.com).</span>
+            <span>
+              © {new Date().getFullYear()} {settings?.companyName || 'RVOBA® Yapı Malzemeleri ve Tadilat Hizmetleri'}
+              {settings?.legalInfo?.taxNumber && settings.legalInfo.taxNumber !== 'Kuruluş Aşamasında'
+                ? ` • ${settings.legalInfo.taxOffice} ${settings.legalInfo.taxNumber}`
+                : ''}{' '}
+              • Tüm hakları saklıdır (rvoba.com).
+            </span>
             {onNavigateAdmin && (
               <button 
                 onClick={onNavigateAdmin}

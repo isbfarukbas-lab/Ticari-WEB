@@ -57,6 +57,10 @@ export const BeforeAfterSlider: React.FC<BeforeAfterSliderProps> = ({
     };
   }, []);
 
+  if (!projects || projects.length === 0 || !activeProj) {
+    return null;
+  }
+
   const updatePosition = (clientX: number) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();

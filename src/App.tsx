@@ -99,43 +99,20 @@ export const App: React.FC = () => {
     }
   }, [cart]);
 
-  // Leads state
+  // Leads state (starts clean without fake sample records; strictly respects deletions)
   const [leads, setLeads] = useState<LeadRequest[]>(() => {
     try {
-      const saved = localStorage.getItem('rvoba_leads_v1') || localStorage.getItem('restolab_leads_v5');
-      if (saved) return JSON.parse(saved);
+      const saved = localStorage.getItem('rvoba_leads_v1');
+      if (saved !== null) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((l) => l.id !== 'lead-sample-1');
+        }
+      }
     } catch (e) {
       console.error(e);
     }
-    return [
-      {
-        id: 'lead-sample-1',
-        fullName: 'Mehmet Demir',
-        phone: '0532 111 22 33',
-        city: 'İstanbul',
-        district: 'Kadıköy',
-        address: 'Moda Cad. No: 14',
-        preferredDate: '2026-09-28',
-        timeSlot: '13:00 - 17:00',
-        totalAmount: 70500,
-        marketTotalAmount: 92250,
-        savingsAmount: 21750,
-        items: [
-          { name: 'Momento Silan — Aydan Rengi', brand: 'Filli Boya', quantity: 200, unit: 'm²', total: 38000 },
-          { name: 'VarioClic Premium — Lizbon Meşe', brand: 'Yıldız Parke', quantity: 65, unit: 'm²', total: 32500 },
-          { 
-            name: 'Salon TV Arkası Ahşap Çıtalama', 
-            brand: 'Özel İstek', 
-            quantity: 1, 
-            unit: 'adet', 
-            total: 0,
-            isCustom: true,
-            customNote: 'Pinterest görselindeki gibi simetrik çıta uygulaması yapılacak.'
-          },
-        ],
-        createdAt: new Date().toISOString(),
-      },
-    ];
+    return [];
   });
 
   useEffect(() => {
@@ -207,36 +184,20 @@ export const App: React.FC = () => {
   const [selectedCity, setSelectedCity] = useState('İstanbul');
   const [selectedDistrict, setSelectedDistrict] = useState('Kadıköy');
 
-  // Customer User Authentication & Accounts
+  // Customer User Authentication & Accounts (starts clean without fake demo customer)
   const [allUsers, setAllUsers] = useState<CustomerUser[]>(() => {
     try {
       const saved = localStorage.getItem('rvoba_customers_v1');
-      if (saved) return JSON.parse(saved);
+      if (saved !== null) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((u) => u.id !== 'cust-demo-1');
+        }
+      }
     } catch (e) {
       console.error(e);
     }
-    return [
-      {
-        id: 'cust-demo-1',
-        fullName: 'Mehmet Demir',
-        email: 'mehmet@rvoba.com',
-        phone: '0532 111 22 33',
-        city: 'İstanbul',
-        district: 'Kadıköy',
-        password: 'demo',
-        addresses: [
-          {
-            id: 'addr-1',
-            title: 'Ev Adresim',
-            city: 'İstanbul',
-            district: 'Kadıköy',
-            fullAddress: 'Moda Cad. No: 14 Kadıköy / İstanbul',
-            isDefault: true,
-          }
-        ],
-        createdAt: new Date().toISOString(),
-      }
-    ];
+    return [];
   });
 
   useEffect(() => {
@@ -277,23 +238,28 @@ export const App: React.FC = () => {
     setCurrentUser(user);
     setAllUsers(prev => {
       const idx = prev.findIndex(u => u.id === user.id);
-      if (idx > -1) {
-        const copy = [...prev];
-        copy[idx] = user;
-        return copy;
-      }
-      return [...prev, user];
+      const next = idx > -1 ? prev.map((u, i) => (i === idx ? user : u)) : [...prev, user];
+      syncToCloudAndTabs({ customers: next });
+      return next;
     });
   };
 
   const handleRegisterUser = (newUser: CustomerUser) => {
-    setAllUsers(prev => [newUser, ...prev]);
+    setAllUsers(prev => {
+      const next = [newUser, ...prev];
+      syncToCloudAndTabs({ customers: next });
+      return next;
+    });
     setCurrentUser(newUser);
   };
 
   const handleUpdateUser = (updatedUser: CustomerUser) => {
     setCurrentUser(updatedUser);
-    setAllUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+    setAllUsers(prev => {
+      const next = prev.map(u => u.id === updatedUser.id ? updatedUser : u);
+      syncToCloudAndTabs({ customers: next });
+      return next;
+    });
   };
 
   const handleCustomerLogout = () => {
@@ -302,7 +268,11 @@ export const App: React.FC = () => {
   };
 
   const handleDeleteCustomer = (customerId: string) => {
-    setAllUsers(prev => prev.filter(u => u.id !== customerId));
+    setAllUsers(prev => {
+      const next = prev.filter(u => u.id !== customerId);
+      syncToCloudAndTabs({ customers: next });
+      return next;
+    });
     if (currentUser && currentUser.id === customerId) {
       setCurrentUser(null);
       setIsAccountDrawerOpen(false);

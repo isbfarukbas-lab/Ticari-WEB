@@ -71,21 +71,21 @@ export const syncToCloudAndTabs = async (
     const fullSnapshot: CloudStatePayload = {
       updatedAt: payload.updatedAt,
       products:
-        payload.products ||
-        JSON.parse(localStorage.getItem('rvoba_products_v1') || 'null') ||
-        undefined,
+        payload.products !== undefined
+          ? payload.products
+          : JSON.parse(localStorage.getItem('rvoba_products_v1') || 'null') ?? undefined,
       settings:
-        payload.settings ||
-        JSON.parse(localStorage.getItem('rvoba_settings_v1') || 'null') ||
-        undefined,
+        payload.settings !== undefined
+          ? payload.settings
+          : JSON.parse(localStorage.getItem('rvoba_settings_v1') || 'null') ?? undefined,
       leads:
-        payload.leads ||
-        JSON.parse(localStorage.getItem('rvoba_leads_v1') || 'null') ||
-        undefined,
+        payload.leads !== undefined
+          ? payload.leads
+          : JSON.parse(localStorage.getItem('rvoba_leads_v1') || 'null') ?? undefined,
       customers:
-        payload.customers ||
-        JSON.parse(localStorage.getItem('rvoba_customers_v1') || 'null') ||
-        undefined,
+        payload.customers !== undefined
+          ? payload.customers
+          : JSON.parse(localStorage.getItem('rvoba_customers_v1') || 'null') ?? undefined,
     };
 
     const res = await fetch(endpoint, {

@@ -88,11 +88,11 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
     onToggleFavorite(id);
   };
 
-  // Filter store products (products marked as isStoreProduct, or fallback to active items)
+  // Filter store products (products marked as isStoreProduct, custom admin products, or fallback to active items)
   const hasStoreProducts = products.some((p) => p.isStoreProduct && p.isActive !== false);
   const storeItems = products.filter((p) => {
     if (p.isActive === false) return false;
-    if (hasStoreProducts) return p.isStoreProduct === true;
+    if (hasStoreProducts) return p.isStoreProduct === true || p.id.startsWith('custom-prod-');
     return true;
   });
 
@@ -306,6 +306,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
       {/* ======================================================== */}
       {/* 2. BEST SELLERS SHOWCASE (LOKOMOTİF 4 TREND ÜRÜN)        */}
       {/* ======================================================== */}
+      {bestSellers.length > 0 && (
       <section id="cok-satanlar" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
           <div>
@@ -545,6 +546,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
           })}
         </div>
       </section>
+      )}
 
       {/* ======================================================== */}
       {/* 3. PRODUCT CATALOG TOOLBAR & ACTIVE FILTERS              */}

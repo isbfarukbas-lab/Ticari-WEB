@@ -185,7 +185,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [newLaborPrice, setNewLaborPrice] = useState<number>(105);
   const [newMarketPrice, setNewMarketPrice] = useState<number>(250);
   const [newDescription, setNewDescription] = useState('');
-  const [newIsStoreProduct, setNewIsStoreProduct] = useState(false);
+  const [newIsStoreProduct, setNewIsStoreProduct] = useState(true);
   const [newUnit, setNewUnit] = useState<Product['unit']>('m²');
   const [newSpecs, setNewSpecs] = useState('');
 
@@ -366,7 +366,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     setNewImage('');
     setNewRoomImage('');
     setNewDescription('');
-    setNewIsStoreProduct(false);
+    setNewIsStoreProduct(true);
     setNewUnit('m²');
     setNewSpecs('');
     showToast('Yeni ürün kataloğa başarıyla eklendi.');
@@ -429,40 +429,61 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     };
     const updated = [...localServiceAreas, newArea];
     setLocalServiceAreas(updated);
+    onUpdateSettings({
+      ...settings,
+      serviceAreas: updated,
+      coverageNotice: localCoverageNotice,
+    });
     setNewCityName('');
     setNewCityDistricts('');
-    showToast(`${newArea.city} şehri hizmet bölgelerine eklendi.`);
+    showToast(`${newArea.city} şehri hizmet bölgelerine eklendi ve kaydedildi.`);
   };
 
   // Add District to City
   const handleAddDistrict = (cityName: string) => {
     const text = newDistrictInputs[cityName]?.trim();
     if (!text) return;
-    setLocalServiceAreas(prev =>
-      prev.map(area =>
-        area.city === cityName
-          ? { ...area, districts: [...area.districts, text] }
-          : area
-      )
+    const updated = localServiceAreas.map(area =>
+      area.city === cityName
+        ? { ...area, districts: [...area.districts, text] }
+        : area
     );
+    setLocalServiceAreas(updated);
+    onUpdateSettings({
+      ...settings,
+      serviceAreas: updated,
+      coverageNotice: localCoverageNotice,
+    });
     setNewDistrictInputs(prev => ({ ...prev, [cityName]: '' }));
+    showToast(`${text} ilçesi ${cityName} listesine eklendi.`);
   };
 
   // Remove District from City
   const handleRemoveDistrict = (cityName: string, districtName: string) => {
-    setLocalServiceAreas(prev =>
-      prev.map(area =>
-        area.city === cityName
-          ? { ...area, districts: area.districts.filter(d => d !== districtName) }
-          : area
-      )
+    const updated = localServiceAreas.map(area =>
+      area.city === cityName
+        ? { ...area, districts: area.districts.filter(d => d !== districtName) }
+        : area
     );
+    setLocalServiceAreas(updated);
+    onUpdateSettings({
+      ...settings,
+      serviceAreas: updated,
+      coverageNotice: localCoverageNotice,
+    });
   };
 
   // Delete City
   const handleDeleteCity = (cityName: string) => {
     if (confirm(`${cityName} şehrini hizmet bölgelerinden silmek istediğinize emin misiniz?`)) {
-      setLocalServiceAreas(prev => prev.filter(a => a.city !== cityName));
+      const updated = localServiceAreas.filter(a => a.city !== cityName);
+      setLocalServiceAreas(updated);
+      onUpdateSettings({
+        ...settings,
+        serviceAreas: updated,
+        coverageNotice: localCoverageNotice,
+      });
+      showToast(`${cityName} şehri hizmet bölgelerinden silindi.`);
     }
   };
 

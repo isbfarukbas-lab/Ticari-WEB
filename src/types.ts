@@ -167,6 +167,28 @@ export interface SiteContentSettings {
   announcementText3: string;
 }
 
+export interface BankInfoSettings {
+  bankName: string;
+  accountHolder: string;
+  iban: string;
+  transferDiscountPercent: number;
+}
+
+export interface PaymentMethodSettings {
+  enableBankTransfer: boolean;
+  enableCashOnDelivery: boolean;
+  enableCreditCard: boolean;
+  creditCardNote?: string;
+}
+
+export interface CompanyLegalSettings {
+  taxOffice: string;
+  taxNumber: string;
+  mersisNo: string;
+  companyAddress: string;
+  companyEmail: string;
+}
+
 export interface SiteSettings {
   phoneNumber: string;       // WhatsApp yönlendirme numarası
   supportPhone: string;      // Sitede gösterilen destek hattı
@@ -174,6 +196,11 @@ export interface SiteSettings {
   coverageNotice: string;
   kdvNotice?: string;        // KDV açıklaması
   adminPassword?: string;    // Yönetici paneli koruma şifresi
+  freeShippingThreshold?: number;
+  standardShippingCost?: number;
+  bankInfo?: BankInfoSettings;
+  paymentMethods?: PaymentMethodSettings;
+  legalInfo?: CompanyLegalSettings;
   laborRates: Record<CategoryKey, { laborPrice: number; marketPrice: number; description: string }>;
   durationRules: {
     baseDays: Record<CategoryKey, number>;

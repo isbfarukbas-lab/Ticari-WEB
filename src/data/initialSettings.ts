@@ -3,10 +3,31 @@ import { SiteSettings } from '../types';
 export const INITIAL_SETTINGS: SiteSettings = {
   phoneNumber: '905447685137',
   supportPhone: '0544 768 51 37',
-  companyName: 'RVOBA® Mimarlık ve Yapı Çözümleri A.Ş.',
-  coverageNotice: 'İstanbul, Ankara ve İzmir genelinde mimari lazer keşif servisimiz aktiftir.',
-  kdvNotice: 'Fiyatlarımız bireysel müşterilerimiz için anahtar teslim KDV dahil net tutardır.',
+  companyName: 'RVOBA® Mimarlık ve Yapı Çözümleri',
+  coverageNotice: 'İstanbul, Ankara ve İzmir genelinde mimari keşif ve usta uygulama servisimiz aktiftir.',
+  kdvNotice: 'Fiyatlarımız bireysel müşterilerimiz için KDV dahil net tutardır.',
   adminPassword: 'rvoba2026',
+  freeShippingThreshold: 3000,
+  standardShippingCost: 180,
+  bankInfo: {
+    bankName: 'Garanti BBVA / QNB Finansbank',
+    accountHolder: 'RVOBA Mimarlık ve Yapı Çözümleri',
+    iban: 'TR00 0000 0000 0000 0000 0000 00',
+    transferDiscountPercent: 3,
+  },
+  paymentMethods: {
+    enableBankTransfer: true,
+    enableCashOnDelivery: true,
+    enableCreditCard: false,
+    creditCardNote: 'Tüm kredi kartlarına 12 taksit imkanı',
+  },
+  legalInfo: {
+    taxOffice: 'Kadıköy Vergi Dairesi',
+    taxNumber: 'Kuruluş Aşamasında',
+    mersisNo: '0735000000000001',
+    companyAddress: 'Kadıköy / İstanbul',
+    companyEmail: 'destek@rvoba.com',
+  },
   laborRates: {
     boya: {
       laborPrice: 105,

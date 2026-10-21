@@ -12,9 +12,12 @@ import {
   Phone,
   Calendar,
   Sparkles,
-  UserCheck
+  UserCheck,
+  Copy,
+  Check,
+  Hammer
 } from 'lucide-react';
-import { CartItem, LeadRequest, CustomerUser } from '../types';
+import { CartItem, LeadRequest, CustomerUser, SiteSettings } from '../types';
 
 interface CustomerCheckoutModalProps {
   isOpen: boolean;
@@ -24,6 +27,7 @@ interface CustomerCheckoutModalProps {
   onOrderCompleted: (order: LeadRequest) => void;
   phoneNumber?: string;
   supportPhone?: string;
+  settings?: SiteSettings;
 }
 
 export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
@@ -34,7 +38,32 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
   onOrderCompleted,
   phoneNumber = '905447685137',
   supportPhone = '0544 768 51 37',
+  settings,
 }) => {
+  const bankInfo = settings?.bankInfo || {
+    bankName: 'Garanti BBVA / Ziraat Bankası',
+    accountHolder: settings?.companyName || 'RVOBA Yapı ve Tadilat Hizmetleri',
+    iban: 'TR00 0000 0000 0000 0000 0000 00',
+    transferDiscountPercent: 3,
+  };
+
+  const paymentConfig = settings?.paymentMethods || {
+    enableBankTransfer: true,
+    enableCashOnDelivery: true,
+    enableCreditCard: false,
+    creditCardNote: 'Tüm kartlara 12 taksit imkanı',
+  };
+
+  const freeShippingThreshold = settings?.freeShippingThreshold ?? 3000;
+  const standardShippingCost = settings?.standardShippingCost ?? 180;
+
+  const getDefaultPaymentMethod = (): 'credit_card' | 'bank_transfer' | 'cash_on_delivery' => {
+    if (paymentConfig.enableBankTransfer) return 'bank_transfer';
+    if (paymentConfig.enableCashOnDelivery) return 'cash_on_delivery';
+    if (paymentConfig.enableCreditCard) return 'credit_card';
+    return 'bank_transfer';
+  };
+
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -42,9 +71,21 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
   const [district, setDistrict] = useState('');
   const [address, setAddress] = useState('');
   const [deliveryNote, setDeliveryNote] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'credit_card' | 'bank_transfer' | 'cash_on_delivery'>('credit_card');
+  const [paymentMethod, setPaymentMethod] = useState<'credit_card' | 'bank_transfer' | 'cash_on_delivery'>(getDefaultPaymentMethod());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdOrder, setCreatedOrder] = useState<LeadRequest | null>(null);
+  const [copiedIban, setCopiedIban] = useState(false);
+
+  // Sync selected payment method if admin toggles availability
+  useEffect(() => {
+    if (paymentMethod === 'credit_card' && !paymentConfig.enableCreditCard) {
+      setPaymentMethod(getDefaultPaymentMethod());
+    } else if (paymentMethod === 'bank_transfer' && !paymentConfig.enableBankTransfer) {
+      setPaymentMethod(getDefaultPaymentMethod());
+    } else if (paymentMethod === 'cash_on_delivery' && !paymentConfig.enableCashOnDelivery) {
+      setPaymentMethod(getDefaultPaymentMethod());
+    }
+  }, [paymentConfig.enableCreditCard, paymentConfig.enableBankTransfer, paymentConfig.enableCashOnDelivery]);
 
   // Auto-fill from logged-in customer profile
   useEffect(() => {
@@ -74,12 +115,19 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
   }, 0);
 
   const subTotal = totalMaterial + totalLabor;
-  const isFreeShipping = subTotal >= 3000;
-  const shippingCost = isFreeShipping ? 0 : 180;
+  const isFreeShipping = subTotal >= freeShippingThreshold;
+  const shippingCost = isFreeShipping ? 0 : standardShippingCost;
   
-  // 3% discount for bank transfer
-  const bankDiscount = paymentMethod === 'bank_transfer' ? Math.round(subTotal * 0.03) : 0;
+  // Dynamic discount for bank transfer
+  const discountRate = (bankInfo.transferDiscountPercent ?? 3) / 100;
+  const bankDiscount = paymentMethod === 'bank_transfer' ? Math.round(subTotal * discountRate) : 0;
   const grandTotal = Math.max(0, subTotal + shippingCost - bankDiscount);
+
+  const handleCopyIban = () => {
+    navigator.clipboard.writeText(bankInfo.iban);
+    setCopiedIban(true);
+    setTimeout(() => setCopiedIban(false), 2500);
+  };
 
   const marketTotal = cart.reduce((sum, item) => {
     if (item.isCustom || !item.product) return sum;
@@ -255,15 +303,25 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
 
               {/* Bank Details Note if Bank Transfer */}
               {createdOrder.paymentMethod === 'bank_transfer' && (
-                <div className="max-w-md mx-auto p-4 rounded-2xl bg-slate-50 border border-slate-200 text-left text-xs text-slate-800 space-y-1.5">
-                  <div className="font-bold flex items-center gap-1.5 text-[#0A0A0B]">
-                    <Building2 className="w-4 h-4 text-slate-700" />
-                    <span>Havale / EFT Hesap Bilgilerimiz:</span>
+                <div className="max-w-md mx-auto p-4 rounded-2xl bg-slate-50 border border-slate-200 text-left text-xs text-slate-800 space-y-2">
+                  <div className="font-bold flex items-center justify-between text-[#0A0A0B]">
+                    <span className="flex items-center gap-1.5">
+                      <Building2 className="w-4 h-4 text-slate-700" />
+                      <span>Havale / EFT Hesap Bilgilerimiz:</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleCopyIban}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-slate-300 text-[10px] font-bold text-[#0A0A0B] hover:bg-slate-100 transition"
+                    >
+                      {copiedIban ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                      <span>{copiedIban ? 'IBAN Kopyalandı' : 'IBAN Kopyala'}</span>
+                    </button>
                   </div>
-                  <div className="text-[11px] font-mono space-y-0.5 text-slate-700">
-                    <p><strong>Banka:</strong> Garanti BBVA / QNB Finansbank</p>
-                    <p><strong>Alıcı:</strong> RVOBA Mimarlık Yapı Sistemleri A.Ş.</p>
-                    <p><strong>IBAN:</strong> TR00 0000 0000 0000 0000 0000 00</p>
+                  <div className="text-[11px] font-mono space-y-1 text-slate-700">
+                    <p><strong>Banka:</strong> {bankInfo.bankName}</p>
+                    <p><strong>Alıcı:</strong> {bankInfo.accountHolder}</p>
+                    <p><strong>IBAN:</strong> <span className="select-all bg-white px-1.5 py-0.5 rounded border border-slate-200 font-bold">{bankInfo.iban}</span></p>
                     <p className="text-[10px] text-slate-500 pt-1">
                       * Açıklama kısmına <strong>{createdOrder.orderNumber}</strong> numarasını yazmayı unutmayınız.
                     </p>
@@ -433,7 +491,7 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
                 <div className="p-3 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-between text-xs text-blue-900">
                   <div className="flex items-center gap-2">
                     <Truck className="w-4 h-4 text-blue-600" />
-                    <span>81 İl Sigortalı Kargo/Ambar Gönderimi</span>
+                    <span>81 İl Sigortalı Kargo/Ambar Gönderimi ({freeShippingThreshold.toLocaleString('tr-TR')} ₺ üzeri ücretsiz)</span>
                   </div>
                   <span className="font-bold">
                     {isFreeShipping ? (
@@ -441,7 +499,7 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
                         ✓ Ücretsiz Kargo
                       </span>
                     ) : (
-                      <span className="font-mono">180 ₺</span>
+                      <span className="font-mono">{standardShippingCost} ₺</span>
                     )}
                   </span>
                 </div>
@@ -455,93 +513,139 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
                 </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  {/* Credit Card */}
-                  <label className={`p-3 rounded-2xl border cursor-pointer transition flex flex-col justify-between select-none ${
-                    paymentMethod === 'credit_card' 
-                      ? 'border-black bg-slate-900 text-white shadow-sm' 
-                      : 'border-slate-200 bg-white text-slate-800 hover:border-slate-300'
-                  }`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <CreditCard className="w-4 h-4" />
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="credit_card"
-                        checked={paymentMethod === 'credit_card'}
-                        onChange={() => setPaymentMethod('credit_card')}
-                        className="accent-white"
-                      />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold">Kredi / Banka Kartı</div>
-                      <div className={`text-[10px] mt-0.5 ${paymentMethod === 'credit_card' ? 'text-slate-300' : 'text-slate-500'}`}>
-                        Tüm kartlara 12 taksit
-                      </div>
-                    </div>
-                  </label>
-
                   {/* Bank Transfer */}
-                  <label className={`p-3 rounded-2xl border cursor-pointer transition flex flex-col justify-between select-none ${
-                    paymentMethod === 'bank_transfer' 
-                      ? 'border-black bg-slate-900 text-white shadow-sm' 
-                      : 'border-slate-200 bg-white text-slate-800 hover:border-slate-300'
-                  }`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <Building2 className="w-4 h-4" />
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="bank_transfer"
-                        checked={paymentMethod === 'bank_transfer'}
-                        onChange={() => setPaymentMethod('bank_transfer')}
-                        className="accent-white"
-                      />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold">Havale / EFT</div>
-                      <div className={`text-[10px] mt-0.5 ${paymentMethod === 'bank_transfer' ? 'text-emerald-300 font-bold' : 'text-emerald-700 font-semibold'}`}>
-                        %3 Havale / EFT İndirimi
+                  {paymentConfig.enableBankTransfer && (
+                    <label className={`p-3 rounded-2xl border cursor-pointer transition flex flex-col justify-between select-none ${
+                      paymentMethod === 'bank_transfer' 
+                        ? 'border-black bg-slate-900 text-white shadow-sm' 
+                        : 'border-slate-200 bg-white text-slate-800 hover:border-slate-300'
+                    }`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <Building2 className="w-4 h-4" />
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="bank_transfer"
+                          checked={paymentMethod === 'bank_transfer'}
+                          onChange={() => setPaymentMethod('bank_transfer')}
+                          className="accent-white"
+                        />
                       </div>
-                    </div>
-                  </label>
+                      <div>
+                        <div className="text-xs font-bold">Havale / EFT</div>
+                        <div className={`text-[10px] mt-0.5 ${paymentMethod === 'bank_transfer' ? 'text-emerald-300 font-bold' : 'text-emerald-700 font-semibold'}`}>
+                          %{bankInfo.transferDiscountPercent} Havale / EFT İndirimi
+                        </div>
+                      </div>
+                    </label>
+                  )}
 
                   {/* Cash On Delivery */}
-                  <label className={`p-3 rounded-2xl border cursor-pointer transition flex flex-col justify-between select-none ${
-                    paymentMethod === 'cash_on_delivery' 
-                      ? 'border-black bg-slate-900 text-white shadow-sm' 
-                      : 'border-slate-200 bg-white text-slate-800 hover:border-slate-300'
-                  }`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <Truck className="w-4 h-4" />
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="cash_on_delivery"
-                        checked={paymentMethod === 'cash_on_delivery'}
-                        onChange={() => setPaymentMethod('cash_on_delivery')}
-                        className="accent-white"
-                      />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold">Kapıda / Ambar Ödeme</div>
-                      <div className={`text-[10px] mt-0.5 ${paymentMethod === 'cash_on_delivery' ? 'text-slate-300' : 'text-slate-500'}`}>
-                        Teslim anında ödeme
+                  {paymentConfig.enableCashOnDelivery && (
+                    <label className={`p-3 rounded-2xl border cursor-pointer transition flex flex-col justify-between select-none ${
+                      paymentMethod === 'cash_on_delivery' 
+                        ? 'border-black bg-slate-900 text-white shadow-sm' 
+                        : 'border-slate-200 bg-white text-slate-800 hover:border-slate-300'
+                    }`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <Truck className="w-4 h-4" />
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="cash_on_delivery"
+                          checked={paymentMethod === 'cash_on_delivery'}
+                          onChange={() => setPaymentMethod('cash_on_delivery')}
+                          className="accent-white"
+                        />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold">Kapıda / Ambar Ödeme</div>
+                        <div className={`text-[10px] mt-0.5 ${paymentMethod === 'cash_on_delivery' ? 'text-slate-300' : 'text-slate-500'}`}>
+                          Teslim anında ödeme
+                        </div>
+                      </div>
+                    </label>
+                  )}
+
+                  {/* Credit Card */}
+                  {paymentConfig.enableCreditCard ? (
+                    <label className={`p-3 rounded-2xl border cursor-pointer transition flex flex-col justify-between select-none ${
+                      paymentMethod === 'credit_card' 
+                        ? 'border-black bg-slate-900 text-white shadow-sm' 
+                        : 'border-slate-200 bg-white text-slate-800 hover:border-slate-300'
+                    }`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <CreditCard className="w-4 h-4" />
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="credit_card"
+                          checked={paymentMethod === 'credit_card'}
+                          onChange={() => setPaymentMethod('credit_card')}
+                          className="accent-white"
+                        />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold">Kredi / Banka Kartı</div>
+                        <div className={`text-[10px] mt-0.5 ${paymentMethod === 'credit_card' ? 'text-slate-300' : 'text-slate-500'}`}>
+                          {paymentConfig.creditCardNote || 'Tüm kartlara 12 taksit'}
+                        </div>
+                      </div>
+                    </label>
+                  ) : (
+                    <div className="p-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50 text-slate-400 flex flex-col justify-between select-none opacity-80">
+                      <div className="flex items-center justify-between mb-2">
+                        <CreditCard className="w-4 h-4" />
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-600">Çok Yakında</span>
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-slate-500">Online Kredi Kartı</div>
+                        <div className="text-[10px] mt-0.5 text-slate-400">
+                          {paymentConfig.creditCardNote || 'Sanal POS aktivasyon aşamasında'}
+                        </div>
                       </div>
                     </div>
-                  </label>
+                  )}
                 </div>
+
+                {/* Live Bank Info Preview when Havale/EFT is selected */}
+                {paymentMethod === 'bank_transfer' && (
+                  <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-xs text-slate-800 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-emerald-950 flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-emerald-700" />
+                        <span>Resmi Banka & IBAN Bilgisi</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleCopyIban}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-emerald-300 text-[10px] font-bold text-emerald-900 hover:bg-emerald-100 transition"
+                      >
+                        {copiedIban ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                        <span>{copiedIban ? 'IBAN Kopyalandı' : 'IBAN Kopyala'}</span>
+                      </button>
+                    </div>
+                    <div className="text-[11px] font-mono text-slate-700 space-y-0.5">
+                      <div><strong>Banka:</strong> {bankInfo.bankName} — <strong>Alıcı:</strong> {bankInfo.accountHolder}</div>
+                      <div><strong>IBAN:</strong> <span className="font-bold text-[#0A0A0B] select-all">{bankInfo.iban}</span></div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Order Final Pricing Breakdown */}
               <div className="p-4 rounded-2xl bg-[#F8F9FA] border border-[#E8EAED] text-xs space-y-2">
                 <div className="flex justify-between text-[#64748B]">
-                  <span>Ürünler Toplamı:</span>
+                  <span>Malzeme Toplamı:</span>
                   <span className="font-mono font-bold text-[#0A0A0B]">{totalMaterial.toLocaleString('tr-TR')} ₺</span>
                 </div>
                 {totalLabor > 0 && (
-                  <div className="flex justify-between text-[#64748B]">
-                    <span>Montaj & Usta İşçiliği:</span>
-                    <span className="font-mono font-bold text-[#0A0A0B]">+{totalLabor.toLocaleString('tr-TR')} ₺</span>
+                  <div className="flex justify-between text-amber-800 font-bold bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-200">
+                    <span className="flex items-center gap-1.5">
+                      <Hammer className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Seçilen Usta Montaj & İşçilik Hizmeti:</span>
+                    </span>
+                    <span className="font-mono">+{totalLabor.toLocaleString('tr-TR')} ₺</span>
                   </div>
                 )}
                 <div className="flex justify-between text-[#64748B]">
@@ -552,7 +656,7 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
                 </div>
                 {bankDiscount > 0 && (
                   <div className="flex justify-between text-emerald-700 font-bold">
-                    <span>Havale / EFT İndirimi (%3):</span>
+                    <span>Havale / EFT İndirimi (%{bankInfo.transferDiscountPercent}):</span>
                     <span className="font-mono">-{bankDiscount.toLocaleString('tr-TR')} ₺</span>
                   </div>
                 )}

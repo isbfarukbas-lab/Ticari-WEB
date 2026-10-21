@@ -35,7 +35,11 @@ import {
   AlertTriangle,
   Globe,
   ShieldCheck,
-  Users
+  Users,
+  Building2,
+  CreditCard,
+  Cloud,
+  Download
 } from 'lucide-react';
 import { 
   CategoryKey, 
@@ -49,6 +53,7 @@ import {
   CustomerUser
 } from '../types';
 import { INITIAL_SETTINGS } from '../data/initialSettings';
+import { getCustomCloudEndpoint, setCustomCloudEndpoint } from '../utils/cloudSync';
 
 interface AdminPortalProps {
   categories: CategoryInfo[];
@@ -67,6 +72,12 @@ interface AdminPortalProps {
   onDeleteLead: (leadId: string) => void;
   onNavigateCustomer: () => void;
   onLogout?: () => void;
+  onImportFullBackup?: (data: {
+    products?: Product[];
+    settings?: SiteSettings;
+    leads?: LeadRequest[];
+    customers?: CustomerUser[];
+  }) => void;
 }
 
 const COMMON_BRANDS = [
@@ -98,6 +109,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   onDeleteLead,
   onNavigateCustomer,
   onLogout,
+  onImportFullBackup,
 }) => {
   // Active Admin Module Tab
   const [adminTab, setAdminTab] = useState<
@@ -231,6 +243,36 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [localCompanyName, setLocalCompanyName] = useState(settings.companyName);
   const [localStages, setLocalStages] = useState(settings.paymentStages);
   const [localKdvNotice, setLocalKdvNotice] = useState(settings.kdvNotice || 'Fiyatlarımız bireysel müşterilerimiz için anahtar teslim %20 KDV dahil net tutardır.');
+  const [localBankInfo, setLocalBankInfo] = useState(
+    settings.bankInfo || INITIAL_SETTINGS.bankInfo || {
+      bankName: 'Garanti BBVA / Ziraat Bankası',
+      accountHolder: 'RVOBA Yapı ve Tadilat Hizmetleri',
+      iban: 'TR00 0000 0000 0000 0000 0000 00',
+      transferDiscountPercent: 3,
+    }
+  );
+  const [localPaymentMethods, setLocalPaymentMethods] = useState(
+    settings.paymentMethods || INITIAL_SETTINGS.paymentMethods || {
+      enableBankTransfer: true,
+      enableCashOnDelivery: true,
+      enableCreditCard: false,
+      creditCardNote: 'Tüm kartlara 12 taksit imkanı',
+    }
+  );
+  const [localLegalInfo, setLocalLegalInfo] = useState(
+    settings.legalInfo || INITIAL_SETTINGS.legalInfo || {
+      taxOffice: 'Kadıköy Vergi Dairesi',
+      taxNumber: 'Kuruluş Aşamasında',
+      mersisNo: 'Kuruluş Aşamasında',
+      companyAddress: 'Kadıköy / İstanbul',
+      companyEmail: 'destek@rvoba.com',
+    }
+  );
+  const [localFreeShipping, setLocalFreeShipping] = useState(settings.freeShippingThreshold ?? 3000);
+  const [localStandardShipping, setLocalStandardShipping] = useState(settings.standardShippingCost ?? 180);
+  const [cloudEndpoint, setCloudEndpoint] = useState(() => getCustomCloudEndpoint());
+  const backupFileInputRef = useRef<HTMLInputElement>(null);
+
   const [newAdminPassword, setNewAdminPassword] = useState('');
   const [confirmAdminPassword, setConfirmAdminPassword] = useState('');
 
@@ -469,9 +511,62 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       companyName: localCompanyName.trim(),
       kdvNotice: localKdvNotice.trim(),
       paymentStages: localStages,
+      bankInfo: localBankInfo,
+      paymentMethods: localPaymentMethods,
+      legalInfo: localLegalInfo,
+      freeShippingThreshold: Number(localFreeShipping) || 0,
+      standardShippingCost: Number(localStandardShipping) || 0,
     };
     onUpdateSettings(updated);
-    showToast('Genel iletişim, KDV ve hakediş ayarları kaydedildi.');
+    showToast('Şirket, banka/IBAN, ödeme yöntemleri ve iletişim ayarları canlı siteye kaydedildi!');
+  };
+
+  // Full System JSON Backup Export
+  const handleExportFullBackup = () => {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      products,
+      settings,
+      leads,
+      customers,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `rvoba_tam_yedek_${new Date().toISOString().slice(0, 10)}.json`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast('Tam sistem yedeği (JSON) bilgisayara indirildi.');
+  };
+
+  // Full System JSON Backup Import
+  const handleImportFullBackupFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result));
+        if (onImportFullBackup) {
+          onImportFullBackup(parsed);
+          if (parsed.settings) {
+            setLocalPhone(parsed.settings.phoneNumber || localPhone);
+            setLocalSupportPhone(parsed.settings.supportPhone || localSupportPhone);
+            setLocalCompanyName(parsed.settings.companyName || localCompanyName);
+            if (parsed.settings.bankInfo) setLocalBankInfo(parsed.settings.bankInfo);
+            if (parsed.settings.paymentMethods) setLocalPaymentMethods(parsed.settings.paymentMethods);
+            if (parsed.settings.legalInfo) setLocalLegalInfo(parsed.settings.legalInfo);
+          }
+          showToast('Tam sistem yedeği başarıyla geri yüklendi ve canlı site güncellendi!');
+        }
+      } catch {
+        alert('Geçersiz yedek dosyası formatı. Lütfen RVOBA JSON yedek dosyası seçin.');
+      }
+    };
+    reader.readAsText(file);
   };
 
   // Filtered products
@@ -493,7 +588,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   // Filtered leads
   const filteredLeads = leads.filter(l => {
     const matchStatus = leadStatusFilter === 'all' || (l.status || 'bekliyor') === leadStatusFilter;
-    const isStoreOrder = l.leadType === 'store_order' || l.id.startsWith('store-order');
+    const isStoreOrder =
+      l.leadType === 'store_order' ||
+      l.leadType === 'web_order' ||
+      l.id.startsWith('store-order') ||
+      l.id.startsWith('order-');
     const isCallback = l.id.startsWith('callback') || l.leadType === 'callback';
     const isInspection = !isCallback && !isStoreOrder && !!l.preferredDate;
     const isWhatsapp = !isCallback && !isStoreOrder && !l.preferredDate;
@@ -532,7 +631,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     ];
 
     const rows = leads.map(l => {
-      const isStoreOrder = l.leadType === 'store_order' || l.id.startsWith('store-order');
+      const isStoreOrder =
+        l.leadType === 'store_order' ||
+        l.leadType === 'web_order' ||
+        l.id.startsWith('store-order') ||
+        l.id.startsWith('order-');
       const isCallback = l.id.startsWith('callback') || l.leadType === 'callback';
       const isInspection = !isCallback && !isStoreOrder && !!l.preferredDate;
       const typeStr = isStoreOrder
@@ -643,116 +746,166 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         </div>
       </header>
 
-      {/* Navigation Sub-bar */}
-      <div className="bg-white border-b border-[#E8EAED] px-6 py-2.5 overflow-x-auto scrollbar-none shadow-xs sticky top-[57px] z-20">
-        <div className="flex items-center gap-2 max-w-7xl mx-auto min-w-max">
-          <button
-            onClick={() => setAdminTab('products')}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-2 ${
-              adminTab === 'products'
-                ? 'bg-[#0A0A0B] text-white shadow-sm'
-                : 'text-[#4B5563] hover:bg-[#F1F3F5] hover:text-[#0A0A0B]'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>1. Ürün Kataloğu ({products.length})</span>
-          </button>
+      {/* 4 Ana Sütunlu Sadeleştirilmiş Yönetim Menüsü */}
+      <div className="bg-white border-b border-[#E8EAED] px-6 py-3 overflow-x-auto scrollbar-none shadow-xs sticky top-[57px] z-20">
+        <div className="max-w-7xl mx-auto space-y-2.5 min-w-max">
+          {/* 4 Ana Kategori */}
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => setAdminTab('leads')}
+              className={`px-4 py-2 rounded-2xl text-xs font-extrabold transition flex items-center gap-2 ${
+                adminTab === 'leads' || adminTab === 'customers'
+                  ? 'bg-[#0A0A0B] text-white shadow-md'
+                  : 'bg-[#F8F9FA] text-[#4B5563] hover:bg-[#F1F3F5] hover:text-[#0A0A0B] border border-[#E8EAED]'
+              }`}
+            >
+              <Inbox className="w-4 h-4 text-blue-400" />
+              <span>1. Siparişler, Usta Talepleri & Müşteriler ({leads.length})</span>
+            </button>
 
-          <button
-            onClick={() => setAdminTab('cms')}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-2 ${
-              adminTab === 'cms'
-                ? 'bg-[#0A0A0B] text-white shadow-sm'
-                : 'text-[#4B5563] hover:bg-[#F1F3F5] hover:text-[#0A0A0B]'
-            }`}
-          >
-            <Edit3 className="w-3.5 h-3.5 text-amber-500" />
-            <span>2. Sayfa Metinleri & Vitrin (CMS)</span>
-          </button>
+            <button
+              onClick={() => setAdminTab('products')}
+              className={`px-4 py-2 rounded-2xl text-xs font-extrabold transition flex items-center gap-2 ${
+                adminTab === 'products' || adminTab === 'labor_rates' || adminTab === 'durations'
+                  ? 'bg-[#0A0A0B] text-white shadow-md'
+                  : 'bg-[#F8F9FA] text-[#4B5563] hover:bg-[#F1F3F5] hover:text-[#0A0A0B] border border-[#E8EAED]'
+              }`}
+            >
+              <Layers className="w-4 h-4 text-emerald-400" />
+              <span>2. Ürünler & Usta İşçilik Fiyatları ({products.length})</span>
+            </button>
 
-          <button
-            onClick={() => setAdminTab('leads')}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-2 ${
-              adminTab === 'leads'
-                ? 'bg-[#0A0A0B] text-white shadow-sm'
-                : 'text-[#4B5563] hover:bg-[#F1F3F5] hover:text-[#0A0A0B]'
-            }`}
-          >
-            <Inbox className="w-3.5 h-3.5 text-blue-500" />
-            <span>3. Talepler & CRM ({leads.length})</span>
-          </button>
+            <button
+              onClick={() => setAdminTab('cms')}
+              className={`px-4 py-2 rounded-2xl text-xs font-extrabold transition flex items-center gap-2 ${
+                adminTab === 'cms' || adminTab === 'areas' || adminTab === 'gallery'
+                  ? 'bg-[#0A0A0B] text-white shadow-md'
+                  : 'bg-[#F8F9FA] text-[#4B5563] hover:bg-[#F1F3F5] hover:text-[#0A0A0B] border border-[#E8EAED]'
+              }`}
+            >
+              <Edit3 className="w-4 h-4 text-amber-400" />
+              <span>3. Vitrin, Bölgeler & Referanslar</span>
+            </button>
 
-          <button
-            onClick={() => setAdminTab('labor_rates')}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-2 ${
-              adminTab === 'labor_rates'
-                ? 'bg-[#0A0A0B] text-white shadow-sm'
-                : 'text-[#4B5563] hover:bg-[#F1F3F5] hover:text-[#0A0A0B]'
-            }`}
-          >
-            <Wrench className="w-3.5 h-3.5" />
-            <span>4. Taban İşçilik</span>
-          </button>
+            <button
+              onClick={() => setAdminTab('settings')}
+              className={`px-4 py-2 rounded-2xl text-xs font-extrabold transition flex items-center gap-2 ${
+                adminTab === 'settings'
+                  ? 'bg-[#0A0A0B] text-white shadow-md'
+                  : 'bg-[#F8F9FA] text-[#4B5563] hover:bg-[#F1F3F5] hover:text-[#0A0A0B] border border-[#E8EAED]'
+              }`}
+            >
+              <SettingsIcon className="w-4 h-4 text-purple-400" />
+              <span>4. Şirket, Ödeme (IBAN/POS) & Güvenlik</span>
+            </button>
+          </div>
 
-          <button
-            onClick={() => setAdminTab('durations')}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-2 ${
-              adminTab === 'durations'
-                ? 'bg-[#0A0A0B] text-white shadow-sm'
-                : 'text-[#4B5563] hover:bg-[#F1F3F5] hover:text-[#0A0A0B]'
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5" />
-            <span>5. Teslimat Süreleri</span>
-          </button>
+          {/* Alt Sekmeler (Seçili Ana Sütuna Göre Gösterilir) */}
+          {(adminTab === 'leads' || adminTab === 'customers') && (
+            <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1">Alt Bölüm:</span>
+              <button
+                onClick={() => setAdminTab('leads')}
+                className={`px-3 py-1 rounded-full text-[11px] font-bold transition flex items-center gap-1.5 ${
+                  adminTab === 'leads'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                <Inbox className="w-3 h-3" />
+                <span>Gelen Siparişler & Keşif Talepleri ({leads.length})</span>
+              </button>
+              <button
+                onClick={() => setAdminTab('customers')}
+                className={`px-3 py-1 rounded-full text-[11px] font-bold transition flex items-center gap-1.5 ${
+                  adminTab === 'customers'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                <Users className="w-3 h-3" />
+                <span>Kayıtlı Müşteri Portföyü ({customers.length})</span>
+              </button>
+            </div>
+          )}
 
-          <button
-            onClick={() => setAdminTab('areas')}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-2 ${
-              adminTab === 'areas'
-                ? 'bg-[#0A0A0B] text-white shadow-sm'
-                : 'text-[#4B5563] hover:bg-[#F1F3F5] hover:text-[#0A0A0B]'
-            }`}
-          >
-            <MapPin className="w-3.5 h-3.5" />
-            <span>6. Bölgeler ({localServiceAreas.length})</span>
-          </button>
+          {(adminTab === 'products' || adminTab === 'labor_rates' || adminTab === 'durations') && (
+            <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1">Alt Bölüm:</span>
+              <button
+                onClick={() => setAdminTab('products')}
+                className={`px-3 py-1 rounded-full text-[11px] font-bold transition flex items-center gap-1.5 ${
+                  adminTab === 'products'
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                <Layers className="w-3 h-3" />
+                <span>Ürün Kataloğu & Mağaza Fiyatları ({products.length})</span>
+              </button>
+              <button
+                onClick={() => setAdminTab('labor_rates')}
+                className={`px-3 py-1 rounded-full text-[11px] font-bold transition flex items-center gap-1.5 ${
+                  adminTab === 'labor_rates'
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                <Wrench className="w-3 h-3" />
+                <span>Taban Usta İşçilik Fiyatları ("Malzeme Bende")</span>
+              </button>
+              <button
+                onClick={() => setAdminTab('durations')}
+                className={`px-3 py-1 rounded-full text-[11px] font-bold transition flex items-center gap-1.5 ${
+                  adminTab === 'durations'
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                <Clock className="w-3 h-3" />
+                <span>Tadilat Teslimat Süreleri</span>
+              </button>
+            </div>
+          )}
 
-          <button
-            onClick={() => setAdminTab('gallery')}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-2 ${
-              adminTab === 'gallery'
-                ? 'bg-[#0A0A0B] text-white shadow-sm'
-                : 'text-[#4B5563] hover:bg-[#F1F3F5] hover:text-[#0A0A0B]'
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>7. Öncesi / Sonrası ({localProjects.length})</span>
-          </button>
-
-          <button
-            onClick={() => setAdminTab('settings')}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-2 ${
-              adminTab === 'settings'
-                ? 'bg-[#0A0A0B] text-white shadow-sm'
-                : 'text-[#4B5563] hover:bg-[#F1F3F5] hover:text-[#0A0A0B]'
-            }`}
-          >
-            <SettingsIcon className="w-3.5 h-3.5" />
-            <span>8. Sistem & Güvenlik</span>
-          </button>
-
-          <button
-            onClick={() => setAdminTab('customers')}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-2 ${
-              adminTab === 'customers'
-                ? 'bg-[#0A0A0B] text-white shadow-sm'
-                : 'text-[#4B5563] hover:bg-[#F1F3F5] hover:text-[#0A0A0B]'
-            }`}
-          >
-            <Users className="w-3.5 h-3.5 text-indigo-500" />
-            <span>9. Kayıtlı Müşteriler ({customers.length})</span>
-          </button>
+          {(adminTab === 'cms' || adminTab === 'areas' || adminTab === 'gallery') && (
+            <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1">Alt Bölüm:</span>
+              <button
+                onClick={() => setAdminTab('cms')}
+                className={`px-3 py-1 rounded-full text-[11px] font-bold transition flex items-center gap-1.5 ${
+                  adminTab === 'cms'
+                    ? 'bg-amber-600 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                <Edit3 className="w-3 h-3" />
+                <span>Sayfa Metinleri & Vitrin (CMS)</span>
+              </button>
+              <button
+                onClick={() => setAdminTab('areas')}
+                className={`px-3 py-1 rounded-full text-[11px] font-bold transition flex items-center gap-1.5 ${
+                  adminTab === 'areas'
+                    ? 'bg-amber-600 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                <MapPin className="w-3 h-3" />
+                <span>Usta Hizmet Bölgeleri ({localServiceAreas.length} İl)</span>
+              </button>
+              <button
+                onClick={() => setAdminTab('gallery')}
+                className={`px-3 py-1 rounded-full text-[11px] font-bold transition flex items-center gap-1.5 ${
+                  adminTab === 'gallery'
+                    ? 'bg-amber-600 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                <Sparkles className="w-3 h-3" />
+                <span>Öncesi / Sonrası Referanslar ({localProjects.length})</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -2068,7 +2221,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             ) : (
               <div className="space-y-3">
                 {filteredLeads.map((lead) => {
-                  const isStoreOrder = lead.leadType === 'store_order' || lead.id.startsWith('store-order');
+                  const isStoreOrder =
+                    lead.leadType === 'store_order' ||
+                    lead.leadType === 'web_order' ||
+                    lead.id.startsWith('store-order') ||
+                    lead.id.startsWith('order-');
                   const isCallback = lead.id.startsWith('callback') || lead.leadType === 'callback';
                   const isInspection = !isCallback && !isStoreOrder && !!lead.preferredDate;
                   const currentStatus = lead.status || 'bekliyor';
@@ -2243,10 +2400,243 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   </span>
                 </div>
 
+                {/* BANKA, IBAN & KARGO BAREMİ AYARLARI */}
+                <div className="p-5 rounded-2xl bg-emerald-50/60 border border-emerald-200 space-y-4">
+                  <div className="flex items-center justify-between border-b border-emerald-200/70 pb-2.5">
+                    <h4 className="text-xs font-extrabold text-emerald-950 uppercase tracking-wider flex items-center gap-1.5">
+                      <Building2 className="w-4 h-4 text-emerald-700" />
+                      <span>Banka, IBAN & Kargo Ayarları (Müşteri Ödeme Ekranında Görünür)</span>
+                    </h4>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                      Dinamik Tahsilat
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#0A0A0B] mb-1">
+                        Banka Adı / Şube
+                      </label>
+                      <input
+                        type="text"
+                        value={localBankInfo.bankName}
+                        onChange={(e) => setLocalBankInfo({ ...localBankInfo, bankName: e.target.value })}
+                        placeholder="Örn: Garanti BBVA / Ziraat Bankası"
+                        className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-[#0A0A0B] font-semibold focus:outline-none focus:border-black"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#0A0A0B] mb-1">
+                        Hesap Sahibi / Alıcı Unvanı
+                      </label>
+                      <input
+                        type="text"
+                        value={localBankInfo.accountHolder}
+                        onChange={(e) => setLocalBankInfo({ ...localBankInfo, accountHolder: e.target.value })}
+                        placeholder="Şirket Unvanı veya Şahıs AdSoyad"
+                        className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-[#0A0A0B] font-semibold focus:outline-none focus:border-black"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="sm:col-span-2">
+                      <label className="block text-[11px] font-bold text-[#0A0A0B] mb-1">
+                        Resmi IBAN Numarası
+                      </label>
+                      <input
+                        type="text"
+                        value={localBankInfo.iban}
+                        onChange={(e) => setLocalBankInfo({ ...localBankInfo, iban: e.target.value })}
+                        placeholder="TR00 0000 0000 0000 0000 0000 00"
+                        className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-[#0A0A0B] font-mono font-bold focus:outline-none focus:border-black"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#0A0A0B] mb-1">
+                        Havale/EFT İndirimi (%)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={50}
+                        value={localBankInfo.transferDiscountPercent}
+                        onChange={(e) => setLocalBankInfo({ ...localBankInfo, transferDiscountPercent: Number(e.target.value) })}
+                        className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-[#0A0A0B] font-mono font-bold focus:outline-none focus:border-black"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-emerald-200/50">
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#0A0A0B] mb-1">
+                        Ücretsiz Kargo Alt Limiti (₺)
+                      </label>
+                      <input
+                        type="number"
+                        value={localFreeShipping}
+                        onChange={(e) => setLocalFreeShipping(Number(e.target.value))}
+                        className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-[#0A0A0B] font-mono font-bold focus:outline-none focus:border-black"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#0A0A0B] mb-1">
+                        Standart Kargo / Ambar Ücreti (₺)
+                      </label>
+                      <input
+                        type="number"
+                        value={localStandardShipping}
+                        onChange={(e) => setLocalStandardShipping(Number(e.target.value))}
+                        className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-[#0A0A0B] font-mono font-bold focus:outline-none focus:border-black"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* ÖDEME YÖNTEMİ ŞALTERLERİ */}
+                <div className="p-5 rounded-2xl bg-[#F8F9FA] border border-[#E8EAED] space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
+                    <h4 className="text-xs font-extrabold text-[#0A0A0B] uppercase tracking-wider flex items-center gap-1.5">
+                      <CreditCard className="w-4 h-4 text-purple-600" />
+                      <span>Aktif Ödeme Yöntemi Şalterleri (Şirket POS Kurulumuna Göre Aç/Kapat)</span>
+                    </h4>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <label className="flex items-start gap-2.5 p-3 rounded-xl bg-white border border-slate-200 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={localPaymentMethods.enableBankTransfer}
+                        onChange={(e) => setLocalPaymentMethods({ ...localPaymentMethods, enableBankTransfer: e.target.checked })}
+                        className="mt-0.5 rounded text-black focus:ring-black w-4 h-4"
+                      />
+                      <div>
+                        <div className="text-xs font-bold text-[#0A0A0B]">Havale / EFT ile Ödeme</div>
+                        <div className="text-[10px] text-slate-500 mt-0.5">IBAN bilgilerinizi göstererek sipariş alır.</div>
+                      </div>
+                    </label>
+
+                    <label className="flex items-start gap-2.5 p-3 rounded-xl bg-white border border-slate-200 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={localPaymentMethods.enableCashOnDelivery}
+                        onChange={(e) => setLocalPaymentMethods({ ...localPaymentMethods, enableCashOnDelivery: e.target.checked })}
+                        className="mt-0.5 rounded text-black focus:ring-black w-4 h-4"
+                      />
+                      <div>
+                        <div className="text-xs font-bold text-[#0A0A0B]">Kapıda / Ambar Tesliminde Ödeme</div>
+                        <div className="text-[10px] text-slate-500 mt-0.5">Malzeme tesliminde veya keşifte ödeme alır.</div>
+                      </div>
+                    </label>
+
+                    <label className="flex items-start gap-2.5 p-3 rounded-xl bg-white border border-slate-200 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={localPaymentMethods.enableCreditCard}
+                        onChange={(e) => setLocalPaymentMethods({ ...localPaymentMethods, enableCreditCard: e.target.checked })}
+                        className="mt-0.5 rounded text-black focus:ring-black w-4 h-4"
+                      />
+                      <div>
+                        <div className="text-xs font-bold text-[#0A0A0B]">Online Kredi Kartı (Sanal POS)</div>
+                        <div className="text-[10px] text-slate-500 mt-0.5">Şirket Sanal POS'unuz açıldığında aktif edin.</div>
+                      </div>
+                    </label>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#0A0A0B] mb-1">
+                      Kredi Kartı Açıklama Notu (Örn: "Tüm kartlara 12 taksit" veya "Sanal POS yakında aktif")
+                    </label>
+                    <input
+                      type="text"
+                      value={localPaymentMethods.creditCardNote || ''}
+                      onChange={(e) => setLocalPaymentMethods({ ...localPaymentMethods, creditCardNote: e.target.value })}
+                      className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-[#0A0A0B] focus:outline-none focus:border-black"
+                    />
+                  </div>
+                </div>
+
+                {/* RESMİ ŞİRKET, VERGİ DAİRESİ & MERSİS BİLGİLERİ */}
+                <div className="p-5 rounded-2xl bg-amber-50/50 border border-amber-200 space-y-4">
+                  <div className="flex items-center justify-between border-b border-amber-200/70 pb-2.5">
+                    <h4 className="text-xs font-extrabold text-amber-950 uppercase tracking-wider flex items-center gap-1.5">
+                      <FileText className="w-4 h-4 text-amber-700" />
+                      <span>Resmi Şirket & Vergi Bilgileri (Sözleşmeler ve Proforma İçin)</span>
+                    </h4>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900">
+                      Şirket Kuruluşu Tamamlandığında Güncelleyin
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#0A0A0B] mb-1">
+                        Vergi Dairesi
+                      </label>
+                      <input
+                        type="text"
+                        value={localLegalInfo.taxOffice}
+                        onChange={(e) => setLocalLegalInfo({ ...localLegalInfo, taxOffice: e.target.value })}
+                        placeholder="Örn: Kadıköy V.D."
+                        className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-[#0A0A0B] focus:outline-none focus:border-black"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#0A0A0B] mb-1">
+                        Vergi Numarası / TCKN
+                      </label>
+                      <input
+                        type="text"
+                        value={localLegalInfo.taxNumber}
+                        onChange={(e) => setLocalLegalInfo({ ...localLegalInfo, taxNumber: e.target.value })}
+                        placeholder="Kuruluş Aşamasında"
+                        className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-[#0A0A0B] font-mono focus:outline-none focus:border-black"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#0A0A0B] mb-1">
+                        MERSİS Numarası
+                      </label>
+                      <input
+                        type="text"
+                        value={localLegalInfo.mersisNo}
+                        onChange={(e) => setLocalLegalInfo({ ...localLegalInfo, mersisNo: e.target.value })}
+                        placeholder="Kuruluş Aşamasında"
+                        className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-[#0A0A0B] font-mono focus:outline-none focus:border-black"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#0A0A0B] mb-1">
+                        Resmi Tebligat / Merkez Adresi
+                      </label>
+                      <input
+                        type="text"
+                        value={localLegalInfo.companyAddress}
+                        onChange={(e) => setLocalLegalInfo({ ...localLegalInfo, companyAddress: e.target.value })}
+                        className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-[#0A0A0B] focus:outline-none focus:border-black"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#0A0A0B] mb-1">
+                        Resmi Kurumsal E-Posta
+                      </label>
+                      <input
+                        type="email"
+                        value={localLegalInfo.companyEmail}
+                        onChange={(e) => setLocalLegalInfo({ ...localLegalInfo, companyEmail: e.target.value })}
+                        className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-[#0A0A0B] focus:outline-none focus:border-black"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Kademeli Hakediş Yüzdeleri */}
                 <div className="p-5 rounded-2xl bg-[#F8F9FA] border border-[#E8EAED] space-y-3">
                   <h4 className="text-xs font-bold text-[#0A0A0B] uppercase tracking-wider">
-                    Kademeli Hakediş Ödeme Yüzdeleri:
+                    Tadilat & Usta Hizmeti Kademeli Hakediş Ödeme Yüzdeleri:
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
@@ -2291,12 +2681,86 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 <div className="pt-2 flex justify-end">
                   <button
                     type="submit"
-                    className="btn-pill-black text-xs py-3 px-8 font-bold shadow-md bg-emerald-600 hover:bg-emerald-700 text-white"
+                    className="btn-pill-black text-xs py-3.5 px-8 font-bold shadow-lg bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-2"
                   >
-                    Genel Ayarları Kaydet
+                    <Save className="w-4 h-4" />
+                    <span>Tüm Şirket, Banka/IBAN ve Ödeme Ayarlarını Kaydet</span>
                   </button>
                 </div>
               </form>
+            </div>
+
+            {/* Canlı Bulut Senkronizasyonu & Tam Sistem Yedeği (JSON) */}
+            <div className="bg-white border border-[#E8EAED] rounded-3xl p-6 shadow-sm space-y-5">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-2xl bg-blue-600 text-white flex items-center justify-center shrink-0">
+                    <Cloud className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-display font-extrabold text-[#0A0A0B]">
+                      Canlı Senkronizasyon & Tam Sistem Yedekleme
+                    </h2>
+                    <p className="text-xs text-[#64748B]">
+                      Tüm ürünleri, fiyatları, siparişleri ve şirket ayarlarını tek tıkla yedekleyin veya başka bir cihaza aktarın.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    ref={backupFileInputRef}
+                    accept=".json,application/json"
+                    onChange={handleImportFullBackupFile}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleExportFullBackup}
+                    className="btn-pill-black bg-[#0A0A0B] hover:bg-slate-800 text-white text-xs py-2.5 px-4 font-bold flex items-center gap-1.5"
+                  >
+                    <Download className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Tam Yedeği İndir (.JSON)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => backupFileInputRef.current?.click()}
+                    className="btn-pill-outline text-xs py-2.5 px-4 font-bold flex items-center gap-1.5"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Yedekten Geri Yükle</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#F8F9FA] border border-[#E8EAED] space-y-2">
+                <label className="block text-xs font-bold text-[#0A0A0B]">
+                  Özel Bulut Veritabanı Bağlantısı (Opsiyonel — Firebase / Supabase REST URL)
+                </label>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="url"
+                    placeholder="Örn: https://rvoba-db-default-rtdb.europe-west1.firebasedatabase.app"
+                    value={cloudEndpoint}
+                    onChange={(e) => setCloudEndpoint(e.target.value)}
+                    className="flex-1 bg-white border border-[#CBD5E1] rounded-xl px-3.5 py-2 text-xs font-mono text-[#0A0A0B] focus:outline-none focus:border-black"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomCloudEndpoint(cloudEndpoint);
+                      showToast('Bulut senkronizasyon adresi kaydedildi.');
+                    }}
+                    className="btn-pill-black text-xs py-2 px-5 font-bold"
+                  >
+                    Bağlantıyı Kaydet
+                  </button>
+                </div>
+                <p className="text-[11px] text-[#64748B]">
+                  ✓ Aynı cihazdaki tüm sekmeler (Admin ve Canlı Site) gerçek zamanlı olarak otomatik senkronize olur. Farklı cihazlar arası otomatik senkronizasyon için ücretsiz bir Firebase Realtime Database URL'si girebilir veya JSON Yedek İndir/Yükle butonlarını kullanabilirsiniz.
+                </p>
+              </div>
             </div>
 
             {/* Panel Güvenlik & Şifre Değiştirme */}
@@ -3199,7 +3663,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             </button>
             <h3 className="text-xl font-display font-extrabold mb-1">Müşteri Talep Detayı</h3>
             <div className="text-xs text-[#64748B] mb-4">
-              Kayıt No: <span className="font-mono font-bold text-black">{selectedLeadDetail.id}</span>
+              Kayıt / Sipariş No: <span className="font-mono font-bold text-black">{selectedLeadDetail.orderNumber || selectedLeadDetail.id}</span>
             </div>
 
             <div className="p-4 rounded-2xl bg-[#F8F9FA] border border-[#E8EAED] space-y-2 mb-6 text-xs">
@@ -3217,6 +3681,18 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 <span className="text-[#64748B]">Konum:</span>
                 <span className="font-semibold text-black">{selectedLeadDetail.city} / {selectedLeadDetail.district}</span>
               </div>
+              {selectedLeadDetail.address && (
+                <div className="flex justify-between gap-4">
+                  <span className="text-[#64748B] shrink-0">Açık Adres / Not:</span>
+                  <span className="font-semibold text-black text-right">{selectedLeadDetail.address}</span>
+                </div>
+              )}
+              {selectedLeadDetail.adminNotes && (
+                <div className="flex justify-between gap-4">
+                  <span className="text-[#64748B] shrink-0">Ödeme & Kargo:</span>
+                  <span className="font-semibold text-emerald-800 text-right">{selectedLeadDetail.adminNotes}</span>
+                </div>
+              )}
               {selectedLeadDetail.timeSlot && (
                 <div className="flex justify-between">
                   <span className="text-[#64748B]">Tercih Edilen Saat:</span>
@@ -3230,7 +3706,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 </div>
               )}
               <div className="flex justify-between pt-2 border-t border-[#E8EAED]">
-                <span className="text-[#64748B] font-bold">Toplam Teklif Tutarı:</span>
+                <span className="text-[#64748B] font-bold">Toplam Tutar:</span>
                 <strong className="text-base font-black font-mono text-black">{selectedLeadDetail.totalAmount.toLocaleString('tr-TR')} ₺</strong>
               </div>
             </div>

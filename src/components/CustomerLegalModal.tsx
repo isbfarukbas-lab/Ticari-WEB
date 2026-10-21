@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, ShieldCheck, FileText, Scale, Lock, RefreshCw, Printer } from 'lucide-react';
+import { SiteSettings } from '../types';
 
 export type LegalTabKey = 'sozlesme' | 'onbilgi' | 'kvkk' | 'iade';
 
@@ -9,16 +10,25 @@ interface CustomerLegalModalProps {
   defaultTab?: LegalTabKey;
   companyName?: string;
   supportPhone?: string;
+  settings?: SiteSettings;
 }
 
 export const CustomerLegalModal: React.FC<CustomerLegalModalProps> = ({
   isOpen,
   onClose,
   defaultTab = 'sozlesme',
-  companyName = 'RVOBA® Mimarlık ve Yapı Çözümleri A.Ş.',
+  companyName = 'RVOBA® Yapı Malzemeleri ve Tadilat Hizmetleri',
   supportPhone = '0544 768 51 37',
+  settings,
 }) => {
   const [activeTab, setActiveTab] = useState<LegalTabKey>(defaultTab);
+  const legalInfo = settings?.legalInfo || {
+    taxOffice: 'Kadıköy Vergi Dairesi',
+    taxNumber: 'Kuruluş Aşamasında',
+    mersisNo: 'Kuruluş Aşamasında',
+    companyAddress: 'Kadıköy / İstanbul',
+    companyEmail: 'destek@rvoba.com',
+  };
 
   if (!isOpen) return null;
 
@@ -135,8 +145,9 @@ export const CustomerLegalModal: React.FC<CustomerLegalModalProps> = ({
               <div>
                 <h4 className="font-bold text-[#0A0A0B] mb-1">MADDE 1 — TARAFLAR</h4>
                 <p><strong>SATICI / YÜKLENİCİ:</strong> {companyName}<br />
-                Mersis No: 0735000000000001 • Adres: Kadıköy / İstanbul<br />
-                Destek & Müşteri Danışma Hattı: {supportPhone} • E-Posta: destek@rvoba.com</p>
+                Vergi Dairesi / No: {legalInfo.taxOffice} / {legalInfo.taxNumber} • Mersis No: {legalInfo.mersisNo}<br />
+                Adres: {legalInfo.companyAddress}<br />
+                Destek & Müşteri Danışma Hattı: {supportPhone} • E-Posta: {legalInfo.companyEmail}</p>
                 <p className="mt-1.5"><strong>ALICI / İŞ SAHİBİ:</strong> Platform üzerinden malzeme siparişi veren veya mimari keşif ve tadilat taahhüdü başlatan müşteri.</p>
               </div>
 
@@ -176,7 +187,8 @@ export const CustomerLegalModal: React.FC<CustomerLegalModalProps> = ({
               <div>
                 <h4 className="font-bold text-[#0A0A0B] mb-1">1. SATICI BİLGİLERİ</h4>
                 <p>Unvan: {companyName}<br />
-                Telefon: {supportPhone} • Adres: İstanbul / Türkiye</p>
+                Vergi Dairesi / No: {legalInfo.taxOffice} / {legalInfo.taxNumber} • Mersis No: {legalInfo.mersisNo}<br />
+                Telefon: {supportPhone} • E-Posta: {legalInfo.companyEmail} • Adres: {legalInfo.companyAddress}</p>
               </div>
 
               <div>

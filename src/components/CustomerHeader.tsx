@@ -14,7 +14,8 @@ import {
   ArrowRight,
   User,
   CreditCard,
-  ShieldCheck
+  ShieldCheck,
+  Wrench
 } from 'lucide-react';
 import { CartItem, SiteContentSettings, CustomerUser } from '../types';
 
@@ -84,6 +85,7 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
   onNavigateConfigurator,
   onNavigateStore,
   onOpenCart,
+  onOpenInspection,
   supportPhone = '0544 768 51 37',
   phoneNumber = '905447685137',
   content,
@@ -269,21 +271,36 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
                     })}
                   </div>
 
-                  {/* Turnkey Renovation Secondary Link in Dropdown */}
-                  <div className="mt-2 pt-2 border-t border-slate-100">
+                  {/* Turnkey Renovation & Craftsman Support Links in Dropdown */}
+                  <div className="mt-2 pt-2 border-t border-slate-100 space-y-1.5">
                     <button
                       type="button"
                       onClick={() => {
                         setIsCategoryMenuOpen(false);
                         onNavigateConfigurator();
                       }}
-                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-900 hover:bg-slate-200 transition"
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 transition"
                     >
                       <div className="flex items-center gap-2">
-                        <Layers className="w-3.5 h-3.5 text-slate-700" />
-                        <span>Anahtar Teslim Mimari Proje & Uygulama</span>
+                        <Wrench className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Tadilat & Usta Desteği (Fiyat Hesapla)</span>
                       </div>
-                      <ArrowUpRight className="w-3.5 h-3.5 text-slate-600" />
+                      <ArrowUpRight className="w-3.5 h-3.5 text-emerald-400" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCategoryMenuOpen(false);
+                        onOpenInspection();
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-900 hover:bg-emerald-100 border border-emerald-200 transition"
+                    >
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Doğrudan Usta & Keşif Çağır</span>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-emerald-700" />
                     </button>
                   </div>
                 </div>
@@ -402,22 +419,22 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
               </span>
             </button>
 
-            {/* High-Ticket Renovation Proposal Link */}
+            {/* High-Ticket Renovation & Craftsman Support Link */}
             {currentView !== 'configurator' ? (
               <button
                 onClick={onNavigateConfigurator}
-                className="hidden lg:flex btn-pill-outline text-xs py-2 px-3 sm:px-4 border-slate-300 hover:border-black whitespace-nowrap shrink-0 items-center gap-1.5 font-semibold text-slate-700 hover:text-black transition"
+                className="hidden md:flex btn-pill-outline text-xs py-2 px-3.5 border-slate-900 bg-slate-900 text-white hover:bg-slate-800 whitespace-nowrap shrink-0 items-center gap-1.5 font-bold transition shadow-xs"
               >
-                <span>Mimari Tadilat & Keşif</span>
-                <ArrowUpRight className="w-3.5 h-3.5 shrink-0 text-slate-500" />
+                <Wrench className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
+                <span>Tadilat & Usta Desteği</span>
               </button>
             ) : (
               <button
                 onClick={onNavigateStore}
                 className="btn-pill-black text-xs py-2 px-3.5 shadow-sm whitespace-nowrap shrink-0 flex items-center gap-1.5"
               >
-                <span>Ürün Kataloğu</span>
-                <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
+                <ShoppingBag className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
+                <span>Ürün Mağazası</span>
               </button>
             )}
 
@@ -430,9 +447,9 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
         {/* ======================================================== */}
         <div className="border-t border-[#E8EAED] bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-start lg:justify-center gap-6 sm:gap-8 overflow-x-auto py-2.5 text-xs sm:text-[13px] scrollbar-none whitespace-nowrap">
+            <div className="flex items-center justify-start lg:justify-center gap-5 sm:gap-7 overflow-x-auto py-2.5 text-xs sm:text-[13px] scrollbar-none whitespace-nowrap">
               {HEADER_CATEGORIES.map((cat) => {
-                const isActive = !showFavoritesOnly && selectedCategory === cat.key;
+                const isActive = currentView === 'store' && !showFavoritesOnly && selectedCategory === cat.key;
                 return (
                   <button
                     key={`header-cat-${cat.key}`}
@@ -448,6 +465,20 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
                   </button>
                 );
               })}
+
+              {/* Direct Craftsman / Renovation Pill in Row 2 (Always visible, especially helpful on mobile) */}
+              <button
+                type="button"
+                onClick={onNavigateConfigurator}
+                className={`transition-all py-1 px-2.5 rounded-full flex items-center gap-1.5 shrink-0 font-bold ${
+                  currentView === 'configurator'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
+                }`}
+              >
+                <Wrench className="w-3 h-3" />
+                <span>Tadilat & Usta Çağır</span>
+              </button>
             </div>
           </div>
         </div>

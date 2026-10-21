@@ -19,7 +19,8 @@ import { AdminLoginScreen } from './components/AdminLoginScreen';
 import { CATEGORIES, INITIAL_PRODUCTS } from './data/initialProducts';
 import { INITIAL_SETTINGS } from './data/initialSettings';
 import { CartItem, Product, LeadRequest, CustomRequestItem, CategoryKey, SiteSettings, CustomerUser } from './types';
-import { ShoppingBag, ArrowUpRight, ArrowLeft } from 'lucide-react';
+import { ShoppingBag, ArrowUpRight, ArrowLeft, Hammer, Calendar } from 'lucide-react';
+import { syncToCloudAndTabs, fetchFromCloud, subscribeToLiveSync } from './utils/cloudSync';
 
 export const App: React.FC = () => {
   // Navigation view: 'store' (Satış Vitrini & E-Ticaret) | 'configurator' (Komple Tadilat Teklifi) | 'landing' (Kurumsal Tanıtım) | 'admin' (Yönetici)
@@ -471,31 +472,66 @@ export const App: React.FC = () => {
 
   const handleClearCart = () => setCart([]);
 
+  // Live Cross-Tab & Cloud Synchronization
+  useEffect(() => {
+    const unsubscribe = subscribeToLiveSync((payload) => {
+      if (Array.isArray(payload.products)) {
+        setProducts(payload.products);
+      }
+      if (payload.settings && typeof payload.settings === 'object') {
+        setSettings((prev) => ({ ...prev, ...payload.settings }));
+      }
+      if (Array.isArray(payload.leads)) {
+        setLeads(payload.leads);
+      }
+      if (Array.isArray(payload.customers)) {
+        setAllUsers(payload.customers);
+      }
+    });
+
+    return unsubscribe;
+  }, []);
+
   // Admin operations
   const handleUpdateProduct = (updated: Product) => {
-    setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+    setProducts((prev) => {
+      const next = prev.map((p) => (p.id === updated.id ? updated : p));
+      syncToCloudAndTabs({ products: next });
+      return next;
+    });
     setCart((prev) =>
       prev.map((c) => (!c.isCustom && c.productId === updated.id ? { ...c, product: updated } : c))
     );
   };
 
   const handleAddProduct = (newProd: Product) => {
-    setProducts((prev) => [newProd, ...prev]);
+    setProducts((prev) => {
+      const next = [newProd, ...prev];
+      syncToCloudAndTabs({ products: next });
+      return next;
+    });
   };
 
   const handleDeleteProduct = (productId: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== productId));
+    setProducts((prev) => {
+      const next = prev.filter((p) => p.id !== productId);
+      syncToCloudAndTabs({ products: next });
+      return next;
+    });
     setCart((prev) => prev.filter((c) => c.productId !== productId));
   };
 
   const handleToggleActive = (productId: string) => {
-    setProducts((prev) =>
-      prev.map((p) => (p.id === productId ? { ...p, isActive: p.isActive === false ? true : false } : p))
-    );
+    setProducts((prev) => {
+      const next = prev.map((p) => (p.id === productId ? { ...p, isActive: p.isActive === false ? true : false } : p));
+      syncToCloudAndTabs({ products: next });
+      return next;
+    });
   };
 
   const handleResetDefaults = () => {
     setProducts(INITIAL_PRODUCTS);
+    syncToCloudAndTabs({ products: INITIAL_PRODUCTS });
     localStorage.removeItem('rvoba_products_v1');
     localStorage.removeItem('restolab_products_v6');
     localStorage.removeItem('restolab_products_v5');
@@ -506,21 +542,53 @@ export const App: React.FC = () => {
       ...newLead,
       customerId: newLead.customerId || (currentUser ? currentUser.id : undefined),
     };
-    setLeads((prev) => [enrichedLead, ...prev]);
+    setLeads((prev) => {
+      const next = [enrichedLead, ...prev];
+      syncToCloudAndTabs({ leads: next });
+      return next;
+    });
   };
 
   const handleUpdateSettings = (newSettings: SiteSettings) => {
     setSettings(newSettings);
+    syncToCloudAndTabs({ settings: newSettings });
   };
 
   const handleUpdateLeadStatus = (leadId: string, status: LeadRequest['status'], adminNotes?: string) => {
-    setLeads((prev) =>
-      prev.map((l) => (l.id === leadId ? { ...l, status, adminNotes: adminNotes !== undefined ? adminNotes : l.adminNotes } : l))
-    );
+    setLeads((prev) => {
+      const next = prev.map((l) => (l.id === leadId ? { ...l, status, adminNotes: adminNotes !== undefined ? adminNotes : l.adminNotes } : l));
+      syncToCloudAndTabs({ leads: next });
+      return next;
+    });
   };
 
   const handleDeleteLead = (leadId: string) => {
-    setLeads((prev) => prev.filter((l) => l.id !== leadId));
+    setLeads((prev) => {
+      const next = prev.filter((l) => l.id !== leadId);
+      syncToCloudAndTabs({ leads: next });
+      return next;
+    });
+  };
+
+  const handleImportFullBackup = (data: {
+    products?: Product[];
+    settings?: SiteSettings;
+    leads?: LeadRequest[];
+    customers?: CustomerUser[];
+  }) => {
+    if (Array.isArray(data.products)) {
+      setProducts(data.products);
+    }
+    if (data.settings && typeof data.settings === 'object') {
+      setSettings(data.settings);
+    }
+    if (Array.isArray(data.leads)) {
+      setLeads(data.leads);
+    }
+    if (Array.isArray(data.customers)) {
+      setAllUsers(data.customers);
+    }
+    syncToCloudAndTabs(data);
   };
 
   // Navigations
@@ -587,6 +655,7 @@ export const App: React.FC = () => {
         onDeleteLead={handleDeleteLead}
         onNavigateCustomer={navigateToStore}
         onLogout={handleAdminLogout}
+        onImportFullBackup={handleImportFullBackup}
       />
     );
   }
@@ -647,6 +716,7 @@ export const App: React.FC = () => {
             onAddToCart={handleAddToCart}
             onOpenCart={() => setIsCartOpen(true)}
             onNavigateConfigurator={navigateToConfigurator}
+            onOpenInspection={() => setIsInspectionOpen(true)}
             onSaveLead={handleSaveLead}
             phoneNumber={settings.phoneNumber}
             supportPhone={settings.supportPhone}
@@ -662,22 +732,31 @@ export const App: React.FC = () => {
           />
         ) : (
           /* ======================================================== */
-          /* 3. FİYAT AL & 6 ADIMLI DETAY BELİRLEME EKRANI             */
+          /* 3. TADİLAT & USTA DESTEĞİ HESAPLAYICI EKRANI              */
           /* ======================================================== */
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {/* Top Back bar */}
-            <div className="flex items-center justify-between pb-6 mb-4 border-b border-[#E8EAED]">
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-6 mb-4 border-b border-[#E8EAED]">
               <button
-                onClick={navigateToLanding}
-                className="btn-pill-outline text-xs py-2 px-4 flex items-center gap-2"
+                onClick={navigateToStore}
+                className="btn-pill-outline text-xs py-2 px-4 flex items-center gap-2 font-bold"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Tanıtım Sayfasına Dön</span>
+                <span>Ürün Mağazasına Dön</span>
               </button>
 
-              <div className="text-xs text-[#64748B]">
-                RVOBA Fiyat & Tasarım Sihirbazı
+              <div className="flex items-center gap-2 text-xs font-extrabold text-[#0A0A0B]">
+                <Hammer className="w-4 h-4 text-amber-600" />
+                <span>RVOBA Tadilat & Usta Desteği Hesaplayıcı (Malzemeli veya Sadece Usta İşçiliği)</span>
               </div>
+
+              <button
+                onClick={() => setIsInspectionOpen(true)}
+                className="btn-pill-black bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-2 px-4 font-bold flex items-center gap-1.5 shadow-sm"
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Doğrudan Usta / Keşif Çağır</span>
+              </button>
             </div>
 
             <CustomerConfigurator
@@ -796,6 +875,7 @@ export const App: React.FC = () => {
         }}
         phoneNumber={settings.phoneNumber}
         supportPhone={settings.supportPhone}
+        settings={settings}
       />
 
       {/* Free Discovery Modal */}
@@ -841,6 +921,7 @@ export const App: React.FC = () => {
         defaultTab={legalModalTab || 'sozlesme'}
         companyName={settings.companyName}
         supportPhone={settings.supportPhone}
+        settings={settings}
       />
 
       {/* Customer Authentication Modal (Giriş Yap / Üye Ol / Şifremi Unuttum) */}

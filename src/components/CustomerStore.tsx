@@ -35,6 +35,7 @@ interface CustomerStoreProps {
   phoneNumber?: string;
   supportPhone?: string;
   onNavigateConfigurator?: () => void;
+  onOpenInspection?: () => void;
   onSaveLead?: (lead: LeadRequest) => void;
   content?: SiteContentSettings;
   selectedCategory: string;
@@ -55,6 +56,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
   phoneNumber = '905447685137',
   supportPhone = '0544 768 51 37',
   onNavigateConfigurator,
+  onOpenInspection,
   onSaveLead,
   content,
   selectedCategory,
@@ -70,6 +72,16 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
   const [recentlyAddedId, setRecentlyAddedId] = useState<string | null>(null);
   const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
+  const [selectedPurchaseModes, setSelectedPurchaseModes] = useState<Record<string, 'material_only' | 'with_installation'>>({});
+
+  const getPurchaseMode = (product: Product): 'material_only' | 'with_installation' => {
+    if (!product.workmanshipPrice || product.workmanshipPrice <= 0) return 'material_only';
+    return selectedPurchaseModes[product.id] || 'material_only';
+  };
+
+  const setPurchaseMode = (id: string, mode: 'material_only' | 'with_installation') => {
+    setSelectedPurchaseModes((prev) => ({ ...prev, [id]: mode }));
+  };
 
   const handleToggleFav = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -164,9 +176,10 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
     }));
   };
 
-  const handleAddProduct = (product: Product, purchaseType: 'material_only' | 'with_installation' = 'material_only') => {
+  const handleAddProduct = (product: Product, explicitMode?: 'material_only' | 'with_installation') => {
     const qty = getQty(product.id);
-    onAddToCart(product, qty, 'Doğrudan Sipariş', purchaseType);
+    const mode = explicitMode || getPurchaseMode(product);
+    onAddToCart(product, qty, mode === 'with_installation' ? 'Malzeme + Usta Montajı' : 'Doğrudan Sipariş', mode);
     
     // Tactile button feedback
     setRecentlyAddedId(product.id);
@@ -177,7 +190,11 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
 
   const handleFastWhatsAppOrder = (product: Product) => {
     const qty = getQty(product.id);
-    const price = product.materialPrice * qty;
+    const mode = getPurchaseMode(product);
+    const unitPrice = mode === 'with_installation'
+      ? product.materialPrice + product.workmanshipPrice
+      : product.materialPrice;
+    const price = unitPrice * qty;
 
     // Log lead to CRM
     onSaveLead?.({
@@ -187,8 +204,8 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
       city: 'Belirtilecek',
       district: 'Belirtilecek',
       totalAmount: price,
-      marketTotalAmount: (product.marketPrice || Math.round(product.materialPrice * 1.4)) * qty,
-      savingsAmount: Math.max(0, ((product.marketPrice || Math.round(product.materialPrice * 1.4)) * qty) - price),
+      marketTotalAmount: (product.marketPrice || Math.round(unitPrice * 1.35)) * qty,
+      savingsAmount: Math.max(0, ((product.marketPrice || Math.round(unitPrice * 1.35)) * qty) - price),
       status: 'bekliyor',
       leadType: 'store_order',
       items: [
@@ -198,19 +215,23 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
           quantity: qty,
           unit: product.unit,
           total: price,
-          purchaseType: 'material_only',
+          purchaseType: mode,
         },
       ],
       createdAt: new Date().toISOString(),
     });
 
+    const modeLabel = mode === 'with_installation'
+      ? 'Malzeme + Usta Montaj Desteği Dahil'
+      : 'Sadece Malzeme (81 İl Kargo ile Kapıya Teslim)';
+
     const msg = `*RVOBA® — Hızlı Ürün Siparişi (rvoba.com)*\n\n` +
       `*Ürün:* ${product.brand} - ${product.name}\n` +
       `*Ürün Kodu:* ${product.code}\n` +
       `*Miktar:* ${qty} ${product.unit}\n` +
-      `*Teslimat:* 81 İl Kargo ile Kapıya Teslim\n` +
+      `*Tercih:* ${modeLabel}\n` +
       `*Tutar:* ${price.toLocaleString('tr-TR')} ₺ (KDV Dahil Net Fiyat)\n\n` +
-      `Bu ürünü doğrudan üretici fiyatı avantajıyla sipariş vermek ve teslimat/kargo detaylarını netleştirmek istiyorum.`;
+      `Bu ürünü sipariş vermek ve teslimat/uygulama detaylarını netleştirmek istiyorum.`;
 
     window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(msg)}`, '_blank');
   };
@@ -267,21 +288,32 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
               </span>
             </div>
 
-            {/* Action Buttons */}
+            {/* Action Buttons: 2 Clear Core Pillars */}
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               <button
                 onClick={() => scrollToCatalog()}
                 className="btn-pill-black text-xs py-3 px-6 font-bold shadow-lg flex items-center gap-2 hover:bg-slate-800 cursor-pointer"
               >
-                <ShoppingBag className="w-4 h-4" />
-                <span>Tüm Koleksiyonu Keşfet ↓</span>
+                <ShoppingBag className="w-4 h-4 text-emerald-400" />
+                <span>Malzeme Mağazasını Keşfet ↓</span>
               </button>
-              <button
-                onClick={() => scrollToBestSellers()}
-                className="btn-pill-outline text-xs py-3 px-5 font-bold flex items-center gap-2 border-slate-300 hover:border-black text-slate-800 hover:text-black transition bg-white shadow-xs cursor-pointer"
-              >
-                <span>Çok Satan Ürünler</span>
-              </button>
+              {onNavigateConfigurator && (
+                <button
+                  onClick={onNavigateConfigurator}
+                  className="btn-pill-outline text-xs py-3 px-5 font-bold flex items-center gap-2 border-slate-900 bg-white hover:bg-slate-900 text-slate-900 hover:text-white transition shadow-xs cursor-pointer"
+                >
+                  <Wrench className="w-4 h-4 text-emerald-600" />
+                  <span>Tadilat & Usta Desteği Al</span>
+                </button>
+              )}
+              {onOpenInspection && (
+                <button
+                  onClick={onOpenInspection}
+                  className="btn-pill-outline text-xs py-3 px-5 font-bold flex items-center gap-2 border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 transition shadow-xs cursor-pointer"
+                >
+                  <span>Ücretsiz Usta Keşfi Çağır</span>
+                </button>
+              )}
             </div>
 
           </div>
@@ -317,13 +349,17 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
           {bestSellers.map((product) => {
             const qty = getQty(product.id);
+            const mode = getPurchaseMode(product);
+            const hasLabor = product.workmanshipPrice > 0;
+            const unitPrice = mode === 'with_installation' ? product.materialPrice + product.workmanshipPrice : product.materialPrice;
             const isRecentlyAdded = recentlyAddedId === product.id;
             const isFav = !!favorites[product.id];
-            const lineTotal = product.materialPrice * qty;
-            const marketUnitPrice = product.marketPrice || Math.round(product.materialPrice * 1.35);
+            const lineTotal = unitPrice * qty;
+            const baseMarketUnit = product.marketPrice || Math.round(product.materialPrice * 1.35);
+            const marketUnitPrice = mode === 'with_installation' ? baseMarketUnit + Math.round(product.workmanshipPrice * 1.35) : baseMarketUnit;
             const marketTotal = marketUnitPrice * qty;
             const savings = Math.max(0, marketTotal - lineTotal);
-            const discountPercent = Math.round(((marketUnitPrice - product.materialPrice) / marketUnitPrice) * 100);
+            const discountPercent = Math.round(((marketUnitPrice - unitPrice) / marketUnitPrice) * 100);
 
             return (
               <div
@@ -408,6 +444,35 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
 
                   {/* Pricing and Action */}
                   <div className="pt-2 border-t border-[#F1F3F5] space-y-2.5">
+                    {hasLabor && (
+                      <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-slate-100 border border-slate-200/80 text-[10px] font-bold">
+                        <button
+                          type="button"
+                          onClick={() => setPurchaseMode(product.id, 'material_only')}
+                          className={`py-1.5 px-2 rounded-lg transition text-center truncate ${
+                            mode === 'material_only'
+                              ? 'bg-white text-[#0A0A0B] shadow-xs'
+                              : 'text-slate-600 hover:text-black'
+                          }`}
+                        >
+                          Sadece Malzeme
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPurchaseMode(product.id, 'with_installation')}
+                          className={`py-1.5 px-2 rounded-lg transition text-center truncate flex items-center justify-center gap-1 ${
+                            mode === 'with_installation'
+                              ? 'bg-emerald-600 text-white shadow-xs'
+                              : 'text-emerald-800 hover:bg-emerald-50'
+                          }`}
+                          title={`Usta uygulama desteği (+${product.workmanshipPrice} ₺/${product.unit})`}
+                        >
+                          <Wrench className="w-2.5 h-2.5 shrink-0" />
+                          <span>+Usta Montaj</span>
+                        </button>
+                      </div>
+                    )}
+
                     <div className="flex items-end justify-between">
                       <div>
                         <div className="flex items-baseline gap-1.5">
@@ -421,10 +486,12 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                           )}
                         </div>
                         <div className="flex items-center gap-1 mt-0.5">
-                          <span className="text-[9px] text-[#64748B] font-medium">Toptan Fiyat</span>
+                          <span className="text-[9px] text-[#64748B] font-medium">
+                            {mode === 'with_installation' ? 'Malzeme + Usta Dahil' : 'Sadece Malzeme Fiyatı'}
+                          </span>
                           {savings > 0 && (
                             <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-mono">
-                              {savings.toLocaleString('tr-TR')} ₺ Tasarruf
+                              {savings.toLocaleString('tr-TR')} ₺ Avantaj
                             </span>
                           )}
                         </div>
@@ -457,7 +524,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                     <div className="flex items-center gap-1.5 pt-0.5">
                       <button
                         type="button"
-                        onClick={() => handleAddProduct(product, 'material_only')}
+                        onClick={() => handleAddProduct(product, mode)}
                         className={`flex-1 rounded-full text-xs py-2 px-3 justify-center flex items-center gap-1.5 shadow-sm font-bold transition-all duration-200 ${
                           isRecentlyAdded
                             ? 'bg-emerald-600 text-white scale-[1.02]'
@@ -472,7 +539,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                         ) : (
                           <>
                             <ShoppingBag className="w-3.5 h-3.5" />
-                            <span>Sepete Ekle</span>
+                            <span>{mode === 'with_installation' ? 'Usta Dahil Ekle' : 'Sepete Ekle'}</span>
                           </>
                         )}
                       </button>
@@ -493,6 +560,43 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
             );
           })}
         </div>
+
+        {/* CRAFTSMAN & RENOVATION SUPPORT CALLOUT BANNER */}
+        {onNavigateConfigurator && (
+          <div className="mt-8 p-6 sm:p-8 rounded-3xl bg-[#0A0A0B] text-white flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 shadow-xl border border-white/10">
+            <div className="space-y-2 max-w-2xl">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold uppercase tracking-wider">
+                <Wrench className="w-3 h-3" />
+                <span>TADİLAT & USTA DESTEĞİ HİZMETİ</span>
+              </div>
+              <h3 className="text-xl sm:text-2xl font-display font-black text-white">
+                Aldığınız Malzemeler İçin Usta mı Lazım, Yoksa Evinizi mi Yenileyeceksiniz?
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                İster beğendiğiniz ürünü <strong>"+Usta Montaj"</strong> seçeneğiyle sepete ekleyin, ister dairenizin m² ölçüsüne göre boya, parke, seramik ve çıta işçilik maliyetini anında hesaplayıp ücretsiz keşif isteyin.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 shrink-0 w-full lg:w-auto">
+              <button
+                type="button"
+                onClick={onNavigateConfigurator}
+                className="flex-1 sm:flex-initial btn-pill-black bg-emerald-500 hover:bg-emerald-400 text-[#0A0A0B] font-extrabold text-xs py-3.5 px-6 shadow-lg flex items-center justify-center gap-2"
+              >
+                <Wrench className="w-4 h-4" />
+                <span>Tadilat & Usta Fiyatı Hesapla</span>
+              </button>
+              {onOpenInspection && (
+                <button
+                  type="button"
+                  onClick={onOpenInspection}
+                  className="flex-1 sm:flex-initial btn-pill-outline border-white/30 text-white hover:bg-white hover:text-[#0A0A0B] font-bold text-xs py-3.5 px-5 flex items-center justify-center gap-2 transition"
+                >
+                  <span>Doğrudan Usta / Keşif Çağır</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* ======================================================== */}
@@ -621,15 +725,19 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
             {filteredProducts.map((product) => {
               const qty = getQty(product.id);
+              const mode = getPurchaseMode(product);
+              const hasLabor = product.workmanshipPrice > 0;
+              const unitPrice = mode === 'with_installation' ? product.materialPrice + product.workmanshipPrice : product.materialPrice;
               const isRecentlyAdded = recentlyAddedId === product.id;
               const isFav = !!favorites[product.id];
               
-              // Pricing calculations (Pure material retail store)
-              const lineTotal = product.materialPrice * qty;
-              const marketUnitPrice = product.marketPrice || Math.round(product.materialPrice * 1.35);
+              // Pricing calculations (Material or Material + Craftsman installation)
+              const lineTotal = unitPrice * qty;
+              const baseMarketUnit = product.marketPrice || Math.round(product.materialPrice * 1.35);
+              const marketUnitPrice = mode === 'with_installation' ? baseMarketUnit + Math.round(product.workmanshipPrice * 1.35) : baseMarketUnit;
               const marketTotal = marketUnitPrice * qty;
               const savings = Math.max(0, marketTotal - lineTotal);
-              const discountPercent = Math.round(((marketUnitPrice - product.materialPrice) / marketUnitPrice) * 100);
+              const discountPercent = Math.round(((marketUnitPrice - unitPrice) / marketUnitPrice) * 100);
 
               return (
                 <div
@@ -718,6 +826,34 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
 
                     {/* Pricing & Purchase Mode Section */}
                     <div className="pt-2 border-t border-[#F1F3F5] space-y-2.5">
+                      {hasLabor && (
+                        <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-slate-100 border border-slate-200/80 text-[10px] font-bold">
+                          <button
+                            type="button"
+                            onClick={() => setPurchaseMode(product.id, 'material_only')}
+                            className={`py-1.5 px-2 rounded-lg transition text-center truncate ${
+                              mode === 'material_only'
+                                ? 'bg-white text-[#0A0A0B] shadow-xs'
+                                : 'text-slate-600 hover:text-black'
+                            }`}
+                          >
+                            Sadece Malzeme
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPurchaseMode(product.id, 'with_installation')}
+                            className={`py-1.5 px-2 rounded-lg transition text-center truncate flex items-center justify-center gap-1 ${
+                              mode === 'with_installation'
+                                ? 'bg-emerald-600 text-white shadow-xs'
+                                : 'text-emerald-800 hover:bg-emerald-50'
+                            }`}
+                            title={`Usta uygulama desteği (+${product.workmanshipPrice} ₺/${product.unit})`}
+                          >
+                            <Wrench className="w-2.5 h-2.5 shrink-0" />
+                            <span>+Usta Montaj</span>
+                          </button>
+                        </div>
+                      )}
 
                       {/* Price Display */}
                       <div className="flex items-end justify-between">
@@ -734,11 +870,11 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                           </div>
                           <div className="flex items-center gap-1 mt-0.5">
                             <span className="text-[9px] text-[#64748B] font-medium">
-                              Doğrudan Üretici Fiyatı (KDV Dahil)
+                              {mode === 'with_installation' ? 'Malzeme + Usta Dahil (KDV Dahil)' : 'Sadece Malzeme (KDV Dahil)'}
                             </span>
                             {savings > 0 && (
                               <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-mono">
-                                {savings.toLocaleString('tr-TR')} ₺ Tasarruf
+                                {savings.toLocaleString('tr-TR')} ₺ Avantaj
                               </span>
                             )}
                           </div>
@@ -772,7 +908,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                       <div className="flex items-center gap-1.5 pt-0.5">
                         <button
                           type="button"
-                          onClick={() => handleAddProduct(product, 'material_only')}
+                          onClick={() => handleAddProduct(product, mode)}
                           className={`flex-1 rounded-full text-xs py-2 px-3 justify-center flex items-center gap-1.5 shadow-sm font-bold transition-all duration-200 ${
                             isRecentlyAdded
                               ? 'bg-emerald-600 text-white scale-[1.02]'
@@ -787,7 +923,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                           ) : (
                             <>
                               <ShoppingBag className="w-3.5 h-3.5" />
-                              <span>Sepete Ekle</span>
+                              <span>{mode === 'with_installation' ? 'Usta Dahil Ekle' : 'Sepete Ekle'}</span>
                             </>
                           )}
                         </button>
@@ -930,11 +1066,62 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                 </div>
               </div>
 
+              {previewProduct.workmanshipPrice > 0 && (
+                <div className="p-3.5 rounded-2xl bg-slate-100 border border-slate-200 space-y-2">
+                  <span className="text-[11px] font-bold text-[#0A0A0B] block">
+                    Satın Alma Tercihinizi Seçin:
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPurchaseMode(previewProduct.id, 'material_only')}
+                      className={`p-3 rounded-xl border text-left transition ${
+                        getPurchaseMode(previewProduct) === 'material_only'
+                          ? 'bg-white border-black shadow-xs'
+                          : 'bg-white/60 border-slate-200 text-slate-600'
+                      }`}
+                    >
+                      <div className="text-xs font-bold text-[#0A0A0B]">📦 Sadece Malzeme (Kargo)</div>
+                      <div className="text-[11px] font-mono font-bold text-slate-700 mt-0.5">
+                        {previewProduct.materialPrice.toLocaleString('tr-TR')} ₺ / {previewProduct.unit}
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPurchaseMode(previewProduct.id, 'with_installation')}
+                      className={`p-3 rounded-xl border text-left transition ${
+                        getPurchaseMode(previewProduct) === 'with_installation'
+                          ? 'bg-emerald-600 border-emerald-700 text-white shadow-xs'
+                          : 'bg-white/60 border-emerald-200 text-emerald-900'
+                      }`}
+                    >
+                      <div className="text-xs font-bold flex items-center gap-1.5">
+                        <Wrench className="w-3.5 h-3.5" />
+                        <span>Malzeme + Usta Montajı</span>
+                      </div>
+                      <div className={`text-[11px] font-mono font-bold mt-0.5 ${
+                        getPurchaseMode(previewProduct) === 'with_installation' ? 'text-emerald-100' : 'text-emerald-700'
+                      }`}>
+                        {(previewProduct.materialPrice + previewProduct.workmanshipPrice).toLocaleString('tr-TR')} ₺ / {previewProduct.unit} (+{previewProduct.workmanshipPrice} ₺ işçilik)
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="pt-4 border-t border-[#E8EAED] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <span className="text-[10px] text-[#64748B] block font-semibold">Doğrudan Üretici Fiyatı (KDV Dahil):</span>
+                  <span className="text-[10px] text-[#64748B] block font-semibold">
+                    {getPurchaseMode(previewProduct) === 'with_installation'
+                      ? 'Malzeme + Usta Uygulama Dahil (KDV Dahil):'
+                      : 'Doğrudan Üretici Malzeme Fiyatı (KDV Dahil):'}
+                  </span>
                   <div className="text-2xl font-black font-mono text-[#0A0A0B]">
-                    {previewProduct.materialPrice.toLocaleString('tr-TR')} ₺ / {previewProduct.unit}
+                    {(getPurchaseMode(previewProduct) === 'with_installation'
+                      ? previewProduct.materialPrice + previewProduct.workmanshipPrice
+                      : previewProduct.materialPrice
+                    ).toLocaleString('tr-TR')} ₺ / {previewProduct.unit}
                   </div>
                 </div>
 
@@ -942,12 +1129,12 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      handleAddProduct(previewProduct, 'material_only');
+                      handleAddProduct(previewProduct, getPurchaseMode(previewProduct));
                       setPreviewProduct(null);
                     }}
                     className="btn-pill-black text-xs py-3 px-6 shadow-md"
                   >
-                    <span>Sepete Ekle</span>
+                    <span>{getPurchaseMode(previewProduct) === 'with_installation' ? 'Usta Dahil Sepete Ekle' : 'Sepete Ekle'}</span>
                   </button>
                   <button
                     type="button"

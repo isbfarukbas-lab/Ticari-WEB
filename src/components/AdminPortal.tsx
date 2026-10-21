@@ -65,6 +65,7 @@ interface AdminPortalProps {
   onUpdateProduct: (product: Product) => void;
   onAddProduct: (product: Product) => void;
   onDeleteProduct: (productId: string) => void;
+  onClearAllProducts?: () => void;
   onToggleActive: (productId: string) => void;
   onResetDefaults: () => void;
   onUpdateSettings: (settings: SiteSettings) => void;
@@ -102,6 +103,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   onUpdateProduct,
   onAddProduct,
   onDeleteProduct,
+  onClearAllProducts,
   onToggleActive,
   onResetDefaults,
   onUpdateSettings,
@@ -929,7 +931,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 </p>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2.5">
                 <div className="relative w-full sm:w-60">
                   <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8]" />
                   <input
@@ -940,6 +942,22 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     className="w-full bg-[#F8F9FA] border border-[#D1D5DB] rounded-full pl-10 pr-4 py-2 text-xs text-[#0A0A0B] placeholder-[#94A3B8] focus:outline-none focus:border-black"
                   />
                 </div>
+
+                {products.length > 0 && onClearAllProducts && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm('Katalogdaki TÜM ÜRÜNLERİ kalıcı olarak silmek istediğinize emin misiniz? (Kendi ürünlerinizi sıfırdan eklemek için kullanabilirsiniz)')) {
+                        onClearAllProducts();
+                        showToast('Tüm ürünler kalıcı olarak silindi. Artık kendi ürünlerinizi ekleyebilirsiniz.');
+                      }
+                    }}
+                    className="btn-pill-outline border-rose-200 bg-rose-50/70 hover:bg-rose-100 text-rose-700 text-xs py-2.5 px-4 font-bold flex items-center gap-1.5 shrink-0"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Tüm Ürünleri Sil</span>
+                  </button>
+                )}
 
                 <button
                   onClick={() => setIsAddOpen(true)}
@@ -1011,6 +1029,47 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#F1F3F5]">
+                    {filteredProducts.length === 0 && (
+                      <tr>
+                        <td colSpan={9} className="py-14 px-6 text-center text-slate-500">
+                          <div className="max-w-md mx-auto space-y-3">
+                            <p className="text-sm font-bold text-[#0A0A0B]">
+                              {products.length === 0 ? 'Katalogda Henüz Hiç Ürün Yok' : 'Bu Filtrede Ürün Bulunamadı'}
+                            </p>
+                            <p className="text-xs text-[#64748B]">
+                              {products.length === 0
+                                ? 'Kendi ürünlerinizi sıfırdan ekleyebilir veya dilerseniz örnek katalog ürünlerini geri yükleyebilirsiniz.'
+                                : 'Arama kelimenizi veya seçili kategoriyi değiştirerek tekrar deneyebilirsiniz.'}
+                            </p>
+                            {products.length === 0 && (
+                              <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setIsAddOpen(true)}
+                                  className="btn-pill-black text-xs py-2.5 px-5 font-bold flex items-center gap-1.5"
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                  <span>İlk Ürününü Ekle</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (confirm('Örnek katalog ürünlerini geri yüklemek istiyor musunuz?')) {
+                                      onResetDefaults();
+                                      showToast('Örnek katalog ürünleri geri yüklendi.');
+                                    }
+                                  }}
+                                  className="btn-pill-outline text-xs py-2.5 px-4 font-semibold flex items-center gap-1.5"
+                                >
+                                  <RotateCcw className="w-3.5 h-3.5" />
+                                  <span>Örnek Ürünleri Geri Yükle</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
                     {filteredProducts.map((p) => {
                       const isEditing = editingId === p.id;
                       const unitTotal = p.materialPrice + p.workmanshipPrice;

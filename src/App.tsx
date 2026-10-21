@@ -52,32 +52,15 @@ export const App: React.FC = () => {
     };
   }, []);
 
-  // Products state with localStorage persistence & auto-sync with initial catalog
+  // Products state with localStorage persistence (strictly respects admin deletions & edits)
   const [products, setProducts] = useState<Product[]>(() => {
     try {
-      const saved = localStorage.getItem('rvoba_products_v1') || localStorage.getItem('restolab_products_v6');
-      if (saved) {
-        const parsed: Product[] = JSON.parse(saved);
-        const parsedMap = new Map(parsed.map((p) => [p.id, p]));
-        
-        // Merge initial products: retain customizations but guarantee new products and store flags
-        const merged = INITIAL_PRODUCTS.map((initProd) => {
-          const existing = parsedMap.get(initProd.id);
-          if (!existing) return initProd;
-          return {
-            ...initProd,
-            ...existing,
-            image: initProd.image || existing.image,
-            isStoreProduct: existing.isStoreProduct ?? initProd.isStoreProduct,
-            packageInfo: initProd.packageInfo || existing.packageInfo,
-            specs: existing.specs && existing.specs.length > 0 ? existing.specs : initProd.specs,
-          };
-        });
-
-        // Also preserve any custom products created via Admin Portal
-        const initialIds = new Set(INITIAL_PRODUCTS.map((p) => p.id));
-        const customProds = parsed.filter((p) => !initialIds.has(p.id));
-        return [...merged, ...customProds];
+      const saved = localStorage.getItem('rvoba_products_v1');
+      if (saved !== null) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
       }
     } catch (e) {
       console.error(e);
@@ -545,6 +528,13 @@ export const App: React.FC = () => {
     setCart((prev) => prev.filter((c) => c.productId !== productId));
   };
 
+  const handleClearAllProducts = () => {
+    setProducts([]);
+    setCart((prev) => prev.filter((c) => c.isCustom));
+    localStorage.setItem('rvoba_products_v1', '[]');
+    syncToCloudAndTabs({ products: [] });
+  };
+
   const handleToggleActive = (productId: string) => {
     setProducts((prev) => {
       const next = prev.map((p) => (p.id === productId ? { ...p, isActive: p.isActive === false ? true : false } : p));
@@ -672,6 +662,7 @@ export const App: React.FC = () => {
         onUpdateProduct={handleUpdateProduct}
         onAddProduct={handleAddProduct}
         onDeleteProduct={handleDeleteProduct}
+        onClearAllProducts={handleClearAllProducts}
         onToggleActive={handleToggleActive}
         onResetDefaults={handleResetDefaults}
         onUpdateSettings={handleUpdateSettings}

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   ArrowLeft, 
   Plus, 
@@ -274,6 +274,29 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [localStandardShipping, setLocalStandardShipping] = useState(settings.standardShippingCost ?? 180);
   const [cloudEndpoint, setCloudEndpoint] = useState(() => getCustomCloudEndpoint());
   const backupFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync local form states when parent settings change (e.g. backup import, cross-tab sync, or factory reset)
+  useEffect(() => {
+    setLocalContent({
+      ...(INITIAL_SETTINGS.content || {}),
+      ...(settings.content || {}),
+    } as SiteContentSettings);
+    setLocalLaborRates(settings.laborRates);
+    setLocalDurationRules(settings.durationRules);
+    setLocalServiceAreas(settings.serviceAreas);
+    setLocalCoverageNotice(settings.coverageNotice);
+    setLocalProjects(settings.beforeAfterProjects);
+    setLocalPhone(settings.phoneNumber);
+    setLocalSupportPhone(settings.supportPhone);
+    setLocalCompanyName(settings.companyName);
+    setLocalStages(settings.paymentStages);
+    setLocalKdvNotice(settings.kdvNotice || 'Fiyatlarımız bireysel müşterilerimiz için anahtar teslim %20 KDV dahil net tutardır.');
+    if (settings.bankInfo) setLocalBankInfo(settings.bankInfo);
+    if (settings.paymentMethods) setLocalPaymentMethods(settings.paymentMethods);
+    if (settings.legalInfo) setLocalLegalInfo(settings.legalInfo);
+    setLocalFreeShipping(settings.freeShippingThreshold ?? 3000);
+    setLocalStandardShipping(settings.standardShippingCost ?? 180);
+  }, [settings]);
 
   const [newAdminPassword, setNewAdminPassword] = useState('');
   const [confirmAdminPassword, setConfirmAdminPassword] = useState('');
@@ -2924,7 +2947,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     if (window.confirm('DİKKAT: Tüm özel ürünleriniz, fiyat değişiklikleriniz ve ayarlarınız sıfırlanacaktır. Fabrika ayarlarına dönmek istediğinize emin misiniz?')) {
                       if (window.confirm('SON ONAY: Bu işlem geri alınamaz! Gerçekten sıfırlansın mı?')) {
                         onResetDefaults();
-                        showToast('Sistem fabrika ayarlarına sıfırlandı.');
+                        onUpdateSettings(INITIAL_SETTINGS);
+                        showToast('Sistem ve tüm ayarlar fabrika ayarlarına sıfırlandı.');
                       }
                     }
                   }}

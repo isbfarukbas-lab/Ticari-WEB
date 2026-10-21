@@ -53,7 +53,12 @@ import {
   CustomerUser
 } from '../types';
 import { INITIAL_SETTINGS } from '../data/initialSettings';
-import { getCustomCloudEndpoint, setCustomCloudEndpoint } from '../utils/cloudSync';
+import {
+  getCustomCloudEndpoint,
+  setCustomCloudEndpoint,
+  normalizeCloudEndpoint,
+  syncToCloudAndTabs,
+} from '../utils/cloudSync';
 
 interface AdminPortalProps {
   categories: CategoryInfo[];
@@ -1195,19 +1200,40 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                             {unitTotal} ₺ / {p.unit}
                           </td>
 
-                          {/* Aktif / Pasif */}
+                          {/* Aktif / Pasif & Stok Durumu */}
                           <td className="py-3 px-4 text-center">
-                            <button
-                              type="button"
-                              onClick={() => onToggleActive(p.id)}
-                              className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition ${
-                                p.isActive !== false
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : 'bg-rose-100 text-rose-800'
-                              }`}
-                            >
-                              {p.isActive !== false ? 'Aktif' : 'Pasif'}
-                            </button>
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => onToggleActive(p.id)}
+                                className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition ${
+                                  p.isActive !== false
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : 'bg-rose-100 text-rose-800'
+                                }`}
+                                title="Sitede Göster / Gizle"
+                              >
+                                {p.isActive !== false ? 'Aktif' : 'Pasif'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const nextStock = p.inStock === false ? true : false;
+                                  onUpdateProduct({ ...p, inStock: nextStock });
+                                  showToast(
+                                    `${p.name}: ${nextStock ? 'Stokta (Satışa Açık)' : 'Tükendi (Stok Yenileniyor)'}`
+                                  );
+                                }}
+                                className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition ${
+                                  p.inStock !== false
+                                    ? 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'
+                                    : 'bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200'
+                                }`}
+                                title="Stok Durumunu Değiştir (Stokta / Tükendi)"
+                              >
+                                {p.inStock !== false ? 'Stokta' : 'Tükendi'}
+                              </button>
+                            </div>
                           </td>
 
                           {/* Aksiyonlar */}
@@ -2778,13 +2804,29 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   />
                   <button
                     type="button"
-                    onClick={() => {
-                      setCustomCloudEndpoint(cloudEndpoint);
-                      showToast('Bulut senkronizasyon adresi kaydedildi.');
+                    onClick={async () => {
+                      const normalized = normalizeCloudEndpoint(cloudEndpoint);
+                      setCloudEndpoint(normalized);
+                      setCustomCloudEndpoint(normalized);
+                      if (!normalized) {
+                        showToast('Bulut bağlantısı kaldırıldı (Yalnızca yerel senkronizasyon aktif).');
+                        return;
+                      }
+                      const ok = await syncToCloudAndTabs({
+                        products,
+                        settings,
+                        leads,
+                        customers,
+                      });
+                      if (ok) {
+                        showToast('Bulut bağlantısı kaydedildi ve tüm veriler canlı veritabanına gönderildi!');
+                      } else {
+                        showToast('Adres kaydedildi ancak bulut sunucusuna ulaşılamadı. URL izinlerini kontrol edin.');
+                      }
                     }}
                     className="btn-pill-black text-xs py-2 px-5 font-bold"
                   >
-                    Bağlantıyı Kaydet
+                    Bağlantıyı Kaydet & Buluta Gönder
                   </button>
                 </div>
                 <p className="text-[11px] text-[#64748B]">
@@ -3508,7 +3550,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 </div>
               </div>
 
-              <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <label className="flex items-center gap-2 cursor-pointer bg-[#F8F9FA] p-2.5 rounded-xl border border-[#CBD5E1]">
                   <input
                     type="checkbox"
@@ -3518,6 +3560,18 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   />
                   <span className="text-xs font-bold text-[#0A0A0B]">
                     🛍️ Mimari Mağazada (Ürünlerimiz) Sergile
+                  </span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer bg-[#F8F9FA] p-2.5 rounded-xl border border-[#CBD5E1]">
+                  <input
+                    type="checkbox"
+                    checked={editModalProduct.inStock !== false}
+                    onChange={(e) => setEditModalProduct({ ...editModalProduct, inStock: e.target.checked })}
+                    className="rounded text-emerald-600 focus:ring-emerald-600 w-4 h-4"
+                  />
+                  <span className="text-xs font-bold text-[#0A0A0B]">
+                    📦 Stokta Mevcut (İşaret Kaldırılırsa "Tükendi" Yazar)
                   </span>
                 </label>
               </div>
@@ -3771,6 +3825,58 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               <div className="flex justify-between pt-2 border-t border-[#E8EAED]">
                 <span className="text-[#64748B] font-bold">Toplam Tutar:</span>
                 <strong className="text-base font-black font-mono text-black">{selectedLeadDetail.totalAmount.toLocaleString('tr-TR')} ₺</strong>
+              </div>
+            </div>
+
+            {/* Sipariş Durumu & Müşteri Bilgilendirme / Kargo Takip Notu Güncelleme */}
+            <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 space-y-3 mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <label className="text-xs font-extrabold text-emerald-950">
+                  Sipariş / Keşif Durumu & Müşteri Takip Notu
+                </label>
+                <select
+                  value={selectedLeadDetail.status}
+                  onChange={(e) => {
+                    const nextStatus = e.target.value as LeadRequest['status'];
+                    setSelectedLeadDetail({ ...selectedLeadDetail, status: nextStatus });
+                  }}
+                  className="bg-white border border-emerald-300 rounded-xl px-3 py-1.5 text-xs font-bold text-[#0A0A0B]"
+                >
+                  <option value="new">Yeni Talep</option>
+                  <option value="contacted">İletişime Geçildi / Hazırlanıyor</option>
+                  <option value="scheduled">Kargoda / Keşif & Usta Planlandı</option>
+                  <option value="completed">Teslim Edildi / Tamamlandı</option>
+                </select>
+              </div>
+              <div>
+                <input
+                  type="text"
+                  placeholder="Örn: Yurtiçi Kargo Takip: 908123456 veya Ustamız Cuma 10:30'da adresinizde olacak"
+                  value={selectedLeadDetail.adminNotes || ''}
+                  onChange={(e) =>
+                    setSelectedLeadDetail({ ...selectedLeadDetail, adminNotes: e.target.value })
+                  }
+                  className="w-full bg-white border border-emerald-300 rounded-xl px-3.5 py-2 text-xs text-[#0A0A0B] focus:outline-none focus:border-emerald-700"
+                />
+                <p className="text-[10px] text-emerald-800 mt-1">
+                  * Buraya yazdığınız not, müşteriniz üst menüdeki <strong>"Sipariş / Keşif Sorgula"</strong> ekranından telefon veya sipariş numarasıyla sorgulama yaptığında canlı olarak gösterilir.
+                </p>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onUpdateLeadStatus(
+                      selectedLeadDetail.id,
+                      selectedLeadDetail.status,
+                      selectedLeadDetail.adminNotes || ''
+                    );
+                    showToast('Sipariş durumu ve müşteri takip notu güncellendi.');
+                  }}
+                  className="btn-pill-black bg-emerald-700 hover:bg-emerald-800 text-white text-xs py-2 px-4 font-bold"
+                >
+                  Durumu & Takip Notunu Kaydet
+                </button>
               </div>
             </div>
 

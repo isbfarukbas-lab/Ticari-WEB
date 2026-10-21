@@ -418,9 +418,15 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                 <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
                   <div>
                     <div className="flex items-center justify-between text-[10px] text-[#64748B] mb-1">
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                        ● Stokta Hazır
-                      </span>
+                      {product.inStock === false ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full">
+                          ● Stok Yenileniyor
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                          ● Stokta Hazır
+                        </span>
+                      )}
                       <span className="font-mono text-slate-400 text-[10px]">{product.code}</span>
                     </div>
 
@@ -523,36 +529,49 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                     </div>
 
                     <div className="flex items-center gap-1.5 pt-0.5">
-                      <button
-                        type="button"
-                        onClick={() => handleAddProduct(product, mode)}
-                        className={`flex-1 rounded-full text-xs py-2 px-3 justify-center flex items-center gap-1.5 shadow-sm font-bold transition-all duration-200 ${
-                          isRecentlyAdded
-                            ? 'bg-emerald-600 text-white scale-[1.02]'
-                            : 'bg-[#0A0A0B] text-white hover:bg-slate-800'
-                        }`}
-                      >
-                        {isRecentlyAdded ? (
-                          <>
-                            <Check className="w-3.5 h-3.5" />
-                            <span>✓ Eklendi!</span>
-                          </>
-                        ) : (
-                          <>
-                            <ShoppingBag className="w-3.5 h-3.5" />
-                            <span>{mode === 'with_installation' ? 'Usta Dahil Ekle' : 'Sepete Ekle'}</span>
-                          </>
-                        )}
-                      </button>
+                      {product.inStock === false ? (
+                        <button
+                          type="button"
+                          onClick={() => handleFastWhatsAppOrder(product)}
+                          className="flex-1 rounded-full text-xs py-2 px-3 justify-center flex items-center gap-1.5 shadow-sm font-bold bg-amber-100 text-amber-900 hover:bg-amber-200 transition"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>Stok Sor (WhatsApp)</span>
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleAddProduct(product, mode)}
+                            className={`flex-1 rounded-full text-xs py-2 px-3 justify-center flex items-center gap-1.5 shadow-sm font-bold transition-all duration-200 ${
+                              isRecentlyAdded
+                                ? 'bg-emerald-600 text-white scale-[1.02]'
+                                : 'bg-[#0A0A0B] text-white hover:bg-slate-800'
+                            }`}
+                          >
+                            {isRecentlyAdded ? (
+                              <>
+                                <Check className="w-3.5 h-3.5" />
+                                <span>✓ Eklendi!</span>
+                              </>
+                            ) : (
+                              <>
+                                <ShoppingBag className="w-3.5 h-3.5" />
+                                <span>{mode === 'with_installation' ? 'Usta Dahil Ekle' : 'Sepete Ekle'}</span>
+                              </>
+                            )}
+                          </button>
 
-                      <button
-                        type="button"
-                        onClick={() => handleFastWhatsAppOrder(product)}
-                        className="w-8 h-8 rounded-full border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 transition"
-                        title="WhatsApp ile Hızlı Sipariş Ver"
-                      >
-                        <Send className="w-3.5 h-3.5" />
-                      </button>
+                          <button
+                            type="button"
+                            onClick={() => handleFastWhatsAppOrder(product)}
+                            className="w-8 h-8 rounded-full border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 transition"
+                            title="WhatsApp ile Hızlı Sipariş Ver"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -761,9 +780,15 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                     
                     <div>
                       <div className="flex items-center justify-between text-[10px] text-[#64748B] mb-1">
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                          ● Stokta Hazır
-                        </span>
+                        {product.inStock === false ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full">
+                            ● Stok Yenileniyor
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                            ● Stokta Hazır
+                          </span>
+                        )}
                         <span className="font-mono text-slate-400 text-[10px]">{product.code}</span>
                       </div>
 
@@ -871,36 +896,49 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
 
                       {/* Action Buttons: Add to Cart with tactile confirmation + WhatsApp */}
                       <div className="flex items-center gap-1.5 pt-0.5">
-                        <button
-                          type="button"
-                          onClick={() => handleAddProduct(product, mode)}
-                          className={`flex-1 rounded-full text-xs py-2 px-3 justify-center flex items-center gap-1.5 shadow-sm font-bold transition-all duration-200 ${
-                            isRecentlyAdded
-                              ? 'bg-emerald-600 text-white scale-[1.02]'
-                              : 'bg-[#0A0A0B] text-white hover:bg-slate-800'
-                          }`}
-                        >
-                          {isRecentlyAdded ? (
-                            <>
-                              <Check className="w-3.5 h-3.5" />
-                              <span>✓ Eklendi!</span>
-                            </>
-                          ) : (
-                            <>
-                              <ShoppingBag className="w-3.5 h-3.5" />
-                              <span>{mode === 'with_installation' ? 'Usta Dahil Ekle' : 'Sepete Ekle'}</span>
-                            </>
-                          )}
-                        </button>
+                        {product.inStock === false ? (
+                          <button
+                            type="button"
+                            onClick={() => handleFastWhatsAppOrder(product)}
+                            className="flex-1 rounded-full text-xs py-2 px-3 justify-center flex items-center gap-1.5 shadow-sm font-bold bg-amber-100 text-amber-900 hover:bg-amber-200 transition"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            <span>Stok Sor (WhatsApp)</span>
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleAddProduct(product, mode)}
+                              className={`flex-1 rounded-full text-xs py-2 px-3 justify-center flex items-center gap-1.5 shadow-sm font-bold transition-all duration-200 ${
+                                isRecentlyAdded
+                                  ? 'bg-emerald-600 text-white scale-[1.02]'
+                                  : 'bg-[#0A0A0B] text-white hover:bg-slate-800'
+                              }`}
+                            >
+                              {isRecentlyAdded ? (
+                                <>
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>✓ Eklendi!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <ShoppingBag className="w-3.5 h-3.5" />
+                                  <span>{mode === 'with_installation' ? 'Usta Dahil Ekle' : 'Sepete Ekle'}</span>
+                                </>
+                              )}
+                            </button>
 
-                        <button
-                          type="button"
-                          onClick={() => handleFastWhatsAppOrder(product)}
-                          className="w-8 h-8 rounded-full border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 transition"
-                          title="WhatsApp ile Hızlı Sipariş Ver"
-                        >
-                          <Send className="w-3.5 h-3.5" />
-                        </button>
+                            <button
+                              type="button"
+                              onClick={() => handleFastWhatsAppOrder(product)}
+                              className="w-8 h-8 rounded-full border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 transition"
+                              title="WhatsApp ile Hızlı Sipariş Ver"
+                            >
+                              <Send className="w-3.5 h-3.5" />
+                            </button>
+                          </>
+                        )}
                       </div>
 
                     </div>
@@ -1079,43 +1117,117 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                 </div>
               )}
 
+              {/* Quantity & +10% Fire Payı Calculator inside Modal */}
+              <div className="p-3.5 rounded-2xl bg-[#F8F9FA] border border-[#E8EAED] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <span className="text-xs font-bold text-[#0A0A0B] block">
+                    Sipariş Miktarı ({previewProduct.unit})
+                  </span>
+                  <span className="text-[11px] text-[#64748B]">
+                    Köşe kesimleri ve uygulama kayıpları için +%10 usta fire payı önerilir.
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center border border-[#D1D5DB] rounded-full bg-white px-2 py-1 shadow-xs">
+                    <button
+                      type="button"
+                      onClick={() => setQty(previewProduct.id, getQty(previewProduct.id) - 1)}
+                      className="w-6 h-6 rounded-full hover:bg-slate-100 flex items-center justify-center font-bold text-xs"
+                    >
+                      -
+                    </button>
+                    <input
+                      type="number"
+                      min={1}
+                      value={getQty(previewProduct.id)}
+                      onChange={(e) => setQty(previewProduct.id, Number(e.target.value) || 1)}
+                      className="w-12 text-center text-xs font-bold font-mono focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setQty(previewProduct.id, getQty(previewProduct.id) + 1)}
+                      className="w-6 h-6 rounded-full hover:bg-slate-100 flex items-center justify-center font-bold text-xs"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const current = getQty(previewProduct.id);
+                      const withFire = Math.max(current + 1, Math.ceil(current * 1.1));
+                      setQty(previewProduct.id, withFire);
+                    }}
+                    className="px-3 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-bold transition"
+                    title="Mevcut miktara %10 usta kesim ve uygulama fire payı ekle"
+                  >
+                    +%10 Fire Payı Ekle ({Math.max(getQty(previewProduct.id) + 1, Math.ceil(getQty(previewProduct.id) * 1.1))} {previewProduct.unit})
+                  </button>
+                </div>
+              </div>
+
               <div className="pt-4 border-t border-[#E8EAED] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <span className="text-[10px] text-[#64748B] block font-semibold">
                     {getPurchaseMode(previewProduct) === 'with_installation'
-                      ? 'Malzeme + Usta Uygulama Dahil (KDV Dahil):'
-                      : 'Doğrudan Üretici Malzeme Fiyatı (KDV Dahil):'}
+                      ? `Malzeme + Usta Uygulama Toplamı (${getQty(previewProduct.id)} ${previewProduct.unit} • KDV Dahil):`
+                      : `Toplam Malzeme Fiyatı (${getQty(previewProduct.id)} ${previewProduct.unit} • KDV Dahil):`}
                   </span>
                   <div className="text-2xl font-black font-mono text-[#0A0A0B]">
-                    {(getPurchaseMode(previewProduct) === 'with_installation'
-                      ? previewProduct.materialPrice + previewProduct.workmanshipPrice
-                      : previewProduct.materialPrice
-                    ).toLocaleString('tr-TR')} ₺ / {previewProduct.unit}
+                    {(
+                      (getPurchaseMode(previewProduct) === 'with_installation'
+                        ? previewProduct.materialPrice + previewProduct.workmanshipPrice
+                        : previewProduct.materialPrice) * getQty(previewProduct.id)
+                    ).toLocaleString('tr-TR')}{' '}
+                    ₺
+                    <span className="text-xs font-normal text-[#64748B] ml-1.5">
+                      ({(getPurchaseMode(previewProduct) === 'with_installation'
+                        ? previewProduct.materialPrice + previewProduct.workmanshipPrice
+                        : previewProduct.materialPrice
+                      ).toLocaleString('tr-TR')} ₺ / {previewProduct.unit})
+                    </span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleAddProduct(previewProduct, getPurchaseMode(previewProduct));
-                      setPreviewProduct(null);
-                    }}
-                    className="btn-pill-black text-xs py-3 px-6 shadow-md"
-                  >
-                    <span>{getPurchaseMode(previewProduct) === 'with_installation' ? 'Usta Dahil Sepete Ekle' : 'Sepete Ekle'}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleFastWhatsAppOrder(previewProduct);
-                      setPreviewProduct(null);
-                    }}
-                    className="btn-pill-outline text-xs py-3 px-4 flex items-center gap-1.5 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>WhatsApp</span>
-                  </button>
+                  {previewProduct.inStock === false ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleFastWhatsAppOrder(previewProduct);
+                        setPreviewProduct(null);
+                      }}
+                      className="btn-pill-black bg-amber-600 hover:bg-amber-700 text-white text-xs py-3 px-6 shadow-md"
+                    >
+                      <span>Stok Sor (WhatsApp)</span>
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleAddProduct(previewProduct, getPurchaseMode(previewProduct));
+                          setPreviewProduct(null);
+                        }}
+                        className="btn-pill-black text-xs py-3 px-6 shadow-md"
+                      >
+                        <span>{getPurchaseMode(previewProduct) === 'with_installation' ? 'Usta Dahil Sepete Ekle' : 'Sepete Ekle'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleFastWhatsAppOrder(previewProduct);
+                          setPreviewProduct(null);
+                        }}
+                        className="btn-pill-outline text-xs py-3 px-4 flex items-center gap-1.5 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>WhatsApp</span>
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 

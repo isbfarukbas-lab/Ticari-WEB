@@ -21,6 +21,19 @@ try {
   // Ignore if BroadcastChannel is not supported
 }
 
+export const normalizeCloudEndpoint = (rawUrl: string): string => {
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return '';
+  // Automatically append /rvoba_state.json for Firebase Realtime Database root URLs
+  if (
+    (trimmed.includes('firebaseio.com') || trimmed.includes('firebasedatabase.app')) &&
+    !trimmed.endsWith('.json')
+  ) {
+    return `${trimmed.replace(/\/+$/, '')}/rvoba_state.json`;
+  }
+  return trimmed;
+};
+
 export const getCustomCloudEndpoint = (): string => {
   try {
     return localStorage.getItem(CLOUD_URL_STORAGE_KEY) || '';
@@ -31,8 +44,9 @@ export const getCustomCloudEndpoint = (): string => {
 
 export const setCustomCloudEndpoint = (url: string): void => {
   try {
-    if (url.trim()) {
-      localStorage.setItem(CLOUD_URL_STORAGE_KEY, url.trim());
+    const normalized = normalizeCloudEndpoint(url);
+    if (normalized) {
+      localStorage.setItem(CLOUD_URL_STORAGE_KEY, normalized);
     } else {
       localStorage.removeItem(CLOUD_URL_STORAGE_KEY);
     }
@@ -170,8 +184,20 @@ export const subscribeToLiveSync = (
     if (remote) onUpdate(remote);
   });
 
+  // Periodic background cloud sync every 15 seconds if cloud endpoint is active
+  let lastRemoteUpdatedAt = '';
+  const pollInterval = window.setInterval(async () => {
+    if (!getCustomCloudEndpoint()) return;
+    const remote = await fetchFromCloud();
+    if (remote && remote.updatedAt && remote.updatedAt !== lastRemoteUpdatedAt) {
+      lastRemoteUpdatedAt = remote.updatedAt;
+      onUpdate(remote);
+    }
+  }, 15000);
+
   return () => {
     broadcastChannel?.removeEventListener('message', handleChannelMessage);
     window.removeEventListener('storage', handleStorageEvent);
+    window.clearInterval(pollInterval);
   };
 };

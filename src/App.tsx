@@ -13,6 +13,7 @@ import { CustomerFooter } from './components/CustomerFooter';
 import { CustomerLegalModal, LegalTabKey } from './components/CustomerLegalModal';
 import { CustomerAuthModal } from './components/CustomerAuthModal';
 import { CustomerAccountDrawer } from './components/CustomerAccountDrawer';
+import { CustomerOrderLookupModal } from './components/CustomerOrderLookupModal';
 import { AdminPortal } from './components/AdminPortal';
 import { AdminLoginScreen } from './components/AdminLoginScreen';
 
@@ -180,6 +181,7 @@ export const App: React.FC = () => {
   const [isInspectionOpen, setIsInspectionOpen] = useState(false);
   const [isProformaOpen, setIsProformaOpen] = useState(false);
   const [isCallbackOpen, setIsCallbackOpen] = useState(false);
+  const [isOrderLookupOpen, setIsOrderLookupOpen] = useState(false);
   const [legalModalTab, setLegalModalTab] = useState<LegalTabKey | null>(null);
   const [selectedCity, setSelectedCity] = useState('İstanbul');
   const [selectedDistrict, setSelectedDistrict] = useState('Kadıköy');
@@ -693,6 +695,7 @@ export const App: React.FC = () => {
           onNavigateStore={navigateToStore}
           onOpenCart={() => setIsCartOpen(true)}
           onOpenInspection={() => setIsInspectionOpen(true)}
+          onOpenOrderLookup={() => setIsOrderLookupOpen(true)}
           supportPhone={settings.supportPhone}
           phoneNumber={settings.phoneNumber}
           content={settings.content}
@@ -971,6 +974,15 @@ export const App: React.FC = () => {
           }}
         />
       )}
+
+      {/* Üyeliksiz Sipariş & Keşif Sorgulama Modalı */}
+      <CustomerOrderLookupModal
+        isOpen={isOrderLookupOpen}
+        onClose={() => setIsOrderLookupOpen(false)}
+        leads={leads}
+        phoneNumber={settings.phoneNumber}
+        supportPhone={settings.supportPhone}
+      />
 
     </div>
   );

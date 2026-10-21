@@ -288,32 +288,15 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
               </span>
             </div>
 
-            {/* Action Buttons: 2 Clear Core Pillars */}
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            {/* Primary Store Action */}
+            <div className="mt-6 flex items-center justify-center">
               <button
                 onClick={() => scrollToCatalog()}
                 className="btn-pill-black text-xs py-3 px-6 font-bold shadow-lg flex items-center gap-2 hover:bg-slate-800 cursor-pointer"
               >
                 <ShoppingBag className="w-4 h-4 text-emerald-400" />
-                <span>Malzeme Mağazasını Keşfet ↓</span>
+                <span>Koleksiyonu İncele ↓</span>
               </button>
-              {onNavigateConfigurator && (
-                <button
-                  onClick={onNavigateConfigurator}
-                  className="btn-pill-outline text-xs py-3 px-5 font-bold flex items-center gap-2 border-slate-900 bg-white hover:bg-slate-900 text-slate-900 hover:text-white transition shadow-xs cursor-pointer"
-                >
-                  <Wrench className="w-4 h-4 text-emerald-600" />
-                  <span>Tadilat & Usta Desteği Al</span>
-                </button>
-              )}
-              {onOpenInspection && (
-                <button
-                  onClick={onOpenInspection}
-                  className="btn-pill-outline text-xs py-3 px-5 font-bold flex items-center gap-2 border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 transition shadow-xs cursor-pointer"
-                >
-                  <span>Ücretsiz Usta Keşfi Çağır</span>
-                </button>
-              )}
             </div>
 
           </div>
@@ -485,13 +468,14 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <span className="text-[9px] text-[#64748B] font-medium">
-                            {mode === 'with_installation' ? 'Malzeme + Usta Dahil' : 'Sadece Malzeme Fiyatı'}
-                          </span>
-                          {savings > 0 && (
-                            <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-mono">
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          {savings > 0 ? (
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-mono whitespace-nowrap">
                               {savings.toLocaleString('tr-TR')} ₺ Avantaj
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-[#64748B] font-medium whitespace-nowrap">
+                              KDV Dahil
                             </span>
                           )}
                         </div>
@@ -560,43 +544,6 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
             );
           })}
         </div>
-
-        {/* CRAFTSMAN & RENOVATION SUPPORT CALLOUT BANNER */}
-        {onNavigateConfigurator && (
-          <div className="mt-8 p-6 sm:p-8 rounded-3xl bg-[#0A0A0B] text-white flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 shadow-xl border border-white/10">
-            <div className="space-y-2 max-w-2xl">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold uppercase tracking-wider">
-                <Wrench className="w-3 h-3" />
-                <span>TADİLAT & USTA DESTEĞİ HİZMETİ</span>
-              </div>
-              <h3 className="text-xl sm:text-2xl font-display font-black text-white">
-                Aldığınız Malzemeler İçin Usta mı Lazım, Yoksa Evinizi mi Yenileyeceksiniz?
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                İster beğendiğiniz ürünü <strong>"+Usta Montaj"</strong> seçeneğiyle sepete ekleyin, ister dairenizin m² ölçüsüne göre boya, parke, seramik ve çıta işçilik maliyetini anında hesaplayıp ücretsiz keşif isteyin.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-3 shrink-0 w-full lg:w-auto">
-              <button
-                type="button"
-                onClick={onNavigateConfigurator}
-                className="flex-1 sm:flex-initial btn-pill-black bg-emerald-500 hover:bg-emerald-400 text-[#0A0A0B] font-extrabold text-xs py-3.5 px-6 shadow-lg flex items-center justify-center gap-2"
-              >
-                <Wrench className="w-4 h-4" />
-                <span>Tadilat & Usta Fiyatı Hesapla</span>
-              </button>
-              {onOpenInspection && (
-                <button
-                  type="button"
-                  onClick={onOpenInspection}
-                  className="flex-1 sm:flex-initial btn-pill-outline border-white/30 text-white hover:bg-white hover:text-[#0A0A0B] font-bold text-xs py-3.5 px-5 flex items-center justify-center gap-2 transition"
-                >
-                  <span>Doğrudan Usta / Keşif Çağır</span>
-                </button>
-              )}
-            </div>
-          </div>
-        )}
       </section>
 
       {/* ======================================================== */}
@@ -868,13 +815,14 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center gap-1 mt-0.5">
-                            <span className="text-[9px] text-[#64748B] font-medium">
-                              {mode === 'with_installation' ? 'Malzeme + Usta Dahil (KDV Dahil)' : 'Sadece Malzeme (KDV Dahil)'}
-                            </span>
-                            {savings > 0 && (
-                              <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-mono">
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            {savings > 0 ? (
+                              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-mono whitespace-nowrap">
                                 {savings.toLocaleString('tr-TR')} ₺ Avantaj
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-[#64748B] font-medium whitespace-nowrap">
+                                KDV Dahil
                               </span>
                             )}
                           </div>

@@ -271,8 +271,8 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
                     })}
                   </div>
 
-                  {/* Turnkey Renovation & Craftsman Support Links in Dropdown */}
-                  <div className="mt-2 pt-2 border-t border-slate-100 space-y-1.5">
+                  {/* Single Clean Link in Categories Dropdown */}
+                  <div className="mt-2 pt-2 border-t border-slate-100">
                     <button
                       type="button"
                       onClick={() => {
@@ -283,24 +283,9 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
                     >
                       <div className="flex items-center gap-2">
                         <Wrench className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Tadilat & Usta Desteği (Fiyat Hesapla)</span>
+                        <span>Tadilat & Usta Desteği</span>
                       </div>
-                      <ArrowUpRight className="w-3.5 h-3.5 text-emerald-400" />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsCategoryMenuOpen(false);
-                        onOpenInspection();
-                      }}
-                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-900 hover:bg-emerald-100 border border-emerald-200 transition"
-                    >
-                      <div className="flex items-center gap-2">
-                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Doğrudan Usta & Keşif Çağır</span>
-                      </div>
-                      <ArrowRight className="w-3.5 h-3.5 text-emerald-700" />
+                      <ArrowRight className="w-3.5 h-3.5 text-emerald-400" />
                     </button>
                   </div>
                 </div>
@@ -419,16 +404,7 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
               </span>
             </button>
 
-            {/* High-Ticket Renovation & Craftsman Support Link */}
-            {currentView !== 'configurator' ? (
-              <button
-                onClick={onNavigateConfigurator}
-                className="hidden md:flex btn-pill-outline text-xs py-2 px-3.5 border-slate-900 bg-slate-900 text-white hover:bg-slate-800 whitespace-nowrap shrink-0 items-center gap-1.5 font-bold transition shadow-xs"
-              >
-                <Wrench className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
-                <span>Tadilat & Usta Desteği</span>
-              </button>
-            ) : (
+            {currentView === 'configurator' && (
               <button
                 onClick={onNavigateStore}
                 className="btn-pill-black text-xs py-2 px-3.5 shadow-sm whitespace-nowrap shrink-0 flex items-center gap-1.5"
@@ -466,18 +442,18 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
                 );
               })}
 
-              {/* Direct Craftsman / Renovation Pill in Row 2 (Always visible, especially helpful on mobile) */}
+              {/* Single Clean Category Item for Renovation & Craftsman Support */}
               <button
                 type="button"
                 onClick={onNavigateConfigurator}
-                className={`transition-all py-1 px-2.5 rounded-full flex items-center gap-1.5 shrink-0 font-bold ${
+                className={`transition-all py-1 relative shrink-0 flex items-center gap-1.5 ${
                   currentView === 'configurator'
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
+                    ? 'font-bold text-[#0A0A0B] border-b-2 border-black -mb-[1px]'
+                    : 'text-emerald-700 hover:text-[#0A0A0B] font-bold hover:border-b-2 hover:border-emerald-600'
                 }`}
               >
-                <Wrench className="w-3 h-3" />
-                <span>Tadilat & Usta Çağır</span>
+                <Wrench className="w-3.5 h-3.5" />
+                <span>Tadilat & Usta Desteği</span>
               </button>
             </div>
           </div>

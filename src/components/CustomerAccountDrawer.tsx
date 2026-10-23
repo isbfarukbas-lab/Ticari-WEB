@@ -44,6 +44,7 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
   onNavigateConfigurator,
 }) => {
   const [activeTab, setActiveTab] = useState<'orders' | 'addresses' | 'profile'>('orders');
+  const [orderSubTab, setOrderSubTab] = useState<'active' | 'archived'>('active');
 
   // New Address state
   const [isAddingAddress, setIsAddingAddress] = useState(false);
@@ -129,6 +130,14 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
     return 0;
   };
 
+  const activeUserOrders = userOrders.filter(
+    (ord) => normalizeLeadStatus(ord.status) !== 'sozlesme_imzalandi'
+  );
+  const archivedUserOrders = userOrders.filter(
+    (ord) => normalizeLeadStatus(ord.status) === 'sozlesme_imzalandi'
+  );
+  const displayedOrders = orderSubTab === 'active' ? activeUserOrders : archivedUserOrders;
+
   const getStatusBadge = (status: LeadRequest['status'] | string | undefined, isStore: boolean) => {
     const norm = normalizeLeadStatus(status);
     switch (norm) {
@@ -208,7 +217,7 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
                   activeTab === 'orders' ? 'bg-white/20 text-white' : 'text-slate-400 hover:text-white'
                 }`}
               >
-                Siparişlerim ({userOrders.length})
+                Siparişlerim ({activeUserOrders.length})
               </button>
               <button
                 onClick={() => setActiveTab('addresses')}
@@ -235,21 +244,57 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
             {/* TAB 1: SİPARİŞLERİM & TEKLİFLERİM */}
             {activeTab === 'orders' && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Sipariş & Teklif Geçmişiniz
-                  </h4>
-                  <span className="text-xs text-slate-400">{userOrders.length} kayıt</span>
+                {/* Sub-tabs: Aktif Siparişler vs Geçmiş / Tamamlanan */}
+                <div className="grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-[#F1F3F5] border border-[#E8EAED]">
+                  <button
+                    type="button"
+                    onClick={() => setOrderSubTab('active')}
+                    className={`py-2 px-3 rounded-xl text-xs font-extrabold transition flex items-center justify-center gap-1.5 ${
+                      orderSubTab === 'active'
+                        ? 'bg-white text-[#0A0A0B] shadow-sm'
+                        : 'text-slate-500 hover:text-[#0A0A0B]'
+                    }`}
+                  >
+                    <Clock className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Aktif Siparişler ({activeUserOrders.length})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOrderSubTab('archived')}
+                    className={`py-2 px-3 rounded-xl text-xs font-extrabold transition flex items-center justify-center gap-1.5 ${
+                      orderSubTab === 'archived'
+                        ? 'bg-white text-[#0A0A0B] shadow-sm'
+                        : 'text-slate-500 hover:text-[#0A0A0B]'
+                    }`}
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Geçmiş / Arşiv ({archivedUserOrders.length})</span>
+                  </button>
                 </div>
 
-                {userOrders.length === 0 ? (
-                  <div className="py-12 text-center space-y-3 bg-[#F8F9FA] rounded-3xl p-6 border border-[#E8EAED]">
+                {displayedOrders.length === 0 ? (
+                  <div className="py-10 text-center space-y-3 bg-[#F8F9FA] rounded-3xl p-6 border border-[#E8EAED]">
                     <Package className="w-10 h-10 text-slate-300 mx-auto" />
-                    <h5 className="font-bold text-sm text-[#0A0A0B]">Henüz Kayıtlı Talebiniz Yok</h5>
+                    <h5 className="font-bold text-sm text-[#0A0A0B]">
+                      {orderSubTab === 'active'
+                        ? 'Devam Eden Aktif Siparişiniz Yok'
+                        : 'Henüz Tamamlanan Siparişiniz Bulunmuyor'}
+                    </h5>
                     <p className="text-xs text-slate-500 max-w-xs mx-auto">
-                      Mimari malzeme siparişleriniz veya anahtar teslim tadilat keşifleriniz burada listelenir.
+                      {orderSubTab === 'active' && archivedUserOrders.length > 0
+                        ? `Teslim edilen ${archivedUserOrders.length} adet siparişiniz otomatik olarak "Geçmiş / Arşiv" sekmesine taşınmıştır.`
+                        : 'Mimari malzeme siparişleriniz veya anahtar teslim tadilat keşifleriniz burada listelenir.'}
                     </p>
                     <div className="flex flex-col gap-2 pt-2">
+                      {orderSubTab === 'active' && archivedUserOrders.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setOrderSubTab('archived')}
+                          className="btn-pill-black bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-2.5 font-bold"
+                        >
+                          Geçmiş Siparişlerimi Gör ({archivedUserOrders.length})
+                        </button>
+                      )}
                       <button
                         onClick={() => { onClose(); onNavigateStore(); }}
                         className="btn-pill-black text-xs py-2.5 font-bold"
@@ -266,7 +311,7 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {userOrders.map((ord) => {
+                    {displayedOrders.map((ord) => {
                       const isStore = ord.leadType === 'web_order' || ord.leadType === 'store_order' || ord.id.startsWith('store-order') || ord.id.startsWith('order-');
                       const isInspection = !isStore && !!ord.preferredDate;
                       const stepIdx = getStepIndex(ord.status);

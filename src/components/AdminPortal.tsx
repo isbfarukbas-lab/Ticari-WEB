@@ -257,6 +257,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   // ==========================================
   // TAB 6: CRM & GELEN TALEPLER STATE
   // ==========================================
+  const [leadArchiveTab, setLeadArchiveTab] = useState<'active' | 'archived'>('active');
   const [leadStatusFilter, setLeadStatusFilter] = useState<'all' | 'bekliyor' | 'arandi' | 'kesif_verildi' | 'sozlesme_imzalandi'>('all');
   const [leadTypeFilter, setLeadTypeFilter] = useState<'all' | 'callback' | 'inspection' | 'whatsapp' | 'store_order'>('all');
   const [selectedLeadDetail, setSelectedLeadDetail] = useState<LeadRequest | null>(null);
@@ -865,9 +866,19 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     return 'Bekliyor';
   };
 
+  const activeLeadsCount = leads.filter(
+    (l) => normalizeLeadStatus(l.status) !== 'sozlesme_imzalandi'
+  ).length;
+  const archivedLeadsCount = leads.filter(
+    (l) => normalizeLeadStatus(l.status) === 'sozlesme_imzalandi'
+  ).length;
+
   // Filtered leads
   const filteredLeads = leads.filter(l => {
-    const matchStatus = leadStatusFilter === 'all' || normalizeLeadStatus(l.status) === leadStatusFilter;
+    const normStatus = normalizeLeadStatus(l.status);
+    const isArchivedLead = normStatus === 'sozlesme_imzalandi';
+    const matchArchiveTab = leadArchiveTab === 'archived' ? isArchivedLead : !isArchivedLead;
+    const matchStatus = leadStatusFilter === 'all' || normStatus === leadStatusFilter;
     const isStoreOrder =
       l.leadType === 'store_order' ||
       l.leadType === 'web_order' ||
@@ -884,7 +895,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       (leadTypeFilter === 'inspection' && isInspection) ||
       (leadTypeFilter === 'whatsapp' && isWhatsapp);
 
-    return matchStatus && matchType;
+    return matchArchiveTab && matchStatus && matchType;
   });
 
   // CSV Export for Leads
@@ -2439,59 +2450,110 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         {adminTab === 'leads' && (
           <div className="space-y-6">
             
-            <div className="bg-white border border-[#E8EAED] rounded-3xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
-              <div>
-                <h2 className="text-xl font-display font-extrabold text-[#0A0A0B]">
-                  Gelen Müşteri Talepleri & CRM Havuzu
-                </h2>
-                <p className="text-xs text-[#64748B] mt-0.5">
-                  Lazer keşif randevuları, WhatsApp talepleri ve "Mimar Beni Arasın" çağrılarını tek ekranda yönetin.
-                </p>
+            <div className="bg-white border border-[#E8EAED] rounded-3xl p-6 space-y-5 shadow-sm">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-display font-extrabold text-[#0A0A0B]">
+                    Gelen Müşteri Talepleri & CRM Havuzu
+                  </h2>
+                  <p className="text-xs text-[#64748B] mt-0.5">
+                    Teslim edilen siparişler ve sözleşmesi tamamlanan talepler otomatik olarak <strong>Tamamlananlar / Arşiv</strong> sekmesine taşınır.
+                  </p>
+                </div>
+
+                {/* Filtreler */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <select
+                    value={leadTypeFilter}
+                    onChange={(e) => setLeadTypeFilter(e.target.value as any)}
+                    className="bg-[#F8F9FA] border border-[#CBD5E1] rounded-full px-3 py-1.5 text-xs font-bold text-[#0A0A0B] focus:outline-none"
+                  >
+                    <option value="all">Tüm Talep Türleri</option>
+                    <option value="store_order">🛍️ Doğrudan Mağaza Siparişleri</option>
+                    <option value="callback">📞 Mimar Beni Arasın (Çağrılar)</option>
+                    <option value="inspection">📅 Lazer Keşif Randevuları</option>
+                    <option value="whatsapp">💬 WhatsApp Talepleri</option>
+                  </select>
+
+                  {leadArchiveTab === 'active' && (
+                    <select
+                      value={leadStatusFilter}
+                      onChange={(e) => setLeadStatusFilter(e.target.value as any)}
+                      className="bg-[#F8F9FA] border border-[#CBD5E1] rounded-full px-3 py-1.5 text-xs font-bold text-[#0A0A0B] focus:outline-none"
+                    >
+                      <option value="all">Tüm Aktif Durumlar</option>
+                      <option value="bekliyor">🟡 Sipariş / Talep Alındı (Bekliyor)</option>
+                      <option value="arandi">🔵 Hazırlanıyor / Mimar Aradı</option>
+                      <option value="kesif_verildi">🟣 Kargoya Verildi / Keşif Planlandı</option>
+                    </select>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleExportLeadsCSV}
+                    className="btn-pill-black bg-[#0A0A0B] text-white hover:bg-slate-800 text-xs py-1.5 px-3.5 flex items-center gap-1.5 shadow-sm"
+                    title="Müşteri taleplerini Excel uyumlu CSV formatında bilgisayara indir"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Excel / CSV İndir</span>
+                  </button>
+                </div>
               </div>
 
-              {/* Filtreler */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <select
-                  value={leadTypeFilter}
-                  onChange={(e) => setLeadTypeFilter(e.target.value as any)}
-                  className="bg-[#F8F9FA] border border-[#CBD5E1] rounded-full px-3 py-1.5 text-xs font-bold text-[#0A0A0B] focus:outline-none"
+              {/* Aktif Siparişler vs Tamamlananlar / Arşiv Sekmeleri */}
+              <div className="flex items-center gap-2 pt-4 border-t border-[#F1F3F5]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLeadArchiveTab('active');
+                    setLeadStatusFilter('all');
+                  }}
+                  className={`px-4 py-2 rounded-2xl text-xs font-extrabold transition flex items-center gap-2 ${
+                    leadArchiveTab === 'active'
+                      ? 'bg-[#0A0A0B] text-white shadow-sm'
+                      : 'bg-[#F8F9FA] text-[#4B5563] hover:bg-[#F1F3F5] border border-[#E8EAED]'
+                  }`}
                 >
-                  <option value="all">Tüm Talep Türleri</option>
-                  <option value="store_order">🛍️ Doğrudan Mağaza Siparişleri</option>
-                  <option value="callback">📞 Mimar Beni Arasın (Çağrılar)</option>
-                  <option value="inspection">📅 Lazer Keşif Randevuları</option>
-                  <option value="whatsapp">💬 WhatsApp Talepleri</option>
-                </select>
-
-                <select
-                  value={leadStatusFilter}
-                  onChange={(e) => setLeadStatusFilter(e.target.value as any)}
-                  className="bg-[#F8F9FA] border border-[#CBD5E1] rounded-full px-3 py-1.5 text-xs font-bold text-[#0A0A0B] focus:outline-none"
-                >
-                  <option value="all">Tüm Durumlar</option>
-                  <option value="bekliyor">🟡 Sipariş / Talep Alındı (Bekliyor)</option>
-                  <option value="arandi">🔵 Hazırlanıyor / Mimar Aradı</option>
-                  <option value="kesif_verildi">🟣 Kargoya Verildi / Keşif Planlandı</option>
-                  <option value="sozlesme_imzalandi">🟢 Teslim Edildi / Sözleşme İmzalandı</option>
-                </select>
+                  <Clock className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Aktif Sipariş & Talepler ({activeLeadsCount})</span>
+                </button>
 
                 <button
                   type="button"
-                  onClick={handleExportLeadsCSV}
-                  className="btn-pill-black bg-[#0A0A0B] text-white hover:bg-slate-800 text-xs py-1.5 px-3.5 flex items-center gap-1.5 shadow-sm"
-                  title="Müşteri taleplerini Excel uyumlu CSV formatında bilgisayara indir"
+                  onClick={() => {
+                    setLeadArchiveTab('archived');
+                    setLeadStatusFilter('all');
+                  }}
+                  className={`px-4 py-2 rounded-2xl text-xs font-extrabold transition flex items-center gap-2 ${
+                    leadArchiveTab === 'archived'
+                      ? 'bg-emerald-700 text-white shadow-sm'
+                      : 'bg-[#F8F9FA] text-[#4B5563] hover:bg-[#F1F3F5] border border-[#E8EAED]'
+                  }`}
                 >
-                  <FileText className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Excel / CSV İndir</span>
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Tamamlananlar / Arşiv ({archivedLeadsCount})</span>
                 </button>
               </div>
             </div>
 
             {/* Talepler Listesi */}
             {filteredLeads.length === 0 ? (
-              <div className="text-center py-20 bg-white border border-[#E8EAED] rounded-3xl">
+              <div className="text-center py-20 bg-white border border-[#E8EAED] rounded-3xl space-y-2">
                 <Inbox className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                <p className="text-sm font-semibold text-[#64748B]">Bu filtrede talep bulunamadı.</p>
+                <p className="text-sm font-semibold text-[#64748B]">
+                  {leadArchiveTab === 'active'
+                    ? 'Bekleyen veya devam eden aktif sipariş/talep bulunmuyor.'
+                    : 'Henüz tamamlanan / arşivlenen sipariş bulunmuyor.'}
+                </p>
+                {leadArchiveTab === 'active' && archivedLeadsCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setLeadArchiveTab('archived')}
+                    className="text-xs font-bold text-emerald-700 hover:underline"
+                  >
+                    Tamamlanan {archivedLeadsCount} siparişi arşivde görüntüle →
+                  </button>
+                )}
               </div>
             ) : (
               <div className="space-y-3">
@@ -2556,7 +2618,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                         {/* Durum Seçici */}
                         <select
                           value={currentStatus}
-                          onChange={(e) => onUpdateLeadStatus(lead.id, e.target.value as any)}
+                          onChange={(e) => {
+                            const nextVal = e.target.value as LeadRequest['status'];
+                            onUpdateLeadStatus(lead.id, nextVal);
+                            if (nextVal === 'sozlesme_imzalandi') {
+                              showToast(
+                                isStoreOrder
+                                  ? 'Sipariş "Teslim Edildi" olarak işaretlendi ve Tamamlananlar / Arşiv sekmesine taşındı.'
+                                  : 'Talep tamamlandı ve Tamamlananlar / Arşiv sekmesine taşındı.'
+                              );
+                            }
+                          }}
                           className={`text-xs font-bold rounded-full px-3 py-1.5 border focus:outline-none ${
                             currentStatus === 'bekliyor'
                               ? 'bg-amber-50 text-amber-800 border-amber-300'

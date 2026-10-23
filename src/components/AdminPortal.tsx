@@ -39,11 +39,17 @@ import {
   Building2,
   CreditCard,
   Cloud,
-  Download
+  Download,
+  Star,
+  Calculator,
+  Bell,
+  Smartphone
 } from 'lucide-react';
 import { 
   CategoryKey, 
   Product, 
+  ProductVariant,
+  CoverageCalculationRule,
   LeadRequest, 
   CategoryInfo, 
   SiteSettings, 
@@ -59,6 +65,7 @@ import {
   normalizeCloudEndpoint,
   syncToCloudAndTabs,
 } from '../utils/cloudSync';
+import { dbService } from '../services/dbService';
 
 interface AdminPortalProps {
   categories: CategoryInfo[];
@@ -185,6 +192,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [newName, setNewName] = useState('');
   const [newCode, setNewCode] = useState('');
   const [newImage, setNewImage] = useState('');
+  const [newImages, setNewImages] = useState<string[]>([]);
+  const [newUrlInput, setNewUrlInput] = useState('');
   const [newRoomImage, setNewRoomImage] = useState('');
   const [newMaterialPrice, setNewMaterialPrice] = useState<number>(85);
   const [newLaborPrice, setNewLaborPrice] = useState<number>(0);
@@ -196,12 +205,21 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [newSpecs, setNewSpecs] = useState('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const multiFileInputRef = useRef<HTMLInputElement>(null);
   const roomFileInputRef = useRef<HTMLInputElement>(null);
 
   // Full Edit Modal for existing product
   const [editModalProduct, setEditModalProduct] = useState<Product | null>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
+  const editMultiFileInputRef = useRef<HTMLInputElement>(null);
   const editRoomFileInputRef = useRef<HTMLInputElement>(null);
+  const [editUrlInput, setEditUrlInput] = useState('');
+
+  // Variant manager state for editing products
+  const [newVarName, setNewVarName] = useState('');
+  const [newVarColor, setNewVarColor] = useState('#E4DEC8');
+  const [newVarCode, setNewVarCode] = useState('');
+  const [newVarPriceDiff, setNewVarPriceDiff] = useState<number>(0);
 
   // ==========================================
   // TAB 2: TABAN İŞÇİLİK FİYATLARI STATE
@@ -263,7 +281,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     settings.paymentMethods || INITIAL_SETTINGS.paymentMethods || {
       enableBankTransfer: true,
       enableCashOnDelivery: true,
-      enableCreditCard: false,
+      enableCreditCard: true,
       creditCardNote: 'Tüm kartlara 12 taksit imkanı',
     }
   );
@@ -278,7 +296,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   );
   const [localFreeShipping, setLocalFreeShipping] = useState(settings.freeShippingThreshold ?? 3000);
   const [localStandardShipping, setLocalStandardShipping] = useState(settings.standardShippingCost ?? 180);
-  const [cloudEndpoint, setCloudEndpoint] = useState(() => getCustomCloudEndpoint());
+  const [cloudEndpoint, setCloudEndpoint] = useState(() => settings.cloudEndpoint || getCustomCloudEndpoint());
+  const [localWebhookUrl, setLocalWebhookUrl] = useState(() => settings.notificationWebhookUrl || '');
+  const [localTelegramConfig, setLocalTelegramConfig] = useState(() => settings.telegramConfig || { enabled: false, botToken: '', chatId: '' });
   const backupFileInputRef = useRef<HTMLInputElement>(null);
 
   // Sync local form states when parent settings change (e.g. backup import, cross-tab sync, or factory reset)
@@ -302,7 +322,44 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     if (settings.legalInfo) setLocalLegalInfo(settings.legalInfo);
     setLocalFreeShipping(settings.freeShippingThreshold ?? 3000);
     setLocalStandardShipping(settings.standardShippingCost ?? 180);
+    if (settings.cloudEndpoint !== undefined) setCloudEndpoint(settings.cloudEndpoint);
+    if (settings.notificationWebhookUrl !== undefined) setLocalWebhookUrl(settings.notificationWebhookUrl);
+    if (settings.telegramConfig) setLocalTelegramConfig(settings.telegramConfig);
   }, [settings]);
+
+  const [isTestingTelegram, setIsTestingTelegram] = useState(false);
+  const [isTestingWebhook, setIsTestingWebhook] = useState(false);
+
+  const handleTestTelegram = async () => {
+    if (!localTelegramConfig.botToken || !localTelegramConfig.chatId) {
+      alert('Lütfen Telegram Bot Token ve Chat ID alanlarını doldurunuz.');
+      return;
+    }
+    setIsTestingTelegram(true);
+    const testMsg = `🔔 <b>RVOBA® TEST BİLDİRİMİ</b>\nTelegram bildirim entegrasyonunuz başarıyla çalışıyor! Canlı gelen siparişler ve keşif talepleri buraya otomatik düşecektir.`;
+    const ok = await dbService.sendTelegramAlert(testMsg, localTelegramConfig.botToken, localTelegramConfig.chatId);
+    setIsTestingTelegram(false);
+    if (ok) {
+      showToast('Telegram test bildirimi başarıyla cebinize gönderildi!');
+    } else {
+      alert('Telegram bildirimi gönderilemedi. Lütfen Bot Token ve Chat ID değerlerinizi kontrol ediniz.');
+    }
+  };
+
+  const handleTestWebhook = async () => {
+    if (!localWebhookUrl.trim()) {
+      alert('Lütfen Webhook URL giriniz.');
+      return;
+    }
+    setIsTestingWebhook(true);
+    await dbService.sendWebhookNotification('test_ping', {
+      source: 'RVOBA Admin Panel',
+      message: 'Webhook bağlantı testi başarılı!',
+      timestamp: new Date().toISOString(),
+    }, localWebhookUrl.trim());
+    setIsTestingWebhook(false);
+    showToast('Test Webhook isteği başarıyla tetiklendi!');
+  };
 
   const [newAdminPassword, setNewAdminPassword] = useState('');
   const [confirmAdminPassword, setConfirmAdminPassword] = useState('');
@@ -330,25 +387,131 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, isRoom = false) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 3 * 1024 * 1024) {
-      alert('Fotoğraf boyutu 3MB üzerinde olamaz.');
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Fotoğraf boyutu 5MB üzerinde olamaz.');
       return;
     }
     const reader = new FileReader();
     reader.onloadend = () => {
       if (typeof reader.result === 'string') {
         if (isRoom) setNewRoomImage(reader.result);
-        else setNewImage(reader.result);
+        else {
+          setNewImage(reader.result);
+          setNewImages((prev) => prev.includes(reader.result as string) ? prev : [reader.result as string, ...prev]);
+        }
       }
     };
     reader.readAsDataURL(file);
   };
 
+  const handleMultipleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, isEdit = false) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    Array.from(files).forEach((file) => {
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`${file.name} boyutu 5MB üzerinde olduğu için yüklenemedi.`);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          const res = reader.result;
+          if (isEdit) {
+            setEditModalProduct((prev) => {
+              if (!prev) return null;
+              const current = prev.images && prev.images.length > 0 ? prev.images : [prev.image];
+              const updated = [...current, res];
+              return {
+                ...prev,
+                image: prev.image || res,
+                images: updated,
+              };
+            });
+          } else {
+            setNewImages((prev) => {
+              const updated = [...prev, res];
+              if (!newImage) setNewImage(res);
+              return updated;
+            });
+          }
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  };
+
+  const handleAddImageUrl = (isEdit = false) => {
+    if (isEdit) {
+      if (!editUrlInput.trim() || !editModalProduct) return;
+      const current = editModalProduct.images && editModalProduct.images.length > 0 ? editModalProduct.images : [editModalProduct.image];
+      const updated = [...current, editUrlInput.trim()];
+      setEditModalProduct({
+        ...editModalProduct,
+        image: editModalProduct.image || editUrlInput.trim(),
+        images: updated,
+      });
+      setEditUrlInput('');
+    } else {
+      if (!newUrlInput.trim()) return;
+      setNewImages((prev) => {
+        const updated = [...prev, newUrlInput.trim()];
+        if (!newImage) setNewImage(newUrlInput.trim());
+        return updated;
+      });
+      setNewUrlInput('');
+    }
+  };
+
+  const handleSetCoverImage = (index: number, isEdit = false) => {
+    if (isEdit) {
+      if (!editModalProduct) return;
+      const current = editModalProduct.images && editModalProduct.images.length > 0 ? [...editModalProduct.images] : [editModalProduct.image];
+      if (index >= 0 && index < current.length) {
+        const [selected] = current.splice(index, 1);
+        current.unshift(selected);
+        setEditModalProduct({
+          ...editModalProduct,
+          image: selected,
+          images: current,
+        });
+      }
+    } else {
+      if (index >= 0 && index < newImages.length) {
+        const copy = [...newImages];
+        const [selected] = copy.splice(index, 1);
+        copy.unshift(selected);
+        setNewImages(copy);
+        setNewImage(selected);
+      }
+    }
+  };
+
+  const handleDeleteGalleryImage = (index: number, isEdit = false) => {
+    if (isEdit) {
+      if (!editModalProduct) return;
+      const current = editModalProduct.images && editModalProduct.images.length > 0 ? [...editModalProduct.images] : [editModalProduct.image];
+      current.splice(index, 1);
+      const newCover = current[0] || '';
+      setEditModalProduct({
+        ...editModalProduct,
+        image: newCover,
+        images: current,
+      });
+    } else {
+      const copy = [...newImages];
+      copy.splice(index, 1);
+      setNewImages(copy);
+      setNewImage(copy[0] || '');
+    }
+  };
+
   const handleEditFileUpload = (e: React.ChangeEvent<HTMLInputElement>, isRoom = false) => {
     const file = e.target.files?.[0];
     if (!file || !editModalProduct) return;
-    if (file.size > 3 * 1024 * 1024) {
-      alert('Fotoğraf boyutu 3MB üzerinde olamaz.');
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Fotoğraf boyutu 5MB üzerinde olamaz.');
       return;
     }
     const reader = new FileReader();
@@ -357,11 +520,43 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         if (isRoom) {
           setEditModalProduct({ ...editModalProduct, roomImage: reader.result });
         } else {
-          setEditModalProduct({ ...editModalProduct, image: reader.result });
+          const current = editModalProduct.images && editModalProduct.images.length > 0 ? editModalProduct.images : [editModalProduct.image];
+          setEditModalProduct({ 
+            ...editModalProduct, 
+            image: reader.result,
+            images: [reader.result, ...current.filter(img => img !== reader.result)]
+          });
         }
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleAddVariantToEditProduct = () => {
+    if (!newVarName.trim() || !editModalProduct) return;
+    const newVar: ProductVariant = {
+      id: `v-${Date.now()}`,
+      name: newVarName.trim(),
+      colorHex: newVarColor,
+      code: newVarCode.trim() || undefined,
+      priceDifference: newVarPriceDiff !== 0 ? newVarPriceDiff : undefined,
+    };
+    const currentVariants = editModalProduct.variants || [];
+    setEditModalProduct({
+      ...editModalProduct,
+      variants: [...currentVariants, newVar],
+    });
+    setNewVarName('');
+    setNewVarCode('');
+    setNewVarPriceDiff(0);
+  };
+
+  const handleDeleteVariantFromEditProduct = (varId: string) => {
+    if (!editModalProduct || !editModalProduct.variants) return;
+    setEditModalProduct({
+      ...editModalProduct,
+      variants: editModalProduct.variants.filter((v) => v.id !== varId),
+    });
   };
 
   // Add Product Submit
@@ -371,13 +566,19 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       alert('Lütfen ürün adı ve kodunu giriniz.');
       return;
     }
+    const finalImages = newImages.length > 0 
+      ? newImages 
+      : (newImage ? [newImage, ...(newRoomImage ? [newRoomImage] : [])] : []);
+    const mainImg = finalImages[0] || newImage || 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=700&q=80';
+
     const newProduct: Product = {
       id: `custom-prod-${Date.now()}`,
       category: newCategory,
       brand: newBrand,
       name: newName.trim(),
       code: newCode.trim(),
-      image: newImage || 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=700&q=80',
+      image: mainImg,
+      images: finalImages.length > 0 ? finalImages : [mainImg],
       roomImage: newRoomImage || undefined,
       description: newDescription.trim() || `${newBrand} 1. sınıf mimari seri ürün.`,
       unit: (newUnit || categories.find(c => c.key === newCategory)?.unit || 'm²') as Product['unit'],
@@ -394,6 +595,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     setNewName('');
     setNewCode('');
     setNewImage('');
+    setNewImages([]);
+    setNewUrlInput('');
     setNewRoomImage('');
     setNewDescription('');
     setNewIsStoreProduct(true);
@@ -401,7 +604,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     setNewPackageInfo('');
     setNewSpecs('');
     setNewMarketPrice(0);
-    showToast('Yeni ürün kataloğa başarıyla eklendi.');
+    showToast('Yeni ürün ve fotoğraf albümü başarıyla eklendi.');
   };
 
   // Save Inline Edit
@@ -640,9 +843,31 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     return matchCat && matchSearch;
   });
 
+  // Normalize lead status (including backwards-compatibility for legacy values)
+  const normalizeLeadStatus = (status?: string): NonNullable<LeadRequest['status']> => {
+    if (status === 'sozlesme_imzalandi' || status === 'completed') return 'sozlesme_imzalandi';
+    if (status === 'kesif_verildi' || status === 'scheduled') return 'kesif_verildi';
+    if (status === 'arandi' || status === 'contacted') return 'arandi';
+    return 'bekliyor';
+  };
+
+  const getLeadStatusLabel = (status?: string, isStoreOrder?: boolean) => {
+    const norm = normalizeLeadStatus(status);
+    if (isStoreOrder) {
+      if (norm === 'sozlesme_imzalandi') return 'Teslim Edildi';
+      if (norm === 'kesif_verildi') return 'Kargoya Verildi / Sevkiyatta';
+      if (norm === 'arandi') return 'Onaylandı & Hazırlanıyor';
+      return 'Sipariş Alındı';
+    }
+    if (norm === 'sozlesme_imzalandi') return 'Sözleşme İmzalandı';
+    if (norm === 'kesif_verildi') return 'Keşif Randevusu Verildi';
+    if (norm === 'arandi') return 'Mimar Aradı';
+    return 'Bekliyor';
+  };
+
   // Filtered leads
   const filteredLeads = leads.filter(l => {
-    const matchStatus = leadStatusFilter === 'all' || (l.status || 'bekliyor') === leadStatusFilter;
+    const matchStatus = leadStatusFilter === 'all' || normalizeLeadStatus(l.status) === leadStatusFilter;
     const isStoreOrder =
       l.leadType === 'store_order' ||
       l.leadType === 'web_order' ||
@@ -700,13 +925,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
         : isInspection
         ? 'Lazer Keşif Randevusu'
         : 'WhatsApp Teklifi';
-      const statusMap = {
-        bekliyor: 'Bekliyor',
-        arandi: 'Arandı',
-        kesif_verildi: 'Keşif Randevusu Verildi',
-        sozlesme_imzalandi: 'Sözleşme İmzalandı'
-      };
-      const statusStr = statusMap[l.status || 'bekliyor'] || 'Bekliyor';
+      const statusStr = getLeadStatusLabel(l.status, isStoreOrder);
       const itemsStr = (l.items || [])
         .map(i => {
           const opt = i.purchaseType === 'material_only' ? ' [Sadece Malzeme]' : i.purchaseType === 'with_installation' ? ' [Montaj Dahil]' : '';
@@ -2250,10 +2469,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   className="bg-[#F8F9FA] border border-[#CBD5E1] rounded-full px-3 py-1.5 text-xs font-bold text-[#0A0A0B] focus:outline-none"
                 >
                   <option value="all">Tüm Durumlar</option>
-                  <option value="bekliyor">🟡 Bekliyor</option>
-                  <option value="arandi">🔵 Arandı</option>
-                  <option value="kesif_verildi">🟣 Keşif Randevusu Verildi</option>
-                  <option value="sozlesme_imzalandi">🟢 Sözleşme İmzalandı</option>
+                  <option value="bekliyor">🟡 Sipariş / Talep Alındı (Bekliyor)</option>
+                  <option value="arandi">🔵 Hazırlanıyor / Mimar Aradı</option>
+                  <option value="kesif_verildi">🟣 Kargoya Verildi / Keşif Planlandı</option>
+                  <option value="sozlesme_imzalandi">🟢 Teslim Edildi / Sözleşme İmzalandı</option>
                 </select>
 
                 <button
@@ -2284,7 +2503,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     lead.id.startsWith('order-');
                   const isCallback = lead.id.startsWith('callback') || lead.leadType === 'callback';
                   const isInspection = !isCallback && !isStoreOrder && !!lead.preferredDate;
-                  const currentStatus = lead.status || 'bekliyor';
+                  const currentStatus = normalizeLeadStatus(lead.status);
 
                   return (
                     <div
@@ -2348,10 +2567,21 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                               : 'bg-emerald-50 text-emerald-800 border-emerald-300'
                           }`}
                         >
-                          <option value="bekliyor">🟡 Bekliyor</option>
-                          <option value="arandi">🔵 Arandı</option>
-                          <option value="kesif_verildi">🟣 Keşif Verildi</option>
-                          <option value="sozlesme_imzalandi">🟢 Sözleşme İmzalandı</option>
+                          {isStoreOrder ? (
+                            <>
+                              <option value="bekliyor">🟡 Sipariş Alındı</option>
+                              <option value="arandi">🔵 Onaylandı & Hazırlanıyor</option>
+                              <option value="kesif_verildi">🟣 Kargoya Verildi</option>
+                              <option value="sozlesme_imzalandi">🟢 Teslim Edildi</option>
+                            </>
+                          ) : (
+                            <>
+                              <option value="bekliyor">🟡 Bekliyor</option>
+                              <option value="arandi">🔵 Mimar Aradı</option>
+                              <option value="kesif_verildi">🟣 Keşif Verildi</option>
+                              <option value="sozlesme_imzalandi">🟢 Sözleşme İmzalandı</option>
+                            </>
+                          )}
                         </select>
 
                         <button
@@ -2808,13 +3038,18 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                       const normalized = normalizeCloudEndpoint(cloudEndpoint);
                       setCloudEndpoint(normalized);
                       setCustomCloudEndpoint(normalized);
+                      const updatedSettings: SiteSettings = {
+                        ...settings,
+                        cloudEndpoint: normalized,
+                      };
+                      onUpdateSettings(updatedSettings);
                       if (!normalized) {
                         showToast('Bulut bağlantısı kaldırıldı (Yalnızca yerel senkronizasyon aktif).');
                         return;
                       }
                       const ok = await syncToCloudAndTabs({
                         products,
-                        settings,
+                        settings: updatedSettings,
                         leads,
                         customers,
                       });
@@ -2832,6 +3067,140 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 <p className="text-[11px] text-[#64748B]">
                   ✓ Aynı cihazdaki tüm sekmeler (Admin ve Canlı Site) gerçek zamanlı olarak otomatik senkronize olur. Farklı cihazlar arası otomatik senkronizasyon için ücretsiz bir Firebase Realtime Database URL'si girebilir veya JSON Yedek İndir/Yükle butonlarını kullanabilirsiniz.
                 </p>
+              </div>
+
+              {/* Telegram Anlık Mobil Sipariş Bildirimi */}
+              <div className="p-5 rounded-2xl bg-blue-50/70 border border-blue-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0">
+                      <Send className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-blue-950">
+                        Anlık Telegram Sipariş Bildirimi (Cep Telefonunuza Push Mesaj)
+                      </h4>
+                      <p className="text-[10px] text-blue-800">
+                        Müşteri WhatsApp'a tıklamasa bile sipariş verildiği an tüm detaylar Telegram üzerinden cebinize düşer.
+                      </p>
+                    </div>
+                  </div>
+
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={localTelegramConfig.enabled === true}
+                      onChange={(e) => setLocalTelegramConfig({ ...localTelegramConfig, enabled: e.target.checked })}
+                      className="rounded text-blue-600 focus:ring-blue-600 w-4 h-4"
+                    />
+                    <span className="text-xs font-bold text-blue-950">Aktif</span>
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="block text-[11px] font-bold text-blue-950 mb-1">
+                      Telegram Bot Token
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Örn: 7123456789:AAHk..."
+                      value={localTelegramConfig.botToken || ''}
+                      onChange={(e) => setLocalTelegramConfig({ ...localTelegramConfig, botToken: e.target.value.trim() })}
+                      className="w-full bg-white border border-blue-300 rounded-xl px-3 py-2 text-xs font-mono"
+                    />
+                    <span className="text-[10px] text-blue-700">Telegram'da @BotFather üzerinden 30 saniyede ücretsiz alınır.</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-blue-950 mb-1">
+                      Telegram Chat ID (Hesabınızın veya Grubunuzun ID'si)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Örn: 123456789"
+                      value={localTelegramConfig.chatId || ''}
+                      onChange={(e) => setLocalTelegramConfig({ ...localTelegramConfig, chatId: e.target.value.trim() })}
+                      className="w-full bg-white border border-blue-300 rounded-xl px-3 py-2 text-xs font-mono"
+                    />
+                    <span className="text-[10px] text-blue-700">Telegram'da @userinfobot botundan Chat ID'nizi öğrenebilirsiniz.</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    disabled={isTestingTelegram || !localTelegramConfig.botToken || !localTelegramConfig.chatId}
+                    onClick={handleTestTelegram}
+                    className="btn-pill-outline text-xs py-2 px-4 font-bold border-blue-300 text-blue-900 hover:bg-blue-100 disabled:opacity-50"
+                  >
+                    {isTestingTelegram ? 'Gönderiliyor...' : 'Test Bildirimi Gönder'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = {
+                        ...settings,
+                        telegramConfig: localTelegramConfig,
+                      };
+                      onUpdateSettings(updated);
+                      showToast('Telegram bildirim ayarları başarıyla kaydedildi!');
+                    }}
+                    className="btn-pill-black bg-blue-600 hover:bg-blue-700 text-white text-xs py-2 px-5 font-bold shadow-md"
+                  >
+                    Telegram Ayarlarını Kaydet
+                  </button>
+                </div>
+              </div>
+
+              {/* Harici Webhook Bildirimi (Zapier / Make / Slack) */}
+              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0">
+                    <Bell className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[#0A0A0B]">
+                      Harici Sipariş Webhook'u (Make.com, Zapier, E-Posta veya CRM)
+                    </h4>
+                    <p className="text-[10px] text-slate-500">
+                      Her yeni siparişte bu adrese anında JSON formatında sipariş verisi POST edilir.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="url"
+                    placeholder="Örn: https://hook.eu1.make.com/xxxxxxxxxxxxxxxxxxxx"
+                    value={localWebhookUrl}
+                    onChange={(e) => setLocalWebhookUrl(e.target.value.trim())}
+                    className="flex-1 bg-white border border-[#CBD5E1] rounded-xl px-3.5 py-2 text-xs font-mono text-[#0A0A0B] focus:outline-none focus:border-black"
+                  />
+                  <button
+                    type="button"
+                    disabled={isTestingWebhook || !localWebhookUrl}
+                    onClick={handleTestWebhook}
+                    className="btn-pill-outline text-xs py-2 px-4 font-bold disabled:opacity-50"
+                  >
+                    {isTestingWebhook ? 'Test Ediliyor...' : 'Test İsteği Gönder'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = {
+                        ...settings,
+                        notificationWebhookUrl: localWebhookUrl.trim(),
+                      };
+                      onUpdateSettings(updated);
+                      showToast('Webhook adresi başarıyla kaydedildi!');
+                    }}
+                    className="btn-pill-black text-xs py-2 px-5 font-bold"
+                  >
+                    Webhook Kaydet
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -3148,33 +3517,40 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
                             {customerLeads.length > 0 ? (
                               <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                                {customerLeads.map((ld) => (
-                                  <div 
-                                    key={ld.id} 
-                                    onClick={() => setSelectedLeadDetail(ld)}
-                                    className="text-xs bg-white p-2.5 rounded-xl border border-slate-200/70 hover:border-black cursor-pointer transition flex items-center justify-between"
-                                  >
-                                    <div>
-                                      <div className="font-bold text-slate-800 flex items-center gap-2">
-                                        <span>{ld.orderNumber || ld.id}</span>
-                                        <span className="text-[10px] font-bold text-slate-500">
-                                          ({ld.items?.length || 0} Kalem)
-                                        </span>
+                                {customerLeads.map((ld) => {
+                                  const isLdStore =
+                                    ld.leadType === 'store_order' ||
+                                    ld.leadType === 'web_order' ||
+                                    ld.id.startsWith('store-order') ||
+                                    ld.id.startsWith('order-');
+                                  return (
+                                    <div 
+                                      key={ld.id} 
+                                      onClick={() => setSelectedLeadDetail(ld)}
+                                      className="text-xs bg-white p-2.5 rounded-xl border border-slate-200/70 hover:border-black cursor-pointer transition flex items-center justify-between"
+                                    >
+                                      <div>
+                                        <div className="font-bold text-slate-800 flex items-center gap-2">
+                                          <span>{ld.orderNumber || ld.id}</span>
+                                          <span className="text-[10px] font-bold text-slate-500">
+                                            ({ld.items?.length || 0} Kalem)
+                                          </span>
+                                        </div>
+                                        <div className="text-[11px] text-slate-400">
+                                          {ld.createdAt ? new Date(ld.createdAt).toLocaleDateString('tr-TR') : ''} • Durum: <strong className="text-slate-700">{getLeadStatusLabel(ld.status, isLdStore)}</strong>
+                                        </div>
                                       </div>
-                                      <div className="text-[11px] text-slate-400">
-                                        {ld.createdAt ? new Date(ld.createdAt).toLocaleDateString('tr-TR') : ''} • Durum: <strong className="text-slate-700 capitalize">{ld.status || 'Bekliyor'}</strong>
+                                      <div className="text-right">
+                                        <div className="font-bold font-mono text-slate-900">
+                                          {ld.totalAmount.toLocaleString('tr-TR')} ₺
+                                        </div>
+                                        <div className="text-[10px] text-blue-600 font-bold hover:underline">
+                                          İncele →
+                                        </div>
                                       </div>
                                     </div>
-                                    <div className="text-right">
-                                      <div className="font-bold font-mono text-slate-900">
-                                        {ld.totalAmount.toLocaleString('tr-TR')} ₺
-                                      </div>
-                                      <div className="text-[10px] text-blue-600 font-bold hover:underline">
-                                        İncele →
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
+                                  );
+                                })}
                               </div>
                             ) : (
                               <div className="text-xs text-slate-400 italic">
@@ -3288,33 +3664,107 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 </div>
               </div>
 
-              {/* Fotoğraf Yükleme */}
-              <div>
-                <label className="block text-xs font-bold mb-1">Kartela Numune Fotoğrafı *</label>
-                <div className="flex items-center gap-3">
+              {/* Çoklu Fotoğraf Albümü Yükleme */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-[#0A0A0B] flex items-center gap-1.5">
+                    <Camera className="w-4 h-4 text-emerald-600" />
+                    <span>Ürün Fotoğraf Albümü (Çoklu Fotoğraf)</span>
+                  </label>
+                  <span className="text-[11px] font-mono font-bold text-slate-500">
+                    {newImages.length} Fotoğraf
+                  </span>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="file"
-                    ref={fileInputRef}
+                    ref={multiFileInputRef}
                     accept="image/*"
-                    onChange={(e) => handleFileUpload(e, false)}
+                    multiple
+                    onChange={(e) => handleMultipleFileUpload(e, false)}
                     className="hidden"
                   />
                   <button
                     type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="btn-pill-outline text-xs py-2 px-4 flex items-center gap-1.5"
+                    onClick={() => multiFileInputRef.current?.click()}
+                    className="btn-pill-black text-xs py-2 px-4 flex items-center justify-center gap-1.5 shrink-0 bg-slate-900 hover:bg-black text-white"
                   >
                     <Upload className="w-3.5 h-3.5" />
-                    <span>Cihazdan Fotoğraf Seç</span>
+                    <span>Cihazdan Fotoğraf(lar) Seç</span>
                   </button>
-                  <input
-                    type="text"
-                    placeholder="Veya Görsel URL Yapıştır..."
-                    value={newImage}
-                    onChange={(e) => setNewImage(e.target.value)}
-                    className="flex-1 bg-[#F8F9FA] border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs"
-                  />
+
+                  <div className="flex-1 flex gap-1.5">
+                    <input
+                      type="text"
+                      placeholder="Veya Görsel URL'si yapıştırıp ekleyin..."
+                      value={newUrlInput}
+                      onChange={(e) => setNewUrlInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddImageUrl(false);
+                        }
+                      }}
+                      className="flex-1 bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleAddImageUrl(false)}
+                      className="btn-pill-outline text-xs py-2 px-3 shrink-0"
+                    >
+                      Ekle
+                    </button>
+                  </div>
                 </div>
+
+                {/* Albüm Önizleme Grid */}
+                {newImages.length > 0 ? (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2.5 pt-1">
+                    {newImages.map((imgUrl, idx) => (
+                      <div
+                        key={idx}
+                        className={`relative aspect-square rounded-xl overflow-hidden border-2 group shadow-sm ${
+                          idx === 0 ? 'border-emerald-600 ring-2 ring-emerald-500/30' : 'border-slate-200 bg-white'
+                        }`}
+                      >
+                        <img src={imgUrl} alt={`Ürün ${idx + 1}`} className="w-full h-full object-cover" />
+                        
+                        {/* Kapak Rozeti */}
+                        {idx === 0 && (
+                          <div className="absolute top-1 left-1 bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow">
+                            ★ Kapak
+                          </div>
+                        )}
+
+                        {/* Aksiyon Butonları Overlay */}
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 p-1">
+                          {idx !== 0 && (
+                            <button
+                              type="button"
+                              onClick={() => handleSetCoverImage(idx, false)}
+                              className="px-2 py-0.5 rounded bg-white text-[10px] font-bold text-black hover:bg-emerald-100 transition shadow"
+                            >
+                              Kapak Yap
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteGalleryImage(idx, false)}
+                            className="p-1 rounded bg-rose-600 text-white hover:bg-rose-700 transition shadow"
+                            title="Fotoğrafı Kaldır"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-slate-500 italic">
+                    Henüz fotoğraf eklenmedi. Cihazınızdan tek seferde birden fazla fotoğraf seçebilir veya URL yapıştırabilirsiniz. İlk sıradaki fotoğraf vitrin kapak resmi olur.
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
@@ -3494,32 +3944,113 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 </div>
               </div>
 
-              {/* Görsel Değiştirme */}
-              <div>
-                <label className="block text-xs font-bold mb-1">Kartela Görseli</label>
-                <div className="flex items-center gap-3">
-                  <img src={editModalProduct.image} alt="Önizleme" className="w-12 h-12 rounded-xl object-cover border" />
+              {/* Çoklu Fotoğraf Albümü Düzenleme */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-[#0A0A0B] flex items-center gap-1.5">
+                    <Camera className="w-4 h-4 text-emerald-600" />
+                    <span>Ürün Fotoğraf Albümü (Çoklu Galeri)</span>
+                  </label>
+                  <span className="text-[11px] font-mono font-bold text-slate-500">
+                    {((editModalProduct.images && editModalProduct.images.length > 0) ? editModalProduct.images.length : (editModalProduct.image ? 1 : 0))} Fotoğraf
+                  </span>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="file"
-                    ref={editFileInputRef}
+                    ref={editMultiFileInputRef}
                     accept="image/*"
-                    onChange={(e) => handleEditFileUpload(e, false)}
+                    multiple
+                    onChange={(e) => handleMultipleFileUpload(e, true)}
                     className="hidden"
                   />
                   <button
                     type="button"
-                    onClick={() => editFileInputRef.current?.click()}
-                    className="btn-pill-outline text-xs py-2 px-4"
+                    onClick={() => editMultiFileInputRef.current?.click()}
+                    className="btn-pill-black text-xs py-2 px-4 flex items-center justify-center gap-1.5 shrink-0 bg-slate-900 hover:bg-black text-white"
                   >
-                    Fotoğraf Değiştir
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Cihazdan Fotoğraf(lar) Ekle</span>
                   </button>
-                  <input
-                    type="text"
-                    value={editModalProduct.image}
-                    onChange={(e) => setEditModalProduct({ ...editModalProduct, image: e.target.value })}
-                    className="flex-1 bg-[#F8F9FA] border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs"
-                  />
+
+                  <div className="flex-1 flex gap-1.5">
+                    <input
+                      type="text"
+                      placeholder="Veya Görsel URL'si yapıştırıp ekleyin..."
+                      value={editUrlInput}
+                      onChange={(e) => setEditUrlInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddImageUrl(true);
+                        }
+                      }}
+                      className="flex-1 bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleAddImageUrl(true)}
+                      className="btn-pill-outline text-xs py-2 px-3 shrink-0"
+                    >
+                      Ekle
+                    </button>
+                  </div>
                 </div>
+
+                {/* Albüm Önizleme Grid */}
+                {(() => {
+                  const gallery = (editModalProduct.images && editModalProduct.images.length > 0)
+                    ? editModalProduct.images
+                    : (editModalProduct.image ? [editModalProduct.image] : []);
+
+                  return gallery.length > 0 ? (
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2.5 pt-1">
+                      {gallery.map((imgUrl, idx) => (
+                        <div
+                          key={idx}
+                          className={`relative aspect-square rounded-xl overflow-hidden border-2 group shadow-sm ${
+                            idx === 0 ? 'border-emerald-600 ring-2 ring-emerald-500/30' : 'border-slate-200 bg-white'
+                          }`}
+                        >
+                          <img src={imgUrl} alt={`Ürün ${idx + 1}`} className="w-full h-full object-cover" />
+                          
+                          {/* Kapak Rozeti */}
+                          {idx === 0 && (
+                            <div className="absolute top-1 left-1 bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow">
+                              ★ Kapak
+                            </div>
+                          )}
+
+                          {/* Aksiyon Butonları Overlay */}
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 p-1">
+                            {idx !== 0 && (
+                              <button
+                                type="button"
+                                onClick={() => handleSetCoverImage(idx, true)}
+                                className="px-2 py-0.5 rounded bg-white text-[10px] font-bold text-black hover:bg-emerald-100 transition shadow"
+                              >
+                                Kapak Yap
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteGalleryImage(idx, true)}
+                              className="p-1 rounded bg-rose-600 text-white hover:bg-rose-700 transition shadow"
+                              title="Fotoğrafı Kaldır"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-slate-500 italic">
+                      Henüz fotoğraf eklenmedi. Cihazınızdan tek seferde birden fazla fotoğraf seçebilir veya URL yapıştırabilirsiniz.
+                    </p>
+                  );
+                })()}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
@@ -3600,6 +4131,225 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   })}
                   className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-xl p-2.5 text-xs font-mono"
                 />
+              </div>
+
+              {/* Model / Renk Varyantları Yöneticisi */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-[#0A0A0B] flex items-center gap-1.5">
+                    <Layers className="w-4 h-4 text-purple-600" />
+                    <span>Ürün Model & Renk Kartelası Varyantları</span>
+                  </label>
+                  <span className="text-[11px] font-mono font-bold text-slate-500">
+                    {(editModalProduct.variants || []).length} Varyant
+                  </span>
+                </div>
+
+                {/* Mevcut Varyantlar Listesi */}
+                {(editModalProduct.variants && editModalProduct.variants.length > 0) ? (
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    {editModalProduct.variants.map((v) => (
+                      <div
+                        key={v.id}
+                        className="flex items-center justify-between p-2 rounded-xl bg-white border border-slate-200 text-xs"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="w-4 h-4 rounded-full border border-black/20 shrink-0 shadow-sm"
+                            style={{ backgroundColor: v.colorHex || '#CBD5E1' }}
+                          />
+                          <span className="font-bold text-slate-900">{v.name}</span>
+                          {v.code && <span className="font-mono text-[10px] text-slate-500">({v.code})</span>}
+                          {v.priceDifference && v.priceDifference !== 0 && (
+                            <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                              {v.priceDifference > 0 ? `+${v.priceDifference}` : v.priceDifference} ₺
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteVariantFromEditProduct(v.id)}
+                          className="p-1 text-slate-400 hover:text-rose-600 transition"
+                          title="Varyantı Sil"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-slate-500 italic">
+                    Henüz renk/model varyantı eklenmedi. Tek bir standart model olarak satılıyor.
+                  </p>
+                )}
+
+                {/* Yeni Varyant Ekleme Satırı */}
+                <div className="pt-2 border-t border-slate-200">
+                  <div className="text-[11px] font-bold text-slate-700 mb-1.5">Yeni Renk / Model Ekle:</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
+                    <div className="sm:col-span-4">
+                      <input
+                        type="text"
+                        placeholder="Varyant Adı (Örn: Doğal Meşe)"
+                        value={newVarName}
+                        onChange={(e) => setNewVarName(e.target.value)}
+                        className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs"
+                      />
+                    </div>
+                    <div className="sm:col-span-3">
+                      <input
+                        type="text"
+                        placeholder="Kod (Opsiyonel)"
+                        value={newVarCode}
+                        onChange={(e) => setNewVarCode(e.target.value)}
+                        className="w-full bg-white border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-mono"
+                      />
+                    </div>
+                    <div className="sm:col-span-2 flex items-center gap-1.5">
+                      <input
+                        type="color"
+                        value={newVarColor}
+                        onChange={(e) => setNewVarColor(e.target.value)}
+                        className="w-8 h-8 rounded-lg cursor-pointer border border-slate-300 p-0.5 shrink-0"
+                        title="Renk Seç"
+                      />
+                      <span className="text-[10px] font-mono text-slate-500">{newVarColor}</span>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <input
+                        type="number"
+                        placeholder="± Fiyat Farkı"
+                        value={newVarPriceDiff || ''}
+                        onChange={(e) => setNewVarPriceDiff(Number(e.target.value) || 0)}
+                        className="w-full bg-white border border-slate-300 rounded-xl px-2 py-1.5 text-xs font-mono"
+                      />
+                    </div>
+                    <div className="sm:col-span-1">
+                      <button
+                        type="button"
+                        onClick={handleAddVariantToEditProduct}
+                        className="w-full bg-slate-900 hover:bg-black text-white p-2 rounded-xl text-xs font-bold flex items-center justify-center shadow-sm"
+                        title="Varyantı Kaydet"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Akıllı Metraj & Paket Fire Kuralı (Coverage Rule) */}
+              <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-[#0A0A0B] flex items-center gap-1.5">
+                    <Calculator className="w-4 h-4 text-blue-600" />
+                    <span>Akıllı Metraj & Kutu / Fire Hesaplayıcı Kuralı</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={!!editModalProduct.coverageRule}
+                      onChange={(e) => {
+                        if (!editModalProduct) return;
+                        if (e.target.checked) {
+                          setEditModalProduct({
+                            ...editModalProduct,
+                            coverageRule: {
+                              coveragePerUnit: editModalProduct.unit === 'kova' ? 130 : 1.83,
+                              unitLabel: 'm²',
+                              defaultWastePercent: 7,
+                              calculationType: 'area',
+                            },
+                          });
+                        } else {
+                          setEditModalProduct({
+                            ...editModalProduct,
+                            coverageRule: undefined,
+                          });
+                        }
+                      }}
+                      className="rounded text-blue-600 focus:ring-blue-600 w-4 h-4"
+                    />
+                    <span className="text-[11px] font-bold text-blue-950">Aktif</span>
+                  </label>
+                </div>
+
+                {editModalProduct.coverageRule ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-800 mb-1">
+                        1 {editModalProduct.unit || 'paket'} Kapsamı:
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={editModalProduct.coverageRule.coveragePerUnit}
+                        onChange={(e) => {
+                          if (!editModalProduct || !editModalProduct.coverageRule) return;
+                          setEditModalProduct({
+                            ...editModalProduct,
+                            coverageRule: {
+                              ...editModalProduct.coverageRule,
+                              coveragePerUnit: Number(e.target.value) || 1,
+                            },
+                          });
+                        }}
+                        className="w-full bg-white border border-blue-300 rounded-xl px-3 py-1.5 text-xs font-mono"
+                      />
+                      <span className="text-[10px] text-slate-500">Örn: Parkede 1.83, Boyada 130 m²</span>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-800 mb-1">
+                        Standart Fire Payı (%):
+                      </label>
+                      <input
+                        type="number"
+                        value={editModalProduct.coverageRule.defaultWastePercent}
+                        onChange={(e) => {
+                          if (!editModalProduct || !editModalProduct.coverageRule) return;
+                          setEditModalProduct({
+                            ...editModalProduct,
+                            coverageRule: {
+                              ...editModalProduct.coverageRule,
+                              defaultWastePercent: Number(e.target.value) || 0,
+                            },
+                          });
+                        }}
+                        className="w-full bg-white border border-blue-300 rounded-xl px-3 py-1.5 text-xs font-mono"
+                      />
+                      <span className="text-[10px] text-slate-500">Örn: Parkede %7, Boyada %5</span>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-800 mb-1">
+                        Hesap Tipi:
+                      </label>
+                      <select
+                        value={editModalProduct.coverageRule.calculationType}
+                        onChange={(e) => {
+                          if (!editModalProduct || !editModalProduct.coverageRule) return;
+                          setEditModalProduct({
+                            ...editModalProduct,
+                            coverageRule: {
+                              ...editModalProduct.coverageRule,
+                              calculationType: e.target.value as any,
+                            },
+                          });
+                        }}
+                        className="w-full bg-white border border-blue-300 rounded-xl px-2.5 py-1.5 text-xs font-bold"
+                      >
+                        <option value="area">m² Alan Hesabı</option>
+                        <option value="length">Metre Uzunluk Hesabı</option>
+                        <option value="set">Hazır Set / Kit Hesabı</option>
+                      </select>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-slate-500 italic">
+                    Bu ürün için akıllı metraj hesaplayıcı kapalı. "Aktif" kutusunu işaretleyerek müşterilerin oda ölçüsü girip kutu adedi hesaplamasını sağlayabilirsiniz.
+                  </p>
+                )}
               </div>
 
               <div className="pt-2 flex justify-end gap-2">
@@ -3771,14 +4521,39 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       {/* ======================================================== */}
       {/* MODAL: MÜŞTERİ TALEBİ DETAYLARI                          */}
       {/* ======================================================== */}
-      {selectedLeadDetail && (
+      {selectedLeadDetail && (() => {
+        const isDetailStoreOrder =
+          selectedLeadDetail.leadType === 'store_order' ||
+          selectedLeadDetail.leadType === 'web_order' ||
+          selectedLeadDetail.id.startsWith('store-order') ||
+          selectedLeadDetail.id.startsWith('order-');
+        const normalizedDetailStatus = normalizeLeadStatus(selectedLeadDetail.status);
+        const paymentAndShippingText =
+          selectedLeadDetail.paymentSummary ||
+          (selectedLeadDetail.paymentMethod
+            ? `${
+                selectedLeadDetail.paymentMethod === 'bank_transfer'
+                  ? 'Banka Havalesi / EFT'
+                  : selectedLeadDetail.paymentMethod === 'cash_on_delivery'
+                  ? 'Kapıda / Ambar Tesliminde Ödeme'
+                  : 'Kredi Kartı (3D Secure)'
+              }${
+                selectedLeadDetail.shippingCost !== undefined
+                  ? ` | Kargo: ${selectedLeadDetail.shippingCost > 0 ? `${selectedLeadDetail.shippingCost} ₺` : 'Ücretsiz'}`
+                  : ''
+              }`
+            : '');
+
+        return (
         <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
           <div onClick={() => setSelectedLeadDetail(null)} className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
           <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl p-6 sm:p-8 text-[#0A0A0B] z-10 max-h-[90vh] overflow-y-auto">
             <button onClick={() => setSelectedLeadDetail(null)} className="absolute top-5 right-5 p-2 text-slate-400 hover:text-black">
               <X className="w-5 h-5" />
             </button>
-            <h3 className="text-xl font-display font-extrabold mb-1">Müşteri Talep Detayı</h3>
+            <h3 className="text-xl font-display font-extrabold mb-1">
+              {isDetailStoreOrder ? 'Online Sipariş Detayı' : 'Müşteri Talep Detayı'}
+            </h3>
             <div className="text-xs text-[#64748B] mb-4">
               Kayıt / Sipariş No: <span className="font-mono font-bold text-black">{selectedLeadDetail.orderNumber || selectedLeadDetail.id}</span>
             </div>
@@ -3804,10 +4579,10 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   <span className="font-semibold text-black text-right">{selectedLeadDetail.address}</span>
                 </div>
               )}
-              {selectedLeadDetail.adminNotes && (
+              {paymentAndShippingText && (
                 <div className="flex justify-between gap-4">
                   <span className="text-[#64748B] shrink-0">Ödeme & Kargo:</span>
-                  <span className="font-semibold text-emerald-800 text-right">{selectedLeadDetail.adminNotes}</span>
+                  <span className="font-semibold text-emerald-800 text-right">{paymentAndShippingText}</span>
                 </div>
               )}
               {selectedLeadDetail.timeSlot && (
@@ -3832,20 +4607,31 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 space-y-3 mb-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <label className="text-xs font-extrabold text-emerald-950">
-                  Sipariş / Keşif Durumu & Müşteri Takip Notu
+                  {isDetailStoreOrder ? 'Sipariş Durumu & Kargo Takip Notu' : 'Keşif Durumu & Müşteri Takip Notu'}
                 </label>
                 <select
-                  value={selectedLeadDetail.status}
+                  value={normalizedDetailStatus}
                   onChange={(e) => {
                     const nextStatus = e.target.value as LeadRequest['status'];
                     setSelectedLeadDetail({ ...selectedLeadDetail, status: nextStatus });
                   }}
                   className="bg-white border border-emerald-300 rounded-xl px-3 py-1.5 text-xs font-bold text-[#0A0A0B]"
                 >
-                  <option value="new">Yeni Talep</option>
-                  <option value="contacted">İletişime Geçildi / Hazırlanıyor</option>
-                  <option value="scheduled">Kargoda / Keşif & Usta Planlandı</option>
-                  <option value="completed">Teslim Edildi / Tamamlandı</option>
+                  {isDetailStoreOrder ? (
+                    <>
+                      <option value="bekliyor">🟡 Sipariş Alındı (Bekliyor)</option>
+                      <option value="arandi">🔵 Onaylandı & Hazırlanıyor</option>
+                      <option value="kesif_verildi">🟣 Kargoya Verildi / Sevkiyatta</option>
+                      <option value="sozlesme_imzalandi">🟢 Teslim Edildi</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="bekliyor">🟡 Yeni Talep (Bekliyor)</option>
+                      <option value="arandi">🔵 Mimar Aradı / İncelendi</option>
+                      <option value="kesif_verildi">🟣 Keşif & Usta Planlandı</option>
+                      <option value="sozlesme_imzalandi">🟢 Sözleşme İmzalandı</option>
+                    </>
+                  )}
                 </select>
               </div>
               <div>
@@ -3859,7 +4645,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   className="w-full bg-white border border-emerald-300 rounded-xl px-3.5 py-2 text-xs text-[#0A0A0B] focus:outline-none focus:border-emerald-700"
                 />
                 <p className="text-[10px] text-emerald-800 mt-1">
-                  * Buraya yazdığınız not, müşteriniz üst menüdeki <strong>"Sipariş / Keşif Sorgula"</strong> ekranından telefon veya sipariş numarasıyla sorgulama yaptığında canlı olarak gösterilir.
+                  * Buraya yazdığınız not, müşteriniz <strong>"Siparişlerim"</strong> ve <strong>"Sipariş / Keşif Sorgula"</strong> ekranından baktığında canlı olarak gösterilir.
                 </p>
               </div>
               <div className="flex justify-end">
@@ -3868,7 +4654,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   onClick={() => {
                     onUpdateLeadStatus(
                       selectedLeadDetail.id,
-                      selectedLeadDetail.status,
+                      normalizeLeadStatus(selectedLeadDetail.status),
                       selectedLeadDetail.adminNotes || ''
                     );
                     showToast('Sipariş durumu ve müşteri takip notu güncellendi.');
@@ -3899,6 +4685,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                           Montaj Dahil
                         </span>
                       )}
+                      {it.variantName && (
+                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-800 border border-slate-300">
+                          Seçilen Renk/Model: {it.variantName}
+                        </span>
+                      )}
                     </div>
                     <div className="text-[11px] text-[#64748B]">
                       {it.quantity} {it.unit} • {it.brand}
@@ -3920,7 +4711,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
     </div>
   );

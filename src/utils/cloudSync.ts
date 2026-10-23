@@ -34,9 +34,17 @@ export const normalizeCloudEndpoint = (rawUrl: string): string => {
   return trimmed;
 };
 
-export const getCustomCloudEndpoint = (): string => {
+export const getCustomCloudEndpoint = (settings?: SiteSettings): string => {
   try {
-    return localStorage.getItem(CLOUD_URL_STORAGE_KEY) || '';
+    const fromStorage = localStorage.getItem(CLOUD_URL_STORAGE_KEY);
+    if (fromStorage) return fromStorage;
+    if (settings?.cloudEndpoint) return normalizeCloudEndpoint(settings.cloudEndpoint);
+    const settingsRaw = localStorage.getItem('rvoba_settings_v1');
+    if (settingsRaw) {
+      const parsed = JSON.parse(settingsRaw);
+      if (parsed.cloudEndpoint) return normalizeCloudEndpoint(parsed.cloudEndpoint);
+    }
+    return '';
   } catch {
     return '';
   }

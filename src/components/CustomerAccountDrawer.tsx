@@ -17,7 +17,8 @@ import {
   ShieldCheck,
   Building,
   Edit2,
-  Save
+  Save,
+  Truck
 } from 'lucide-react';
 import { CustomerUser, CustomerAddress, LeadRequest } from '../types';
 
@@ -113,34 +114,50 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
     setTimeout(() => setIsSavedFeedback(false), 2500);
   };
 
-  const getStatusBadge = (status: LeadRequest['status']) => {
-    switch (status) {
+  const normalizeLeadStatus = (status?: string): LeadRequest['status'] => {
+    if (status === 'sozlesme_imzalandi' || status === 'completed') return 'sozlesme_imzalandi';
+    if (status === 'kesif_verildi' || status === 'scheduled') return 'kesif_verildi';
+    if (status === 'arandi' || status === 'contacted') return 'arandi';
+    return 'bekliyor';
+  };
+
+  const getStepIndex = (status?: string) => {
+    const norm = normalizeLeadStatus(status);
+    if (norm === 'sozlesme_imzalandi') return 3;
+    if (norm === 'kesif_verildi') return 2;
+    if (norm === 'arandi') return 1;
+    return 0;
+  };
+
+  const getStatusBadge = (status: LeadRequest['status'] | string | undefined, isStore: boolean) => {
+    const norm = normalizeLeadStatus(status);
+    switch (norm) {
       case 'sozlesme_imzalandi':
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-[10px]">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-            <span>Sözleşme İmzalandı</span>
+            <span>{isStore ? 'Teslim Edildi' : 'Sözleşme İmzalandı'}</span>
           </span>
         );
       case 'kesif_verildi':
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-50 text-purple-800 border border-purple-200 font-bold text-[10px]">
             <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0" />
-            <span>Keşif Randevusu Verildi</span>
+            <span>{isStore ? 'Kargoya Verildi / Sevkiyatta' : 'Keşif Randevusu Verildi'}</span>
           </span>
         );
       case 'arandi':
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-blue-800 border border-blue-200 font-bold text-[10px]">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
-            <span>Mimar Aradı</span>
+            <span>{isStore ? 'Onaylandı & Hazırlanıyor' : 'Mimar Aradı'}</span>
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-800 border border-slate-200 font-bold text-[10px]">
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0" />
-            <span>İşleme Alındı</span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-200 font-bold text-[10px]">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+            <span>{isStore ? 'Sipariş Alındı' : 'Talep Alındı'}</span>
           </span>
         );
     }
@@ -252,17 +269,26 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
                     {userOrders.map((ord) => {
                       const isStore = ord.leadType === 'web_order' || ord.leadType === 'store_order' || ord.id.startsWith('store-order') || ord.id.startsWith('order-');
                       const isInspection = !isStore && !!ord.preferredDate;
+                      const stepIdx = getStepIndex(ord.status);
+                      const steps = isStore
+                        ? ['Sipariş Alındı', 'Hazırlanıyor', 'Kargoda', 'Teslim Edildi']
+                        : ['Talep Alındı', 'Mimar Aradı', 'Keşif Planlandı', 'Sözleşme'];
+                      const itemsSubtotal = (ord.items || []).reduce((s, it) => s + (it.total || 0), 0);
+                      const hasTrackingNote =
+                        ord.adminNotes &&
+                        !ord.adminNotes.startsWith('Ödeme Tercihi:') &&
+                        !ord.adminNotes.startsWith('Ödeme: Sanal POS');
 
                       return (
                         <div key={ord.id} className="p-4 rounded-2xl bg-[#F8F9FA] border border-[#E8EAED] space-y-3 text-xs">
-                          <div className="flex items-center justify-between pb-2 border-b border-[#E8EAED]">
-                            <div className="flex items-center gap-1.5">
+                          <div className="flex items-center justify-between gap-2 pb-2 border-b border-[#E8EAED]">
+                            <div className="flex items-center gap-1.5 flex-wrap">
                               {isStore ? (
-                                <ShoppingBag className="w-3.5 h-3.5 text-blue-600" />
+                                <ShoppingBag className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                               ) : isInspection ? (
-                                <Calendar className="w-3.5 h-3.5 text-purple-600" />
+                                <Calendar className="w-3.5 h-3.5 text-purple-600 shrink-0" />
                               ) : (
-                                <Package className="w-3.5 h-3.5 text-emerald-600" />
+                                <Package className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                               )}
                               <span className="font-bold text-black">
                                 {isStore ? 'Online Sipariş' : isInspection ? 'Lazer Keşif Randevusu' : 'Tadilat Teklifi'}
@@ -273,8 +299,49 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
                                 </span>
                               )}
                             </div>
-                            {getStatusBadge(ord.status)}
+                            {getStatusBadge(ord.status, isStore)}
                           </div>
+
+                          {/* 4-Step Progress Bar */}
+                          <div className="grid grid-cols-4 gap-1 pt-0.5">
+                            {steps.map((label, idx) => {
+                              const isDone = idx <= stepIdx;
+                              const isCurrent = idx === stepIdx;
+                              return (
+                                <div key={label} className="space-y-1">
+                                  <div
+                                    className={`h-1.5 rounded-full transition-all ${
+                                      isDone ? 'bg-emerald-600' : 'bg-slate-200'
+                                    }`}
+                                  />
+                                  <div
+                                    className={`text-[9.5px] leading-tight ${
+                                      isCurrent
+                                        ? 'font-extrabold text-emerald-800'
+                                        : isDone
+                                        ? 'font-semibold text-[#0A0A0B]'
+                                        : 'text-slate-400'
+                                    }`}
+                                  >
+                                    {label}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Tracking / Admin Note if provided */}
+                          {hasTrackingNote && (
+                            <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-950 flex items-start gap-2">
+                              <Truck className="w-3.5 h-3.5 text-emerald-700 shrink-0 mt-0.5" />
+                              <div>
+                                <span className="font-bold block text-[10px] uppercase tracking-wider text-emerald-800">
+                                  Kargo & Teslimat Bilgilendirmesi:
+                                </span>
+                                <span className="font-medium">{ord.adminNotes}</span>
+                              </div>
+                            </div>
+                          )}
 
                           {/* Details */}
                           <div className="text-[11px] text-slate-500 space-y-1">
@@ -282,6 +349,14 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
                               <span>Tarih:</span>
                               <span className="font-mono text-black">{new Date(ord.createdAt).toLocaleDateString('tr-TR')}</span>
                             </div>
+                            {(ord.city || ord.district) && (
+                              <div className="flex justify-between gap-2">
+                                <span>Teslimat Bölgesi:</span>
+                                <span className="font-semibold text-black text-right">
+                                  {ord.district ? `${ord.district} / ${ord.city}` : ord.city}
+                                </span>
+                              </div>
+                            )}
                             {ord.paymentMethod && (
                               <div className="flex justify-between">
                                 <span>Ödeme Yöntemi:</span>
@@ -300,8 +375,24 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
                                 <span>{ord.preferredDate} ({ord.timeSlot || 'Gün Boyu'})</span>
                               </div>
                             )}
-                            <div className="flex justify-between">
-                              <span>Toplam Tutar:</span>
+                            {isStore && ord.shippingCost !== undefined && (
+                              <div className="flex justify-between">
+                                <span>Kargo & Sevkiyat:</span>
+                                <span className="font-mono font-semibold text-black">
+                                  {ord.shippingCost > 0 ? `${ord.shippingCost.toLocaleString('tr-TR')} ₺` : 'Ücretsiz'}
+                                </span>
+                              </div>
+                            )}
+                            {isStore && itemsSubtotal > 0 && (itemsSubtotal + (ord.shippingCost || 0) > ord.totalAmount) && (
+                              <div className="flex justify-between text-emerald-700 font-semibold">
+                                <span>Havale / EFT İndirimi:</span>
+                                <span className="font-mono">
+                                  -{(itemsSubtotal + (ord.shippingCost || 0) - ord.totalAmount).toLocaleString('tr-TR')} ₺
+                                </span>
+                              </div>
+                            )}
+                            <div className="flex justify-between pt-1 border-t border-slate-200/70">
+                              <span className="font-semibold text-slate-700">Toplam Tutar:</span>
                               <span className="font-mono font-bold text-black text-xs">
                                 {ord.totalAmount > 0 ? `${ord.totalAmount.toLocaleString('tr-TR')} ₺` : 'Keşif Sonrası'}
                               </span>
@@ -315,6 +406,11 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
                                 <div key={idx} className="flex items-center justify-between gap-2 text-slate-700">
                                   <div className="flex items-center gap-1.5 flex-wrap">
                                     <span>{it.quantity} {it.unit} • {it.name}</span>
+                                    {it.variantName && (
+                                      <span className="text-[9px] font-bold bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded-full border border-slate-200">
+                                        {it.variantName}
+                                      </span>
+                                    )}
                                     {it.purchaseType === 'with_installation' && (
                                       <span className="text-[9px] font-bold bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded-full">
                                         +Usta Montaj

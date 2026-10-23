@@ -19,7 +19,14 @@ export const INITIAL_SETTINGS: SiteSettings = {
     enableBankTransfer: true,
     enableCashOnDelivery: true,
     enableCreditCard: false,
-    creditCardNote: 'Tüm kredi kartlarına 12 taksit imkanı',
+    creditCardNote: 'Şirket kuruluş aşamasında — Yakında aktif',
+  },
+  cloudEndpoint: '',
+  notificationWebhookUrl: '',
+  telegramConfig: {
+    botToken: '',
+    chatId: '',
+    enabled: false,
   },
   legalInfo: {
     taxOffice: 'Kadıköy Vergi Dairesi',
@@ -166,7 +173,7 @@ export const INITIAL_SETTINGS: SiteSettings = {
     storeTitle: 'Evinizi Yenileyen Tasarım Malzemeleri',
     storeSubtitle: 'Trend akustik ahşap paneller, poliüretan çıta setleri, 1. sınıf boyalar ve zemin kaplamaları toptan bayi fiyatıyla Türkiye geneli kapınıza teslim.',
     storePerk1: '3.000 ₺ Üzeri Ücretsiz Kargo',
-    storePerk2: '%3 Havale İndirimi & Kapıda Ödeme',
+    storePerk2: 'Tüm Kartlara 12 Taksit & 3D Güvenli POS',
     storePerk3: 'Faturalı & Orijinal Bayi Garantisi',
 
     spotlightBadge: 'Öne Çıkan Tasarım',
@@ -179,7 +186,7 @@ export const INITIAL_SETTINGS: SiteSettings = {
 
     // 4. Duyuru Bandı
     announcementText1: '3.000 TL Üzeri Ücretsiz Kargo',
-    announcementText2: '%3 Havale İndirimi & Kapıda Ödeme İmkanı',
+    announcementText2: 'Tüm Kartlara 12 Taksit & %3 Havale İndirimi',
     announcementText3: 'Fabrikadan Doğrudan Sigortalı Sevk',
   },
 };

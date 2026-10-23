@@ -15,6 +15,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { CustomerUser, ServiceArea } from '../types';
+import { dbService } from '../services/dbService';
 
 interface CustomerAuthModalProps {
   isOpen: boolean;
@@ -72,29 +73,38 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
     'Kadıköy', 'Beşiktaş', 'Üsküdar', 'Ataşehir', 'Bakırköy', 'Sarıyer', 'Şişli', 'Maltepe', 'Tüm İlçe'
   ];
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsSubmitting(true);
 
-    setTimeout(() => {
+    try {
       const cleanIdent = loginIdentifier.trim().toLowerCase();
       const user = users.find(u => 
-        (u.email.toLowerCase() === cleanIdent || u.phone.replace(/\s+/g, '') === cleanIdent.replace(/\s+/g, '')) &&
-        (u.password === loginPassword || loginPassword === '123456') // allow easy demo if needed
+        (u.email.toLowerCase() === cleanIdent || u.phone.replace(/\s+/g, '') === cleanIdent.replace(/\s+/g, ''))
       );
 
-      if (user) {
+      if (!user) {
+        setError('E-posta/Telefon veya şifreniz hatalı. Lütfen tekrar deneyiniz.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      const isValid = await dbService.verifyPassword(loginPassword, user.password);
+      if (isValid) {
         onLoginSuccess(user);
         onClose();
       } else {
         setError('E-posta/Telefon veya şifreniz hatalı. Lütfen tekrar deneyiniz.');
       }
+    } catch {
+      setError('Giriş yapılırken bir sorun oluştu. Lütfen tekrar deneyiniz.');
+    } finally {
       setIsSubmitting(false);
-    }, 300);
+    }
   };
 
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -131,7 +141,8 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
 
     setIsSubmitting(true);
 
-    setTimeout(() => {
+    try {
+      const hashedPassword = await dbService.hashPassword(registerPassword);
       const newUser: CustomerUser = {
         id: `cust-${Date.now()}`,
         fullName: fullName.trim(),
@@ -139,25 +150,20 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
         phone: phone.trim(),
         city,
         district,
-        password: registerPassword,
-        addresses: [
-          {
-            id: `addr-${Date.now()}`,
-            title: 'Birincil Adres',
-            city,
-            district,
-            fullAddress: `${district}, ${city}`,
-            isDefault: true,
-          }
-        ],
+        password: hashedPassword,
+        addresses: [],
         createdAt: new Date().toISOString(),
       };
 
+      await dbService.saveCustomer(newUser);
       onRegisterUser(newUser);
       onLoginSuccess(newUser);
       onClose();
+    } catch {
+      setError('Kayıt oluşturulurken bir hata meydana geldi.');
+    } finally {
       setIsSubmitting(false);
-    }, 400);
+    }
   };
 
   return (

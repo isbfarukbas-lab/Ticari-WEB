@@ -310,6 +310,12 @@ export const INITIAL_PRODUCTS: Product[] = [
     name: 'Akustik Ahşap TV Arkası Çıta Paneli (280x60 cm)',
     code: 'RV-AKUS-280',
     image: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=800&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1618219908412-a29a1bb7b86e?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=800&q=80'
+    ],
     description: 'Doğal meşe kaplama ahşap çıtalar ve arkasında ses yutan yüksek yoğunluklu akustik keçe. Salon TV arkası veya yatak başı için lüks mimari detay.',
     unit: 'adet',
     materialPrice: 2450,
@@ -320,6 +326,18 @@ export const INITIAL_PRODUCTS: Product[] = [
     inStock: true,
     packageInfo: '280x60 cm Boy Panel',
     specs: ['280 cm tavan boyu', '60 cm genişlik', 'Doğal meşe kaplama', 'Ses yutan akustik siyah keçe', 'Vidalı veya yapıştırmalı kolay montaj'],
+    coverageRule: {
+      coveragePerUnit: 1.68,
+      unitLabel: 'm²',
+      defaultWastePercent: 5,
+      calculationType: 'area',
+    },
+    variants: [
+      { id: 'v-oak', name: 'Doğal Meşe', colorHex: '#C59E6B', code: 'RV-AKUS-OAK' },
+      { id: 'v-walnut', name: 'Koyu Ceviz', colorHex: '#5A3D28', code: 'RV-AKUS-WAL' },
+      { id: 'v-smoke', name: 'Füme Duman Meşe', colorHex: '#7B7568', code: 'RV-AKUS-SMK' },
+      { id: 'v-anthracite', name: 'Antrasit Siyah Ahşap', colorHex: '#252628', code: 'RV-AKUS-BLK' },
+    ],
   },
   {
     id: 'store-vitra-mat-siyah-batarya',
@@ -328,6 +346,11 @@ export const INITIAL_PRODUCTS: Product[] = [
     name: 'Root Round Mat Siyah Lavabo Bataryası (PVD Kaplama)',
     code: 'VIT-ROOT-BLK',
     image: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=800&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1507089947368-19c1da9775ae?auto=format&fit=crop&w=800&q=80'
+    ],
     description: 'Çizilmez ve leke tutmaz PVD mat siyah kaplama. Kireç kırıcılı aeratör ve 5.7 lt/dk su tasarruf teknolojisi.',
     unit: 'adet',
     materialPrice: 3150,
@@ -338,6 +361,11 @@ export const INITIAL_PRODUCTS: Product[] = [
     inStock: true,
     packageInfo: 'PVD Mat Siyah • 5 Yıl Garanti',
     specs: ['Mat siyah çizilmez PVD gövde', '35mm seramik kartuş', '5.7 lt/dk debi sınırlayıcı', '5 yıl VitrA Türkiye garantisi'],
+    variants: [
+      { id: 'v-blk', name: 'Mat Siyah PVD', colorHex: '#1E1E1E', code: 'VIT-ROOT-BLK' },
+      { id: 'v-gold', name: 'Fırçalanmış Gold PVD', colorHex: '#C6A15B', code: 'VIT-ROOT-GLD', priceDifference: 350 },
+      { id: 'v-chrome', name: 'Parlak Krom', colorHex: '#E2E8F0', code: 'VIT-ROOT-CRM', priceDifference: -200 },
+    ],
   },
   {
     id: 'store-rvoba-canak-lavabo',
@@ -346,6 +374,11 @@ export const INITIAL_PRODUCTS: Product[] = [
     name: 'Artisan Mat Beyaz İnce Kenar Çanak Lavabo (40 cm)',
     code: 'RV-CANAK-40',
     image: 'https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?auto=format&fit=crop&w=800&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1552321554-5fefe8c9ef14?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80'
+    ],
     description: 'Sıvı cam pürüzsüz sırlı mat beyaz yüzey, ultra ince kenar estetiği. Tezgah üstü mimari banyolara özel minimalist tasarım.',
     unit: 'adet',
     materialPrice: 2600,
@@ -356,6 +389,11 @@ export const INITIAL_PRODUCTS: Product[] = [
     inStock: true,
     packageInfo: '40 cm İnce Kenar Çanak',
     specs: ['40 cm çap, 14 cm yükseklik', 'Ultra ince kenar porselen', 'Kolay temizlenen antibakteriyel sır', 'Standart batarya deliği uyumlu'],
+    variants: [
+      { id: 'v-mat-white', name: 'Mat İpeksi Beyaz', colorHex: '#F8F9FA', code: 'RV-CANAK-WHT' },
+      { id: 'v-mat-anthracite', name: 'Mat Antrasit Gri', colorHex: '#374151', code: 'RV-CANAK-ANT', priceDifference: 200 },
+      { id: 'v-terracotta', name: 'Toprak Terracotta', colorHex: '#B4654A', code: 'RV-CANAK-TER', priceDifference: 250 },
+    ],
   },
   {
     id: 'store-filli-momento-kova',
@@ -374,6 +412,20 @@ export const INITIAL_PRODUCTS: Product[] = [
     inStock: true,
     packageInfo: '15L Fabrika Kovası (130 m²)',
     specs: ['15 Litre (yaklaşık 20 kg)', '120-140 m² çift kat alan boyar', 'Silikonlu tam silinebilir leke tutmaz', 'İstediğiniz kartela renginde hazırlanır'],
+    coverageRule: {
+      coveragePerUnit: 130,
+      unitLabel: 'm²',
+      defaultWastePercent: 0,
+      calculationType: 'area',
+    },
+    variants: [
+      { id: 'v-aydan', name: 'Aydan Rengi (Sıcak Bej)', colorHex: '#E5DDC9', code: 'FB-AYD-15L' },
+      { id: 'v-andezit', name: 'Andezit 25 (Nötr Çağdaş Gri)', colorHex: '#C5C7C5', code: 'FB-AND-15L' },
+      { id: 'v-kbeyaz', name: 'Işıltılı Kırık Beyaz', colorHex: '#F6F6F2', code: 'FB-KB-15L' },
+      { id: 'v-kozmik', name: 'Kozmik Vurgu Grisi', colorHex: '#5C636B', code: 'FB-KOZ-15L' },
+      { id: 'v-nilyesili', name: 'Nil Yeşili (Adaçayı)', colorHex: '#B9C7BC', code: 'FB-NIL-15L' },
+      { id: 'v-kumtasi', name: 'Kumtaşı Vizon', colorHex: '#D7CCBD', code: 'FB-KUM-15L' },
+    ],
   },
   {
     id: 'store-varioclic-paket',
@@ -382,6 +434,11 @@ export const INITIAL_PRODUCTS: Product[] = [
     name: 'VarioClic Premium Derzli Parke (1 Paket: 1.83 m²)',
     code: 'VP-PREM-BOX',
     image: 'https://images.unsplash.com/photo-1581858726788-75bc0f6a952d?auto=format&fit=crop&w=800&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1581858726788-75bc0f6a952d?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=800&q=80'
+    ],
     description: '32. Sınıf AC4 yoğun konut kullanımına uygun, 4V mikro derzli toptan ambalaj. Kolay 2G kilit sistemi.',
     unit: 'paket',
     materialPrice: 590,
@@ -392,6 +449,18 @@ export const INITIAL_PRODUCTS: Product[] = [
     inStock: true,
     packageInfo: '1 Paket = 1.83 m² (8 Panel)',
     specs: ['1 paket = 1.83 m² (8 panel)', '32. Sınıf AC4 aşınma dayanımı', '4V mikro derzli doğal ahşap dokusu', 'Çizilme ve darbeye ekstra mukavim'],
+    coverageRule: {
+      coveragePerUnit: 1.83,
+      unitLabel: 'm²',
+      defaultWastePercent: 7,
+      calculationType: 'area',
+    },
+    variants: [
+      { id: 'v-lisbon', name: 'Lizbon Meşe (Doğal Bal Tonu)', colorHex: '#C7A77E', code: 'VP-LIS-BOX' },
+      { id: 'v-venice', name: 'Venedik Koyu Meşe', colorHex: '#9E7E5E', code: 'VP-VEN-BOX' },
+      { id: 'v-scandi', name: 'İskandinav Açık Çam', colorHex: '#D7C7A8', code: 'VP-SCA-BOX' },
+      { id: 'v-grey', name: 'Milano Taş Grisi Meşe', colorHex: '#9A9995', code: 'VP-MIL-BOX' },
+    ],
   },
   {
     id: 'store-rvoba-cita-kiti',
@@ -410,6 +479,17 @@ export const INITIAL_PRODUCTS: Product[] = [
     inStock: true,
     packageInfo: '12 Çerçeve Hazır Gönyeli Set',
     specs: ['12 adet hazır gönyeli çerçeve kiti', '4 cm genişlik, 2 cm et kalınlığı', 'Darbeye dayanıklı polimer malzeme', '2 tüp montaj yapıştırıcı yapıştırıcı dahil'],
+    coverageRule: {
+      coveragePerUnit: 12,
+      unitLabel: 'çerçeve',
+      defaultWastePercent: 0,
+      calculationType: 'set',
+    },
+    variants: [
+      { id: 'v-classic-4', name: '4 cm Klasik Neoklasik Çıta', colorHex: '#E2E8F0', code: 'RV-CITA-4' },
+      { id: 'v-luxury-6', name: '6 cm Lüks Kalın Salon Profili', colorHex: '#CBD5E1', code: 'RV-CITA-6', priceDifference: 450 },
+      { id: 'v-minimal-25', name: '2.5 cm Minimalist İnce Çıta', colorHex: '#F1F5F9', code: 'RV-CITA-25', priceDifference: -200 },
+    ],
   },
 
   // ==========================================

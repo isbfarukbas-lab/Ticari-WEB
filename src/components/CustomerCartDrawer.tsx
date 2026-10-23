@@ -67,7 +67,8 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
   // Standard items calculation
   const totalMaterial = cart.reduce((sum, item) => {
     if (item.isCustom || !item.product) return sum;
-    return sum + item.product.materialPrice * item.quantity;
+    const variantDiff = item.selectedVariant?.priceDifference || 0;
+    return sum + (item.product.materialPrice + variantDiff) * item.quantity;
   }, 0);
 
   const totalLabor = cart.reduce((sum, item) => {
@@ -88,14 +89,23 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
   // Estimated market price total for comparison (only if admin set marketPrice > 0)
   const marketTotal = cart.reduce((sum, item) => {
     if (item.isCustom || !item.product) return sum;
-    const base = item.purchaseType === 'material_only'
-      ? item.product.materialPrice
-      : item.product.materialPrice + item.product.workmanshipPrice;
-    const market = item.product.marketPrice && item.product.marketPrice > base ? item.product.marketPrice : base;
+    const variantDiff = item.selectedVariant?.priceDifference || 0;
+    const isMaterialOnly = item.purchaseType === 'material_only';
+    const base = isMaterialOnly
+      ? item.product.materialPrice + variantDiff
+      : item.product.materialPrice + variantDiff + item.product.workmanshipPrice;
+    const rawMarket = item.product.marketPrice
+      ? (isMaterialOnly && item.product.workmanshipPrice > 0
+          ? Math.max(0, item.product.marketPrice - item.product.workmanshipPrice) + variantDiff
+          : item.product.marketPrice + variantDiff)
+      : base;
+    const market = rawMarket > base ? rawMarket : base;
     return sum + market * item.quantity;
   }, 0);
 
   const totalSavings = Math.max(0, marketTotal - grandTotal);
+  const storeShippingCost = isStoreMode && grandTotal > 0 && grandTotal < freeShippingThreshold ? standardShippingCost : 0;
+  const finalCartTotal = isStoreMode ? grandTotal + storeShippingCost : grandTotal;
 
   // Generate WhatsApp message with all choices and custom notes
   const handleWhatsApp = () => {
@@ -131,15 +141,18 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
       standardItems.forEach((c, idx) => {
         if (!c.product) return;
         const isMaterialOnly = c.purchaseType === 'material_only';
+        const variantDiff = c.selectedVariant?.priceDifference || 0;
         const line = isMaterialOnly 
-          ? c.product.materialPrice * c.quantity 
-          : (c.product.materialPrice + c.product.workmanshipPrice) * c.quantity;
+          ? (c.product.materialPrice + variantDiff) * c.quantity 
+          : (c.product.materialPrice + c.product.workmanshipPrice + variantDiff) * c.quantity;
         const isLaborOnly = c.product.id.startsWith('labor-');
         const isOnSite = c.product.id.startsWith('onsite-');
+        const variantText = c.selectedVariant ? ` [${c.selectedVariant.name}]` : '';
 
         if (isMaterialOnly) {
-          msg += `${idx + 1}. *${c.product.brand} - ${c.product.name}*\n`;
+          msg += `${idx + 1}. *${c.product.brand} - ${c.product.name}${variantText}*\n`;
           msg += `   • Durum: [Doğrudan Ürün Satışı / Kargo Teslim]\n`;
+          if (c.selectedVariant) msg += `   • Varyant/Renk: ${c.selectedVariant.name}\n`;
           msg += `   • Miktar: ${c.quantity} ${c.product.unit}\n`;
           msg += `   • Tutar: ${line.toLocaleString('tr-TR')} ₺ (Doğrudan Fiyat)\n\n`;
         } else if (isLaborOnly) {
@@ -153,9 +166,10 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
           msg += `   • Miktar: ${c.quantity} ${c.product.unit} (${c.roomType})\n`;
           msg += `   • Tahmini Bütçe: ${line.toLocaleString('tr-TR')} ₺\n\n`;
         } else {
-          msg += `${idx + 1}. *${c.product.brand} - ${c.product.name}*\n`;
+          msg += `${idx + 1}. *${c.product.brand} - ${c.product.name}${variantText}*\n`;
           msg += `   • Miktar: ${c.quantity} ${c.product.unit} (${c.roomType})\n`;
-          msg += `   • Kod: ${c.product.code}\n`;
+          if (c.selectedVariant) msg += `   • Varyant/Renk: ${c.selectedVariant.name}\n`;
+          msg += `   • Kod: ${c.selectedVariant?.code || c.product.code}\n`;
           msg += `   • Kalem Tutarı: ${line.toLocaleString('tr-TR')} ₺ (Malzeme + İşçilik Dahil)\n\n`;
         }
       });
@@ -333,9 +347,10 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
                     const isLaborOnly = item.product.id.startsWith('labor-');
                     const isOnSite = item.product.id.startsWith('onsite-');
                     const isMaterialOnlyItem = item.purchaseType === 'material_only';
-                    const lineUnit = isMaterialOnlyItem
+                    const variantDiff = item.selectedVariant?.priceDifference || 0;
+                    const lineUnit = (isMaterialOnlyItem
                       ? item.product.materialPrice
-                      : item.product.materialPrice + item.product.workmanshipPrice;
+                      : item.product.materialPrice + item.product.workmanshipPrice) + variantDiff;
                     const lineTotal = lineUnit * item.quantity;
 
                     return (
@@ -376,9 +391,20 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
                             <h4 className="text-xs font-bold text-[#0A0A0B] mt-0.5 leading-snug">
                               {item.product.name}
                             </h4>
+                            {item.selectedVariant && (
+                              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 mt-1 rounded-md bg-slate-100 text-[10px] font-bold text-slate-800 border border-slate-200">
+                                {item.selectedVariant.colorHex && (
+                                  <span 
+                                    className="w-2.5 h-2.5 rounded-full border border-black/20 shrink-0" 
+                                    style={{ backgroundColor: item.selectedVariant.colorHex }}
+                                  />
+                                )}
+                                <span>{item.selectedVariant.name}</span>
+                              </div>
+                            )}
                             <div className="flex items-center justify-between gap-2 mt-1">
                               <span className="text-[11px] font-mono text-[#64748B]">
-                                Kod: {item.product.code}
+                                Kod: {item.selectedVariant?.code || item.product.code}
                               </span>
                               {!isLaborOnly && !isOnSite && item.product.workmanshipPrice > 0 && onToggleItemPurchaseType && (
                                 <button
@@ -488,7 +514,7 @@ export const CustomerCartDrawer: React.FC<CustomerCartDrawerProps> = ({
                 )}
                 <div className="pt-2 border-t border-[#E8EAED] flex justify-between items-baseline text-base font-extrabold text-[#0A0A0B]">
                   <span>GENEL TOPLAM:</span>
-                  <span className="font-mono text-xl font-black">{grandTotal.toLocaleString('tr-TR')} ₺</span>
+                  <span className="font-mono text-xl font-black">{finalCartTotal.toLocaleString('tr-TR')} ₺</span>
                 </div>
                 <div className="text-[10px] text-emerald-700 font-semibold flex items-center justify-end gap-1">
                   <span>✓ {isStoreMode || isMaterialOnlyCart ? 'Tüm fiyatlarımıza %20 KDV dahildir.' : (kdvNotice || 'KDV dahil net tutardır.')}</span>

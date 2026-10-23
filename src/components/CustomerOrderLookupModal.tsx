@@ -65,10 +65,10 @@ export const CustomerOrderLookupModal: React.FC<CustomerOrderLookupModalProps> =
     setSearched(true);
   };
 
-  const getStepIndex = (status?: LeadRequest['status']) => {
-    if (status === 'sozlesme_imzalandi') return 3;
-    if (status === 'kesif_verildi') return 2;
-    if (status === 'arandi') return 1;
+  const getStepIndex = (status?: LeadRequest['status'] | string) => {
+    if (status === 'sozlesme_imzalandi' || status === 'completed') return 3;
+    if (status === 'kesif_verildi' || status === 'scheduled') return 2;
+    if (status === 'arandi' || status === 'contacted') return 1;
     return 0;
   };
 
@@ -165,7 +165,7 @@ export const CustomerOrderLookupModal: React.FC<CustomerOrderLookupModalProps> =
                   ? [
                       'Sipariş Alındı',
                       'Onaylandı & Hazırlanıyor',
-                      'Sevkiyat / Usta Planlandı',
+                      'Kargoya Verildi / Sevkiyatta',
                       'Teslim Edildi',
                     ]
                   : [
@@ -174,6 +174,11 @@ export const CustomerOrderLookupModal: React.FC<CustomerOrderLookupModalProps> =
                       'Keşif & Usta Planlandı',
                       'Sözleşme & Uygulama',
                     ];
+                const hasTrackingNote =
+                  lead.adminNotes &&
+                  !lead.adminNotes.startsWith('Ödeme Tercihi:') &&
+                  !lead.adminNotes.startsWith('Ödeme: Sanal POS');
+                const itemsSubtotal = (lead.items || []).reduce((s, it) => s + (it.total || 0), 0);
 
                 return (
                   <div
@@ -235,12 +240,12 @@ export const CustomerOrderLookupModal: React.FC<CustomerOrderLookupModalProps> =
                     </div>
 
                     {/* Admin Note / Tracking Info */}
-                    {lead.adminNotes && (
+                    {hasTrackingNote && (
                       <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 flex items-start gap-2">
                         <Truck className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
                         <div>
                           <span className="font-bold block text-[11px] uppercase tracking-wider text-emerald-800">
-                            Sipariş & Teslimat Bilgilendirmesi:
+                            Kargo & Teslimat Bilgilendirmesi:
                           </span>
                           <span className="font-medium">{lead.adminNotes}</span>
                         </div>
@@ -260,6 +265,11 @@ export const CustomerOrderLookupModal: React.FC<CustomerOrderLookupModalProps> =
                               <span className="text-[11px] text-[#64748B]">
                                 ({item.quantity} {item.unit})
                               </span>
+                              {item.variantName && (
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                                  {item.variantName}
+                                </span>
+                              )}
                               {item.purchaseType === 'with_installation' && (
                                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 flex items-center gap-0.5">
                                   <Wrench className="w-2.5 h-2.5" />
@@ -272,6 +282,40 @@ export const CustomerOrderLookupModal: React.FC<CustomerOrderLookupModalProps> =
                             </span>
                           </div>
                         ))}
+                      </div>
+                    )}
+
+                    {/* Payment & Shipping Summary for Store Orders */}
+                    {isStore && (lead.paymentMethod || lead.shippingCost !== undefined) && (
+                      <div className="px-3 py-2.5 rounded-xl bg-white border border-[#E8EAED] text-[11px] text-[#64748B] space-y-1">
+                        {lead.paymentMethod && (
+                          <div className="flex justify-between">
+                            <span>Ödeme Tercihi:</span>
+                            <span className="font-semibold text-[#0A0A0B]">
+                              {lead.paymentMethod === 'bank_transfer'
+                                ? 'Banka Havalesi / EFT'
+                                : lead.paymentMethod === 'cash_on_delivery'
+                                ? 'Kapıda / Ambar Tesliminde Ödeme'
+                                : 'Kredi Kartı (3D Secure)'}
+                            </span>
+                          </div>
+                        )}
+                        {lead.shippingCost !== undefined && (
+                          <div className="flex justify-between">
+                            <span>Kargo & Sevkiyat:</span>
+                            <span className="font-mono font-semibold text-[#0A0A0B]">
+                              {lead.shippingCost > 0 ? `${lead.shippingCost.toLocaleString('tr-TR')} ₺` : 'Ücretsiz'}
+                            </span>
+                          </div>
+                        )}
+                        {itemsSubtotal > 0 && itemsSubtotal + (lead.shippingCost || 0) > lead.totalAmount && (
+                          <div className="flex justify-between text-emerald-700 font-semibold">
+                            <span>Havale / EFT İndirimi:</span>
+                            <span className="font-mono">
+                              -{(itemsSubtotal + (lead.shippingCost || 0) - lead.totalAmount).toLocaleString('tr-TR')} ₺
+                            </span>
+                          </div>
+                        )}
                       </div>
                     )}
 

@@ -23,14 +23,26 @@ import {
   CreditCard,
   RotateCcw,
   Percent,
-  Package
+  Package,
+  Calculator,
+  Share2,
+  ChevronLeft,
+  ChevronRight,
+  Camera
 } from 'lucide-react';
-import { Product, CartItem, LeadRequest, SiteContentSettings } from '../types';
+import { Product, CartItem, LeadRequest, SiteContentSettings, ProductVariant } from '../types';
+import { SmartMeasurementCalculator } from './SmartMeasurementCalculator';
 
 interface CustomerStoreProps {
   products: Product[];
   cart: CartItem[];
-  onAddToCart: (product: Product, quantity: number, roomType: string, purchaseType?: 'with_installation' | 'material_only') => void;
+  onAddToCart: (
+    product: Product, 
+    quantity: number, 
+    roomType: string, 
+    purchaseType?: 'with_installation' | 'material_only',
+    selectedVariant?: ProductVariant
+  ) => void;
   onOpenCart: () => void;
   phoneNumber?: string;
   supportPhone?: string;
@@ -72,9 +84,58 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
 }) => {
   const [sortBy, setSortBy] = useState<'featured' | 'price_asc' | 'price_desc' | 'discount'>('featured');
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
+  const [previewImageIndex, setPreviewImageIndex] = useState(0);
   const [recentlyAddedId, setRecentlyAddedId] = useState<string | null>(null);
   const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
   const [selectedPurchaseModes, setSelectedPurchaseModes] = useState<Record<string, 'material_only' | 'with_installation'>>({});
+  const [calculatorProduct, setCalculatorProduct] = useState<Product | null>(null);
+  const [selectedVariants, setSelectedVariants] = useState<Record<string, ProductVariant>>({});
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  // Deep-linking: sync URL hash with preview product
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash;
+      if (hash.startsWith('#urun/')) {
+        const prodId = hash.replace('#urun/', '');
+        const found = products.find((p) => p.id === prodId);
+        if (found) setPreviewProduct(found);
+      }
+    };
+    handleHash();
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, [products]);
+
+  const openProductPreview = (product: Product) => {
+    setPreviewProduct(product);
+    setPreviewImageIndex(0);
+    window.location.hash = `#urun/${product.id}`;
+  };
+
+  const closeProductPreview = () => {
+    setPreviewProduct(null);
+    setPreviewImageIndex(0);
+    if (window.location.hash.startsWith('#urun/')) {
+      window.location.hash = '';
+    }
+  };
+
+  const handleCopyProductLink = (product: Product) => {
+    const url = `${window.location.origin}${window.location.pathname}#urun/${product.id}`;
+    navigator.clipboard.writeText(url);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
+  const getProductVariant = (product: Product): ProductVariant | undefined => {
+    return selectedVariants[product.id] || (product.variants && product.variants.length > 0 ? product.variants[0] : undefined);
+  };
+
+  const handleSelectVariant = (productId: string, variant: ProductVariant, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedVariants((prev) => ({ ...prev, [productId]: variant }));
+  };
 
   const getPurchaseMode = (product: Product): 'material_only' | 'with_installation' => {
     if (!product.workmanshipPrice || product.workmanshipPrice <= 0) return 'material_only';
@@ -178,10 +239,16 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
     }));
   };
 
-  const handleAddProduct = (product: Product, explicitMode?: 'material_only' | 'with_installation') => {
-    const qty = getQty(product.id);
+  const handleAddProduct = (
+    product: Product, 
+    explicitMode?: 'material_only' | 'with_installation',
+    customQty?: number,
+    variantOverride?: ProductVariant
+  ) => {
+    const qty = customQty ?? getQty(product.id);
     const mode = explicitMode || getPurchaseMode(product);
-    onAddToCart(product, qty, mode === 'with_installation' ? 'Malzeme + Usta Montajı' : 'Doğrudan Sipariş', mode);
+    const variant = variantOverride ?? getProductVariant(product);
+    onAddToCart(product, qty, mode === 'with_installation' ? 'Malzeme + Usta Montajı' : 'Doğrudan Sipariş', mode, variant);
     
     // Tactile button feedback
     setRecentlyAddedId(product.id);
@@ -203,14 +270,16 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
     return product.marketPrice;
   };
 
-  const handleFastWhatsAppOrder = (product: Product) => {
+  const handleFastWhatsAppOrder = (product: Product, variantOverride?: ProductVariant) => {
     const qty = getQty(product.id);
     const mode = getPurchaseMode(product);
-    const unitPrice = mode === 'with_installation'
+    const variant = variantOverride ?? getProductVariant(product);
+    const variantDiff = variant?.priceDifference || 0;
+    const unitPrice = (mode === 'with_installation'
       ? product.materialPrice + product.workmanshipPrice
-      : product.materialPrice;
+      : product.materialPrice) + variantDiff;
     const price = unitPrice * qty;
-    const marketUnit = getProductMarketUnitPrice(product, mode);
+    const marketUnit = getProductMarketUnitPrice(product, mode) + variantDiff;
     const marketTotal = marketUnit > 0 ? marketUnit * qty : price;
 
     // Log lead to CRM
@@ -233,6 +302,8 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
           unit: product.unit,
           total: price,
           purchaseType: mode,
+          selectedVariant: variant,
+          variantName: variant?.name,
         },
       ],
       createdAt: new Date().toISOString(),
@@ -242,11 +313,14 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
       ? 'Malzeme + Usta Montaj Desteği Dahil'
       : 'Sadece Malzeme (81 İl Kargo ile Kapıya Teslim)';
 
+    const variantNote = variant ? `\n*Seçilen Varyant / Renk:* ${variant.name} (${variant.code || ''})` : '';
+
     const msg = `*RVOBA® — Hızlı Ürün Siparişi (rvoba.com)*\n\n` +
-      `*Ürün:* ${product.brand} - ${product.name}\n` +
-      `*Ürün Kodu:* ${product.code}\n` +
+      `*Ürün:* ${product.brand} - ${product.name}${variant ? ` [${variant.name}]` : ''}\n` +
+      `*Ürün Kodu:* ${variant?.code || product.code}\n` +
       `*Miktar:* ${qty} ${product.unit}\n` +
-      `*Tercih:* ${modeLabel}\n` +
+      `*Tercih:* ${modeLabel}` +
+      `${variantNote}\n` +
       `*Tutar:* ${price.toLocaleString('tr-TR')} ₺ (KDV Dahil Net Fiyat)\n\n` +
       `Bu ürünü sipariş vermek ve teslimat/uygulama detaylarını netleştirmek istiyorum.`;
 
@@ -258,9 +332,10 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
   const totalCartPrice = cart.reduce((sum, item) => {
     if (item.isCustom || !item.product) return sum;
     const isMaterialOnly = item.purchaseType === 'material_only';
+    const variantDiff = item.selectedVariant?.priceDifference || 0;
     const line = isMaterialOnly 
-      ? item.product.materialPrice * item.quantity 
-      : (item.product.materialPrice + item.product.workmanshipPrice) * item.quantity;
+      ? (item.product.materialPrice + variantDiff) * item.quantity 
+      : (item.product.materialPrice + variantDiff + item.product.workmanshipPrice) * item.quantity;
     return sum + line;
   }, 0);
 
@@ -351,12 +426,14 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
           {bestSellers.map((product) => {
             const qty = getQty(product.id);
             const mode = getPurchaseMode(product);
+            const activeVariant = getProductVariant(product);
+            const variantDiff = activeVariant?.priceDifference || 0;
             const hasLabor = product.workmanshipPrice > 0;
-            const unitPrice = mode === 'with_installation' ? product.materialPrice + product.workmanshipPrice : product.materialPrice;
+            const unitPrice = (mode === 'with_installation' ? product.materialPrice + product.workmanshipPrice : product.materialPrice) + variantDiff;
             const isRecentlyAdded = recentlyAddedId === product.id;
             const isFav = !!favorites[product.id];
             const lineTotal = unitPrice * qty;
-            const marketUnitPrice = getProductMarketUnitPrice(product, mode);
+            const marketUnitPrice = getProductMarketUnitPrice(product, mode) + variantDiff;
             const marketTotal = marketUnitPrice * qty;
             const savings = marketUnitPrice > unitPrice ? Math.max(0, marketTotal - lineTotal) : 0;
             const discountPercent = marketUnitPrice > unitPrice ? Math.round(((marketUnitPrice - unitPrice) / marketUnitPrice) * 100) : 0;
@@ -379,6 +456,12 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                     <span className="bg-[#0A0A0B] text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow">
                       {product.brand}
                     </span>
+                    {product.images && product.images.length > 1 && (
+                      <span className="bg-black/75 backdrop-blur-md text-white text-[9px] font-mono font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow">
+                        <Camera className="w-2.5 h-2.5 text-emerald-400" />
+                        <span>{product.images.length} Foto</span>
+                      </span>
+                    )}
                   </div>
 
                   {/* Top Right: Discount & Favorite */}
@@ -406,7 +489,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                   {/* Quick Preview Hover */}
                   <button
                     type="button"
-                    onClick={() => setPreviewProduct(product)}
+                    onClick={() => openProductPreview(product)}
                     className="absolute bottom-2.5 right-2.5 bg-white/95 hover:bg-white text-[#0A0A0B] p-2 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
                     title="Detaylı İncele"
                   >
@@ -427,25 +510,64 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                           ● Stokta Hazır
                         </span>
                       )}
-                      <span className="font-mono text-slate-400 text-[10px]">{product.code}</span>
+                      <span className="font-mono text-slate-400 text-[10px]">{activeVariant?.code || product.code}</span>
                     </div>
 
                     <h3
-                      onClick={() => setPreviewProduct(product)}
+                      onClick={() => openProductPreview(product)}
                       className="text-xs sm:text-sm font-bold text-[#0A0A0B] group-hover:text-black line-clamp-2 leading-snug cursor-pointer hover:underline"
                       title={product.name}
                     >
                       {product.name}
                     </h3>
 
-                    {product.packageInfo && (
-                      <div className="mt-1">
+                    {/* Variant swatch strip */}
+                    {product.variants && product.variants.length > 0 && (
+                      <div className="flex items-center gap-1.5 pt-1.5 flex-wrap">
+                        {product.variants.map((v) => {
+                          const isSelected = activeVariant?.id === v.id;
+                          return (
+                            <button
+                              key={v.id}
+                              type="button"
+                              onClick={(e) => handleSelectVariant(product.id, v, e)}
+                              className={`w-4 h-4 rounded-full border transition-transform ${
+                                isSelected ? 'ring-2 ring-black scale-110 border-white' : 'border-black/20 hover:scale-105 opacity-80'
+                              }`}
+                              style={{ backgroundColor: v.colorHex || '#CBD5E1' }}
+                              title={v.name}
+                            />
+                          );
+                        })}
+                        <span className="text-[10px] text-slate-500 font-medium truncate ml-0.5">
+                          {activeVariant?.name || `${product.variants.length} Seçenek`}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      {product.packageInfo && (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
                           <Package className="w-3 h-3 text-slate-500" />
                           <span>{product.packageInfo}</span>
                         </span>
-                      </div>
-                    )}
+                      )}
+
+                      {(product.coverageRule || product.unit === 'paket' || product.unit === 'kova') && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCalculatorProduct(product);
+                          }}
+                          className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-2 py-0.5 rounded-md border border-slate-200 transition"
+                          title="Oda ölçülerinize göre paket miktarını otomatik hesaplayın"
+                        >
+                          <Calculator className="w-3 h-3 text-emerald-600" />
+                          <span>Metraj Hesapla</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Pricing and Action */}
@@ -710,14 +832,16 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
             {filteredProducts.map((product) => {
               const qty = getQty(product.id);
               const mode = getPurchaseMode(product);
+              const activeVariant = getProductVariant(product);
+              const variantDiff = activeVariant?.priceDifference || 0;
               const hasLabor = product.workmanshipPrice > 0;
-              const unitPrice = mode === 'with_installation' ? product.materialPrice + product.workmanshipPrice : product.materialPrice;
+              const unitPrice = (mode === 'with_installation' ? product.materialPrice + product.workmanshipPrice : product.materialPrice) + variantDiff;
               const isRecentlyAdded = recentlyAddedId === product.id;
               const isFav = !!favorites[product.id];
               
               // Pricing calculations (Material or Material + Craftsman installation)
               const lineTotal = unitPrice * qty;
-              const marketUnitPrice = getProductMarketUnitPrice(product, mode);
+              const marketUnitPrice = getProductMarketUnitPrice(product, mode) + variantDiff;
               const marketTotal = marketUnitPrice * qty;
               const savings = marketUnitPrice > unitPrice ? Math.max(0, marketTotal - lineTotal) : 0;
               const discountPercent = marketUnitPrice > unitPrice ? Math.round(((marketUnitPrice - unitPrice) / marketUnitPrice) * 100) : 0;
@@ -740,6 +864,12 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                       <span className="bg-[#0A0A0B]/90 backdrop-blur-md text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow">
                         {product.brand}
                       </span>
+                      {product.images && product.images.length > 1 && (
+                        <span className="bg-black/75 backdrop-blur-md text-white text-[9px] font-mono font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow">
+                          <Camera className="w-2.5 h-2.5 text-emerald-400" />
+                          <span>{product.images.length} Foto</span>
+                        </span>
+                      )}
                     </div>
 
                     {/* Top Right: Discount Tag + Favorite Heart */}
@@ -767,7 +897,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                     {/* Zoom / Preview Button on Hover */}
                     <button
                       type="button"
-                      onClick={() => setPreviewProduct(product)}
+                      onClick={() => openProductPreview(product)}
                       className="absolute bottom-2.5 right-2.5 bg-white/95 hover:bg-white text-[#0A0A0B] p-2 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity z-10"
                       title="Detaylı İncele"
                     >
@@ -789,24 +919,63 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                             ● Stokta Hazır
                           </span>
                         )}
-                        <span className="font-mono text-slate-400 text-[10px]">{product.code}</span>
+                        <span className="font-mono text-slate-400 text-[10px]">{activeVariant?.code || product.code}</span>
                       </div>
 
                       <h3 
-                        onClick={() => setPreviewProduct(product)}
+                        onClick={() => openProductPreview(product)}
                         className="text-xs sm:text-sm font-bold text-[#0A0A0B] group-hover:text-black line-clamp-2 leading-snug cursor-pointer hover:underline" 
                         title={product.name}
                       >
                         {product.name}
                       </h3>
 
-                      {product.packageInfo && (
-                        <div className="mt-1">
-                          <span className="inline-flex items-center text-[10px] font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
-                            {product.packageInfo}
+                      {/* Variant swatch strip */}
+                      {product.variants && product.variants.length > 0 && (
+                        <div className="flex items-center gap-1.5 pt-1.5 flex-wrap">
+                          {product.variants.map((v) => {
+                            const isSelected = activeVariant?.id === v.id;
+                            return (
+                              <button
+                                key={v.id}
+                                type="button"
+                                onClick={(e) => handleSelectVariant(product.id, v, e)}
+                                className={`w-4 h-4 rounded-full border transition-transform ${
+                                  isSelected ? 'ring-2 ring-black scale-110 border-white' : 'border-black/20 hover:scale-105 opacity-80'
+                                }`}
+                                style={{ backgroundColor: v.colorHex || '#CBD5E1' }}
+                                title={v.name}
+                              />
+                            );
+                          })}
+                          <span className="text-[10px] text-slate-500 font-medium truncate ml-0.5">
+                            {activeVariant?.name || `${product.variants.length} Seçenek`}
                           </span>
                         </div>
                       )}
+
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        {product.packageInfo && (
+                          <span className="inline-flex items-center text-[10px] font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                            {product.packageInfo}
+                          </span>
+                        )}
+
+                        {(product.coverageRule || product.unit === 'paket' || product.unit === 'kova') && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCalculatorProduct(product);
+                            }}
+                            className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-2 py-0.5 rounded-md border border-slate-200 transition"
+                            title="Oda ölçülerinize göre paket miktarını otomatik hesaplayın"
+                          >
+                            <Calculator className="w-3 h-3 text-emerald-600" />
+                            <span>Metraj Hesapla</span>
+                          </button>
+                        )}
+                      </div>
 
                       <p className="text-[11px] text-[#64748B] mt-1 line-clamp-2 leading-relaxed">
                         {product.description}
@@ -1009,232 +1178,390 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
       {/* ======================================================== */}
       {/* 6. MODAL: DETAILED PRODUCT PREVIEW                       */}
       {/* ======================================================== */}
-      {previewProduct && (
-        <div className="fixed inset-0 z-50 overflow-hidden flex items-center justify-center p-4">
-          <div
-            onClick={() => setPreviewProduct(null)}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
-          />
+      {previewProduct && (() => {
+        const activeVariant = getProductVariant(previewProduct);
+        const variantDiff = activeVariant?.priceDifference || 0;
+        const currentMode = getPurchaseMode(previewProduct);
+        const baseUnitPrice = currentMode === 'with_installation'
+          ? previewProduct.materialPrice + previewProduct.workmanshipPrice
+          : previewProduct.materialPrice;
+        const finalUnitPrice = baseUnitPrice + variantDiff;
+        const currentQty = getQty(previewProduct.id);
+        const finalLineTotal = finalUnitPrice * currentQty;
+        const productImages = (previewProduct.images && previewProduct.images.length > 0)
+          ? previewProduct.images
+          : [previewProduct.image, ...(previewProduct.roomImage ? [previewProduct.roomImage] : [])];
+        const safeImageIndex = Math.min(previewImageIndex, productImages.length - 1);
+        const activeDisplayImage = productImages[safeImageIndex] || previewProduct.image;
 
-          <div className="relative w-full max-w-2xl bg-white text-[#0A0A0B] rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col z-10 animate-in zoom-in-95 duration-200">
-            
-            <div className="relative h-72 sm:h-80 bg-slate-100">
-              <img
-                src={previewProduct.image}
-                alt={previewProduct.name}
-                className="w-full h-full object-cover"
-              />
-              <button
-                onClick={() => setPreviewProduct(null)}
-                className="absolute top-4 right-4 w-9 h-9 rounded-full bg-black/70 hover:bg-black text-white flex items-center justify-center transition"
-              >
-                <X className="w-4 h-4" />
-              </button>
-              <div className="absolute bottom-4 left-4 bg-black/80 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-full">
-                {previewProduct.brand} • Kod: {previewProduct.code}
-              </div>
-            </div>
+        return (
+          <div className="fixed inset-0 z-50 overflow-hidden flex items-center justify-center p-4">
+            <div
+              onClick={closeProductPreview}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+            />
 
-            <div className="p-6 sm:p-8 overflow-y-auto space-y-4">
-              <div>
-                <h3 className="text-xl sm:text-2xl font-display font-extrabold text-[#0A0A0B]">
-                  {previewProduct.name}
-                </h3>
-                <p className="text-xs sm:text-sm text-[#4B5563] mt-2 leading-relaxed">
-                  {previewProduct.description}
-                </p>
-              </div>
+            <div className="relative w-full max-w-2xl bg-white text-[#0A0A0B] rounded-3xl shadow-2xl overflow-hidden max-h-[92vh] flex flex-col z-10 animate-in zoom-in-95 duration-200">
+              
+              <div className="relative h-72 sm:h-96 bg-slate-900 group">
+                <img
+                  src={activeDisplayImage}
+                  alt={previewProduct.name}
+                  className="w-full h-full object-cover transition-all duration-300"
+                />
 
-              {previewProduct.specs && (
-                <div className="p-4 rounded-2xl bg-[#F8F9FA] border border-[#E8EAED]">
-                  <h5 className="text-xs font-bold text-[#0A0A0B] mb-2 uppercase tracking-wider">
-                    Teknik Özellikler:
-                  </h5>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-700">
-                    {previewProduct.specs.map((s, i) => (
-                      <div key={i} className="flex items-center gap-2">
-                        <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                        <span>{s}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Delivery & Guarantee */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-800">
-                <div className="flex items-center gap-2 font-semibold">
-                  <Truck className="w-4 h-4 text-slate-700 shrink-0" />
-                  <span>Sigortalı Hızlı Kargo / Ambar Sevkiyatı</span>
-                </div>
-                <div className="text-[11px] text-emerald-700 font-bold flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span>%100 Orijinal & Üretici Bayi Faturalı</span>
-                </div>
-              </div>
-
-              {previewProduct.workmanshipPrice > 0 && (
-                <div className="p-3.5 rounded-2xl bg-slate-100 border border-slate-200 space-y-2">
-                  <span className="text-[11px] font-bold text-[#0A0A0B] block">
-                    Satın Alma Tercihinizi Seçin:
-                  </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {/* Photo Navigation Arrows if > 1 photo */}
+                {productImages.length > 1 && (
+                  <>
                     <button
                       type="button"
-                      onClick={() => setPurchaseMode(previewProduct.id, 'material_only')}
-                      className={`p-3 rounded-xl border text-left transition ${
-                        getPurchaseMode(previewProduct) === 'material_only'
-                          ? 'bg-white border-black shadow-xs'
-                          : 'bg-white/60 border-slate-200 text-slate-600'
-                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPreviewImageIndex((prev) => (prev - 1 + productImages.length) % productImages.length);
+                      }}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black text-white flex items-center justify-center transition shadow-lg backdrop-blur-sm opacity-90 hover:scale-105"
+                      aria-label="Önceki Fotoğraf"
                     >
-                      <div className="text-xs font-bold text-[#0A0A0B]">📦 Sadece Malzeme (Kargo)</div>
-                      <div className="text-[11px] font-mono font-bold text-slate-700 mt-0.5">
-                        {previewProduct.materialPrice.toLocaleString('tr-TR')} ₺ / {previewProduct.unit}
-                      </div>
+                      <ChevronLeft className="w-5 h-5" />
                     </button>
 
                     <button
                       type="button"
-                      onClick={() => setPurchaseMode(previewProduct.id, 'with_installation')}
-                      className={`p-3 rounded-xl border text-left transition ${
-                        getPurchaseMode(previewProduct) === 'with_installation'
-                          ? 'bg-emerald-600 border-emerald-700 text-white shadow-xs'
-                          : 'bg-white/60 border-emerald-200 text-emerald-900'
-                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPreviewImageIndex((prev) => (prev + 1) % productImages.length);
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/60 hover:bg-black text-white flex items-center justify-center transition shadow-lg backdrop-blur-sm opacity-90 hover:scale-105"
+                      aria-label="Sonraki Fotoğraf"
                     >
-                      <div className="text-xs font-bold flex items-center gap-1.5">
-                        <Wrench className="w-3.5 h-3.5" />
-                        <span>Malzeme + Usta Montajı</span>
-                      </div>
-                      <div className={`text-[11px] font-mono font-bold mt-0.5 ${
-                        getPurchaseMode(previewProduct) === 'with_installation' ? 'text-emerald-100' : 'text-emerald-700'
-                      }`}>
-                        {(previewProduct.materialPrice + previewProduct.workmanshipPrice).toLocaleString('tr-TR')} ₺ / {previewProduct.unit} (+{previewProduct.workmanshipPrice} ₺ işçilik)
-                      </div>
+                      <ChevronRight className="w-5 h-5" />
                     </button>
-                  </div>
-                </div>
-              )}
 
-              {/* Quantity & +10% Fire Payı Calculator inside Modal */}
-              <div className="p-3.5 rounded-2xl bg-[#F8F9FA] border border-[#E8EAED] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <span className="text-xs font-bold text-[#0A0A0B] block">
-                    Sipariş Miktarı ({previewProduct.unit})
-                  </span>
-                  <span className="text-[11px] text-[#64748B]">
-                    Köşe kesimleri ve uygulama kayıpları için +%10 usta fire payı önerilir.
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2 flex-wrap">
-                  <div className="flex items-center border border-[#D1D5DB] rounded-full bg-white px-2 py-1 shadow-xs">
-                    <button
-                      type="button"
-                      onClick={() => setQty(previewProduct.id, getQty(previewProduct.id) - 1)}
-                      className="w-6 h-6 rounded-full hover:bg-slate-100 flex items-center justify-center font-bold text-xs"
-                    >
-                      -
-                    </button>
-                    <input
-                      type="number"
-                      min={1}
-                      value={getQty(previewProduct.id)}
-                      onChange={(e) => setQty(previewProduct.id, Number(e.target.value) || 1)}
-                      className="w-12 text-center text-xs font-bold font-mono focus:outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setQty(previewProduct.id, getQty(previewProduct.id) + 1)}
-                      className="w-6 h-6 rounded-full hover:bg-slate-100 flex items-center justify-center font-bold text-xs"
-                    >
-                      +
-                    </button>
-                  </div>
+                    {/* Photo index counter badge */}
+                    <div className="absolute top-4 left-4 bg-black/75 backdrop-blur-md text-white text-[11px] font-mono font-bold px-2.5 py-1 rounded-full flex items-center gap-1.5 shadow">
+                      <Camera className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{safeImageIndex + 1} / {productImages.length}</span>
+                    </div>
+                  </>
+                )}
+                
+                <div className="absolute top-4 right-4 flex items-center gap-2">
+                  <button
+                    onClick={() => handleCopyProductLink(previewProduct)}
+                    className="w-9 h-9 rounded-full bg-black/70 hover:bg-black text-white flex items-center justify-center transition shadow-md backdrop-blur-sm"
+                    title="Ürün Paylaşım Linkini Kopyala"
+                  >
+                    {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
+                  </button>
 
                   <button
-                    type="button"
-                    onClick={() => {
-                      const current = getQty(previewProduct.id);
-                      const withFire = Math.max(current + 1, Math.ceil(current * 1.1));
-                      setQty(previewProduct.id, withFire);
-                    }}
-                    className="px-3 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-bold transition"
-                    title="Mevcut miktara %10 usta kesim ve uygulama fire payı ekle"
+                    onClick={closeProductPreview}
+                    className="w-9 h-9 rounded-full bg-black/70 hover:bg-black text-white flex items-center justify-center transition shadow-md backdrop-blur-sm"
                   >
-                    +%10 Fire Payı Ekle ({Math.max(getQty(previewProduct.id) + 1, Math.ceil(getQty(previewProduct.id) * 1.1))} {previewProduct.unit})
+                    <X className="w-4 h-4" />
                   </button>
+                </div>
+
+                <div className="absolute bottom-4 left-4 bg-black/80 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-2">
+                  <span>{previewProduct.brand}</span>
+                  <span>•</span>
+                  <span>Kod: {activeVariant?.code || previewProduct.code}</span>
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-[#E8EAED] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              {/* Thumbnails Row below the main image if > 1 photo */}
+              {productImages.length > 1 && (
+                <div className="px-6 py-2.5 bg-slate-100/90 border-b border-slate-200 flex items-center gap-2 overflow-x-auto scrollbar-thin">
+                  {productImages.map((imgUrl, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setPreviewImageIndex(idx)}
+                      className={`relative w-14 h-14 rounded-xl overflow-hidden shrink-0 border-2 transition-all ${
+                        safeImageIndex === idx 
+                          ? 'border-black ring-2 ring-black/40 scale-105 shadow-md' 
+                          : 'border-transparent opacity-65 hover:opacity-100 hover:border-slate-300'
+                      }`}
+                    >
+                      <img src={imgUrl} alt={`Fotoğraf ${idx + 1}`} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="p-6 sm:p-8 overflow-y-auto space-y-4">
                 <div>
-                  <span className="text-[10px] text-[#64748B] block font-semibold">
-                    {getPurchaseMode(previewProduct) === 'with_installation'
-                      ? `Malzeme + Usta Uygulama Toplamı (${getQty(previewProduct.id)} ${previewProduct.unit} • KDV Dahil):`
-                      : `Toplam Malzeme Fiyatı (${getQty(previewProduct.id)} ${previewProduct.unit} • KDV Dahil):`}
-                  </span>
-                  <div className="text-2xl font-black font-mono text-[#0A0A0B]">
-                    {(
-                      (getPurchaseMode(previewProduct) === 'with_installation'
-                        ? previewProduct.materialPrice + previewProduct.workmanshipPrice
-                        : previewProduct.materialPrice) * getQty(previewProduct.id)
-                    ).toLocaleString('tr-TR')}{' '}
-                    ₺
-                    <span className="text-xs font-normal text-[#64748B] ml-1.5">
-                      ({(getPurchaseMode(previewProduct) === 'with_installation'
-                        ? previewProduct.materialPrice + previewProduct.workmanshipPrice
-                        : previewProduct.materialPrice
-                      ).toLocaleString('tr-TR')} ₺ / {previewProduct.unit})
-                    </span>
+                  <h3 className="text-xl sm:text-2xl font-display font-extrabold text-[#0A0A0B]">
+                    {previewProduct.name}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-[#4B5563] mt-2 leading-relaxed">
+                    {previewProduct.description}
+                  </p>
+                </div>
+
+                {/* Variant Color / Model Selection in Preview */}
+                {previewProduct.variants && previewProduct.variants.length > 0 && (
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                      <span>Model / Renk Kartelası:</span>
+                      <span className="text-black font-extrabold">{activeVariant?.name || 'Seçiniz'}</span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {previewProduct.variants.map((v) => {
+                        const isSelected = activeVariant?.id === v.id;
+                        return (
+                          <button
+                            key={v.id}
+                            type="button"
+                            onClick={() => handleSelectVariant(previewProduct.id, v)}
+                            className={`p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition ${
+                              isSelected 
+                                ? 'border-black bg-white ring-2 ring-black font-bold shadow-xs' 
+                                : 'border-slate-200 bg-white/70 hover:bg-white text-slate-700'
+                            }`}
+                          >
+                            {v.colorHex && (
+                              <span 
+                                className="w-5 h-5 rounded-full border border-black/20 shrink-0 shadow-xs" 
+                                style={{ backgroundColor: v.colorHex }}
+                              />
+                            )}
+                            <div className="truncate">
+                              <div className="text-[11px] truncate text-slate-900">{v.name}</div>
+                              {v.priceDifference ? (
+                                <div className="text-[10px] text-emerald-700 font-mono">
+                                  {v.priceDifference > 0 ? `+${v.priceDifference} ₺` : `${v.priceDifference} ₺`}
+                                </div>
+                              ) : null}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Smart Measurement Calculator Prompt if applicable */}
+                {(previewProduct.coverageRule || previewProduct.unit === 'paket' || previewProduct.unit === 'kova') && (
+                  <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                        <Calculator className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-emerald-950">Oda Ölçünüze Göre Paket Hesaplayın</div>
+                        <div className="text-[11px] text-emerald-700">En x Boy girin, gereken paket ve usta fire payı otomatik hesaplansın.</div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCalculatorProduct(previewProduct)}
+                      className="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5 shrink-0"
+                    >
+                      <span>Hesapla</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                {previewProduct.specs && (
+                  <div className="p-4 rounded-2xl bg-[#F8F9FA] border border-[#E8EAED]">
+                    <h5 className="text-xs font-bold text-[#0A0A0B] mb-2 uppercase tracking-wider">
+                      Teknik Özellikler:
+                    </h5>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-700">
+                      {previewProduct.specs.map((s, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <span>{s}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Delivery & Guarantee */}
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-800">
+                  <div className="flex items-center gap-2 font-semibold">
+                    <Truck className="w-4 h-4 text-slate-700 shrink-0" />
+                    <span>Sigortalı Hızlı Kargo / Ambar Sevkiyatı</span>
+                  </div>
+                  <div className="text-[11px] text-emerald-700 font-bold flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>%100 Orijinal & Üretici Bayi Faturalı</span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  {previewProduct.inStock === false ? (
+                {previewProduct.workmanshipPrice > 0 && (
+                  <div className="p-3.5 rounded-2xl bg-slate-100 border border-slate-200 space-y-2">
+                    <span className="text-[11px] font-bold text-[#0A0A0B] block">
+                      Satın Alma Tercihinizi Seçin:
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPurchaseMode(previewProduct.id, 'material_only')}
+                        className={`p-3 rounded-xl border text-left transition ${
+                          getPurchaseMode(previewProduct) === 'material_only'
+                            ? 'bg-white border-black shadow-xs'
+                            : 'bg-white/60 border-slate-200 text-slate-600'
+                        }`}
+                      >
+                        <div className="text-xs font-bold text-[#0A0A0B]">📦 Sadece Malzeme (Kargo)</div>
+                        <div className="text-[11px] font-mono font-bold text-slate-700 mt-0.5">
+                          {(previewProduct.materialPrice + variantDiff).toLocaleString('tr-TR')} ₺ / {previewProduct.unit}
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setPurchaseMode(previewProduct.id, 'with_installation')}
+                        className={`p-3 rounded-xl border text-left transition ${
+                          getPurchaseMode(previewProduct) === 'with_installation'
+                            ? 'bg-emerald-600 border-emerald-700 text-white shadow-xs'
+                            : 'bg-white/60 border-emerald-200 text-emerald-900'
+                        }`}
+                      >
+                        <div className="text-xs font-bold flex items-center gap-1.5">
+                          <Wrench className="w-3.5 h-3.5" />
+                          <span>Malzeme + Usta Montajı</span>
+                        </div>
+                        <div className={`text-[11px] font-mono font-bold mt-0.5 ${
+                          getPurchaseMode(previewProduct) === 'with_installation' ? 'text-emerald-100' : 'text-emerald-700'
+                        }`}>
+                          {(previewProduct.materialPrice + previewProduct.workmanshipPrice + variantDiff).toLocaleString('tr-TR')} ₺ / {previewProduct.unit} (+{previewProduct.workmanshipPrice} ₺ işçilik)
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Quantity & +10% Fire Payı Calculator inside Modal */}
+                <div className="p-3.5 rounded-2xl bg-[#F8F9FA] border border-[#E8EAED] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <span className="text-xs font-bold text-[#0A0A0B] block">
+                      Sipariş Miktarı ({previewProduct.unit})
+                    </span>
+                    <span className="text-[11px] text-[#64748B]">
+                      Köşe kesimleri ve uygulama kayıpları için +%10 usta fire payı önerilir.
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center border border-[#D1D5DB] rounded-full bg-white px-2 py-1 shadow-xs">
+                      <button
+                        type="button"
+                        onClick={() => setQty(previewProduct.id, getQty(previewProduct.id) - 1)}
+                        className="w-6 h-6 rounded-full hover:bg-slate-100 flex items-center justify-center font-bold text-xs"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        min={1}
+                        value={getQty(previewProduct.id)}
+                        onChange={(e) => setQty(previewProduct.id, Number(e.target.value) || 1)}
+                        className="w-12 text-center text-xs font-bold font-mono focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setQty(previewProduct.id, getQty(previewProduct.id) + 1)}
+                        className="w-6 h-6 rounded-full hover:bg-slate-100 flex items-center justify-center font-bold text-xs"
+                      >
+                        +
+                      </button>
+                    </div>
+
                     <button
                       type="button"
                       onClick={() => {
-                        handleFastWhatsAppOrder(previewProduct);
-                        setPreviewProduct(null);
+                        const current = getQty(previewProduct.id);
+                        const withFire = Math.max(current + 1, Math.ceil(current * 1.1));
+                        setQty(previewProduct.id, withFire);
                       }}
-                      className="btn-pill-black bg-amber-600 hover:bg-amber-700 text-white text-xs py-3 px-6 shadow-md"
+                      className="px-3 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-bold transition"
+                      title="Mevcut miktara %10 usta kesim ve uygulama fire payı ekle"
                     >
-                      <span>Stok Sor (WhatsApp)</span>
+                      +%10 Fire Payı Ekle ({Math.max(getQty(previewProduct.id) + 1, Math.ceil(getQty(previewProduct.id) * 1.1))} {previewProduct.unit})
                     </button>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          handleAddProduct(previewProduct, getPurchaseMode(previewProduct));
-                          setPreviewProduct(null);
-                        }}
-                        className="btn-pill-black text-xs py-3 px-6 shadow-md"
-                      >
-                        <span>{getPurchaseMode(previewProduct) === 'with_installation' ? 'Usta Dahil Sepete Ekle' : 'Sepete Ekle'}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          handleFastWhatsAppOrder(previewProduct);
-                          setPreviewProduct(null);
-                        }}
-                        className="btn-pill-outline text-xs py-3 px-4 flex items-center gap-1.5 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
-                      >
-                        <Send className="w-3.5 h-3.5" />
-                        <span>WhatsApp</span>
-                      </button>
-                    </>
-                  )}
+                  </div>
                 </div>
+
+                <div className="pt-4 border-t border-[#E8EAED] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <span className="text-[10px] text-[#64748B] block font-semibold">
+                      {currentMode === 'with_installation'
+                        ? `Malzeme + Usta Uygulama Toplamı (${currentQty} ${previewProduct.unit} • KDV Dahil):`
+                        : `Toplam Malzeme Fiyatı (${currentQty} ${previewProduct.unit} • KDV Dahil):`}
+                    </span>
+                    <div className="text-2xl font-black font-mono text-[#0A0A0B]">
+                      {finalLineTotal.toLocaleString('tr-TR')} ₺
+                      <span className="text-xs font-normal text-[#64748B] ml-1.5">
+                        ({finalUnitPrice.toLocaleString('tr-TR')} ₺ / {previewProduct.unit})
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {previewProduct.inStock === false ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleFastWhatsAppOrder(previewProduct, activeVariant);
+                          closeProductPreview();
+                        }}
+                        className="btn-pill-black bg-amber-600 hover:bg-amber-700 text-white text-xs py-3 px-6 shadow-md"
+                      >
+                        <span>Stok Sor (WhatsApp)</span>
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleAddProduct(previewProduct, currentMode, currentQty, activeVariant);
+                            closeProductPreview();
+                          }}
+                          className="btn-pill-black text-xs py-3 px-6 shadow-md"
+                        >
+                          <span>{currentMode === 'with_installation' ? 'Usta Dahil Sepete Ekle' : 'Sepete Ekle'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleFastWhatsAppOrder(previewProduct, activeVariant);
+                            closeProductPreview();
+                          }}
+                          className="btn-pill-outline text-xs py-3 px-4 flex items-center gap-1.5 text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>WhatsApp</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+
               </div>
 
             </div>
-
           </div>
-        </div>
+        );
+      })()}
+
+      {/* Akıllı Metraj & Kutu / Fire Hesaplayıcı Modalı */}
+      {calculatorProduct && (
+        <SmartMeasurementCalculator
+          product={calculatorProduct}
+          selectedVariant={getProductVariant(calculatorProduct)}
+          onApplyCalculation={(qty, variant) => {
+            if (variant) {
+              setSelectedVariants((prev) => ({ ...prev, [calculatorProduct.id]: variant }));
+            }
+            handleAddProduct(calculatorProduct, getPurchaseMode(calculatorProduct), qty, variant);
+          }}
+          onClose={() => setCalculatorProduct(null)}
+        />
       )}
 
       {/* ======================================================== */}

@@ -1865,9 +1865,10 @@ export const CustomerConfigurator: React.FC<CustomerConfiguratorProps> = ({
 
                   if (!item.product) return null;
                   const isMaterialOnly = item.purchaseType === 'material_only';
+                  const variantDiff = item.selectedVariant?.priceDifference || 0;
                   const itemTotal = isMaterialOnly
-                    ? item.product.materialPrice * item.quantity
-                    : (item.product.materialPrice + item.product.workmanshipPrice) * item.quantity;
+                    ? (item.product.materialPrice + variantDiff) * item.quantity
+                    : (item.product.materialPrice + variantDiff + item.product.workmanshipPrice) * item.quantity;
                   const isLaborOnly = item.product.id.startsWith('labor-');
                   const isOnSite = item.product.id.startsWith('onsite-');
 

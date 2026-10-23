@@ -58,17 +58,19 @@ export const CustomerInspectionModal: React.FC<CustomerInspectionModalProps> = (
   const totalAmount = cart.reduce((sum, item) => {
     if (item.isCustom || !item.product) return sum;
     const isMaterialOnly = item.purchaseType === 'material_only';
+    const variantDiff = item.selectedVariant?.priceDifference || 0;
     const line = isMaterialOnly
-      ? item.product.materialPrice * item.quantity
-      : (item.product.materialPrice + item.product.workmanshipPrice) * item.quantity;
+      ? (item.product.materialPrice + variantDiff) * item.quantity
+      : (item.product.materialPrice + variantDiff + item.product.workmanshipPrice) * item.quantity;
     return sum + line;
   }, 0);
 
   const marketTotal = cart.reduce((sum, item) => {
     if (item.isCustom || !item.product) return sum;
+    const variantDiff = item.selectedVariant?.priceDifference || 0;
     const base = item.purchaseType === 'material_only'
-      ? item.product.materialPrice
-      : item.product.materialPrice + item.product.workmanshipPrice;
+      ? item.product.materialPrice + variantDiff
+      : item.product.materialPrice + variantDiff + item.product.workmanshipPrice;
     const market = item.product.marketPrice && item.product.marketPrice > base ? item.product.marketPrice : base;
     return sum + market * item.quantity;
   }, 0);
@@ -115,8 +117,9 @@ export const CustomerInspectionModal: React.FC<CustomerInspectionModalProps> = (
           };
         }
         const isMaterialOnly = c.purchaseType === 'material_only';
+        const variantDiff = c.selectedVariant?.priceDifference || 0;
         const lineTotal = c.product
-          ? (isMaterialOnly ? c.product.materialPrice : c.product.materialPrice + c.product.workmanshipPrice) * c.quantity
+          ? (isMaterialOnly ? c.product.materialPrice + variantDiff : c.product.materialPrice + variantDiff + c.product.workmanshipPrice) * c.quantity
           : 0;
 
         return {
@@ -126,6 +129,8 @@ export const CustomerInspectionModal: React.FC<CustomerInspectionModalProps> = (
           unit: c.product?.unit || 'adet',
           total: lineTotal,
           purchaseType: c.purchaseType,
+          selectedVariant: c.selectedVariant,
+          variantName: c.selectedVariant?.name,
         };
       }),
       createdAt: new Date().toISOString(),

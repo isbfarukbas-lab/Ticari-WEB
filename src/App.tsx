@@ -19,9 +19,10 @@ import { AdminLoginScreen } from './components/AdminLoginScreen';
 
 import { CATEGORIES, INITIAL_PRODUCTS } from './data/initialProducts';
 import { INITIAL_SETTINGS } from './data/initialSettings';
-import { CartItem, Product, LeadRequest, CustomRequestItem, CategoryKey, SiteSettings, CustomerUser } from './types';
+import { CartItem, Product, ProductVariant, LeadRequest, CustomRequestItem, CategoryKey, SiteSettings, CustomerUser } from './types';
 import { ShoppingBag, ArrowUpRight, ArrowLeft, Hammer, Calendar } from 'lucide-react';
 import { syncToCloudAndTabs, fetchFromCloud, subscribeToLiveSync } from './utils/cloudSync';
+import { dbService } from './services/dbService';
 
 export const App: React.FC = () => {
   // Navigation view: 'store' (Satış Vitrini & E-Ticaret) | 'configurator' (Komple Tadilat Teklifi) | 'landing' (Kurumsal Tanıtım) | 'admin' (Yönetici)
@@ -53,14 +54,24 @@ export const App: React.FC = () => {
     };
   }, []);
 
-  // Products state with localStorage persistence (strictly respects admin deletions & edits)
+  // Products state with localStorage persistence (strictly respects admin deletions & edits, merges rich schema attributes)
   const [products, setProducts] = useState<Product[]>(() => {
     try {
       const saved = localStorage.getItem('rvoba_products_v1');
       if (saved !== null) {
-        const parsed = JSON.parse(saved);
+        const parsed: Product[] = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return parsed;
+          const initMap = new Map(INITIAL_PRODUCTS.map((p) => [p.id, p]));
+          return parsed.map((p) => {
+            const init = initMap.get(p.id);
+            if (!init) return p;
+            return {
+              ...p,
+              variants: p.variants && p.variants.length > 0 ? p.variants : init.variants,
+              coverageRule: p.coverageRule || init.coverageRule,
+              images: p.images && p.images.length > 0 ? p.images : (init.images || [p.image, ...(p.roomImage ? [p.roomImage] : [])]),
+            };
+          });
         }
       }
     } catch (e) {
@@ -107,7 +118,25 @@ export const App: React.FC = () => {
       if (saved !== null) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return parsed.filter((l) => l.id !== 'lead-sample-1');
+          const seen = new Set<string>();
+          return parsed
+            .filter((l) => {
+              if (!l || l.id === 'lead-sample-1' || seen.has(l.id)) return false;
+              seen.add(l.id);
+              return true;
+            })
+            .map((l) => {
+              const rawStatus = l.status as string | undefined;
+              const normalizedStatus: LeadRequest['status'] =
+                rawStatus === 'sozlesme_imzalandi' || rawStatus === 'completed'
+                  ? 'sozlesme_imzalandi'
+                  : rawStatus === 'kesif_verildi' || rawStatus === 'scheduled'
+                  ? 'kesif_verildi'
+                  : rawStatus === 'arandi' || rawStatus === 'contacted'
+                  ? 'arandi'
+                  : 'bekliyor';
+              return { ...l, status: normalizedStatus };
+            });
         }
       }
     } catch (e) {
@@ -141,19 +170,19 @@ export const App: React.FC = () => {
         if (mergedContent.storePerk3 && mergedContent.storePerk3.includes('Montaj')) {
           mergedContent.storePerk3 = INITIAL_SETTINGS.content?.storePerk3 || '';
         }
-        // Sync "12 Taksit" texts when Credit Card POS is disabled
-        const isCreditCardEnabled = parsed.paymentMethods?.enableCreditCard ?? INITIAL_SETTINGS.paymentMethods?.enableCreditCard;
-        if (!isCreditCardEnabled) {
-          if (mergedContent.announcementText2 && mergedContent.announcementText2.includes('12 Taksit')) {
-            mergedContent.announcementText2 = INITIAL_SETTINGS.content?.announcementText2 || '%3 Havale İndirimi & Kapıda Ödeme İmkanı';
-          }
-          if (mergedContent.storePerk2 && mergedContent.storePerk2.includes('12 Taksit')) {
-            mergedContent.storePerk2 = INITIAL_SETTINGS.content?.storePerk2 || '%3 Havale İndirimi & Kapıda Ödeme';
-          }
-        }
+        // Payment methods (credit card waits until company establishment)
+        const paymentMethods = {
+          ...INITIAL_SETTINGS.paymentMethods,
+          ...(parsed.paymentMethods || {}),
+          enableCreditCard: parsed.paymentMethods?.enableCreditCard ?? false,
+        };
         return {
           ...INITIAL_SETTINGS,
           ...parsed,
+          paymentMethods,
+          cloudEndpoint: parsed.cloudEndpoint || INITIAL_SETTINGS.cloudEndpoint || '',
+          notificationWebhookUrl: parsed.notificationWebhookUrl || INITIAL_SETTINGS.notificationWebhookUrl || '',
+          telegramConfig: parsed.telegramConfig || INITIAL_SETTINGS.telegramConfig,
           content: mergedContent,
         };
       }
@@ -369,11 +398,17 @@ export const App: React.FC = () => {
     product: Product,
     quantity: number,
     roomType: string,
-    purchaseType?: 'with_installation' | 'material_only'
+    purchaseType?: 'with_installation' | 'material_only',
+    selectedVariant?: ProductVariant
   ) => {
     setCart((prev) => {
       const idx = prev.findIndex(
-        (c) => !c.isCustom && c.productId === product.id && c.roomType === roomType && c.purchaseType === purchaseType
+        (c) =>
+          !c.isCustom &&
+          c.productId === product.id &&
+          c.roomType === roomType &&
+          c.purchaseType === purchaseType &&
+          c.selectedVariant?.id === selectedVariant?.id
       );
       if (idx > -1) {
         const copy = [...prev];
@@ -389,6 +424,7 @@ export const App: React.FC = () => {
           quantity,
           roomType,
           purchaseType,
+          selectedVariant,
         },
       ];
     });
@@ -529,10 +565,12 @@ export const App: React.FC = () => {
       customerId: newLead.customerId || (currentUser ? currentUser.id : undefined),
     };
     setLeads((prev) => {
-      const next = [enrichedLead, ...prev];
+      const next = [enrichedLead, ...prev.filter((l) => l.id !== enrichedLead.id)];
       syncToCloudAndTabs({ leads: next });
       return next;
     });
+    // Trigger remote cloud write & alert dispatcher
+    dbService.saveLead(enrichedLead, settings).catch((err) => console.warn(err));
   };
 
   const handleUpdateSettings = (newSettings: SiteSettings) => {
@@ -605,9 +643,10 @@ export const App: React.FC = () => {
   const cartTotal = cart.reduce((sum, item) => {
     if (item.isCustom || !item.product) return sum;
     const isMaterialOnly = item.purchaseType === 'material_only';
+    const variantDiff = item.selectedVariant?.priceDifference || 0;
     const line = isMaterialOnly
-      ? item.product.materialPrice * item.quantity
-      : (item.product.materialPrice + item.product.workmanshipPrice) * item.quantity;
+      ? (item.product.materialPrice + variantDiff) * item.quantity
+      : (item.product.materialPrice + item.product.workmanshipPrice + variantDiff) * item.quantity;
     return sum + line;
   }, 0);
 

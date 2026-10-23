@@ -120,9 +120,10 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
   const totalPrice = cart.reduce((sum, item) => {
     if (item.isCustom || !item.product) return sum;
     const isMaterialOnly = item.purchaseType === 'material_only';
+    const variantDiff = item.selectedVariant?.priceDifference || 0;
     const line = isMaterialOnly 
-      ? item.product.materialPrice * item.quantity 
-      : (item.product.materialPrice + item.product.workmanshipPrice) * item.quantity;
+      ? (item.product.materialPrice + variantDiff) * item.quantity 
+      : (item.product.materialPrice + variantDiff + item.product.workmanshipPrice) * item.quantity;
     return sum + line;
   }, 0);
 

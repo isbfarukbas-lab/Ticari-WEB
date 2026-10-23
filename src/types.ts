@@ -14,6 +14,22 @@ export interface CategoryInfo {
   description: string;
 }
 
+export interface ProductVariant {
+  id: string;
+  name: string;             // örn: "Aydan Rengi", "Andezit 25", "Doğal Meşe", "Koyu Ceviz"
+  code?: string;            // örn: "FB-AYDAN-201"
+  colorHex?: string;        // örn: "#E4DEC8"
+  image?: string;           // Varyant görseli (opsiyonel)
+  priceDifference?: number; // Opsiyonel fiyat farkı (+/- TL)
+}
+
+export interface CoverageCalculationRule {
+  coveragePerUnit: number;     // örn: 1.83 (parke 1 paket m²), 130 (15L kova boya m²), 1.44 (fayans kutu)
+  unitLabel: string;           // örn: "m²", "metre", "çerçeve"
+  defaultWastePercent: number; // örn: 7 (%7 fire)
+  calculationType: 'area' | 'length' | 'set';
+}
+
 export interface Product {
   id: string;
   category: CategoryKey;
@@ -21,6 +37,7 @@ export interface Product {
   name: string;              // örn: "Momento Silan — Aydan Rengi"
   code: string;              // örn: "FL-AYD-201"
   image: string;             // Gerçek kartela / numune / ürün fotoğrafı (URL veya Base64)
+  images?: string[];         // Çoklu ürün fotoğraf galerisi (kapak, doku, açı ve mekan fotoğrafları)
   roomImage?: string;        // Uygulanmış gerçek mekan fotoğrafı (opsiyonel)
   description: string;
   unit: 'm²' | 'adet' | 'metre' | 'nokta' | 'paket' | 'kova' | 'set';
@@ -32,6 +49,8 @@ export interface Product {
   inStock?: boolean;         // Stok durumu
   specs?: string[];          // Teknik / malzeme özellikleri
   packageInfo?: string;      // Kapsam / paket bilgisi (örn: "1 Paket = 1.83 m²", "12 Çerçeve Hazır Set")
+  variants?: ProductVariant[];
+  coverageRule?: CoverageCalculationRule;
 }
 
 export interface CustomRequestItem {
@@ -52,6 +71,7 @@ export interface CartItem {
   isCustom?: boolean;
   customData?: CustomRequestItem;
   purchaseType?: 'with_installation' | 'material_only'; // Usta montajı dahil mi yoksa sadece ürün satışı mı
+  selectedVariant?: ProductVariant;
 }
 
 export interface ServiceArea {
@@ -84,6 +104,7 @@ export interface LeadRequest {
   savingsAmount?: number;
   status?: 'bekliyor' | 'arandi' | 'kesif_verildi' | 'sozlesme_imzalandi';
   adminNotes?: string;
+  paymentSummary?: string;
   isCallback?: boolean;
   leadType?: 'kesif' | 'whatsapp' | 'callback' | 'store_order' | 'web_order';
   orderNumber?: string;
@@ -100,6 +121,8 @@ export interface LeadRequest {
     photoDataUrl?: string;
     customNote?: string;
     purchaseType?: 'with_installation' | 'material_only';
+    selectedVariant?: ProductVariant;
+    variantName?: string;
   }[];
   createdAt: string;
 }
@@ -214,6 +237,13 @@ export interface SiteSettings {
     stage3Percent: number;
   };
   content?: SiteContentSettings; // Canlı site metin ve vitrin yönetimi
+  cloudEndpoint?: string;        // Firebase / Supabase ortak canlı bulut veritabanı URL'si
+  notificationWebhookUrl?: string; // Sipariş düştüğünde tetiklenecek webhook (Make / Zapier / Slack)
+  telegramConfig?: {
+    botToken?: string;           // Telegram Bot Token (örn: 123456:ABC-DEF...)
+    chatId?: string;             // Yönetici Telegram Chat ID
+    enabled?: boolean;
+  };
 }
 
 export interface CustomerAddress {

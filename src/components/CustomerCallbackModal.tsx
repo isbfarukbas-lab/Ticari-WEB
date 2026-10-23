@@ -33,7 +33,8 @@ export const CustomerCallbackModal: React.FC<CustomerCallbackModalProps> = ({
 
   const totalMaterial = cart.reduce((sum, item) => {
     if (item.isCustom || !item.product) return sum;
-    return sum + item.product.materialPrice * item.quantity;
+    const variantDiff = item.selectedVariant?.priceDifference || 0;
+    return sum + (item.product.materialPrice + variantDiff) * item.quantity;
   }, 0);
 
   const totalLabor = cart.reduce((sum, item) => {
@@ -65,8 +66,9 @@ export const CustomerCallbackModal: React.FC<CustomerCallbackModalProps> = ({
         };
       }
       const isMaterialOnly = c.purchaseType === 'material_only';
+      const variantDiff = c.selectedVariant?.priceDifference || 0;
       const lineTotal = c.product
-        ? (isMaterialOnly ? c.product.materialPrice : c.product.materialPrice + c.product.workmanshipPrice) * c.quantity
+        ? (isMaterialOnly ? c.product.materialPrice + variantDiff : c.product.materialPrice + variantDiff + c.product.workmanshipPrice) * c.quantity
         : 0;
 
       return {
@@ -76,6 +78,8 @@ export const CustomerCallbackModal: React.FC<CustomerCallbackModalProps> = ({
         unit: c.product?.unit || 'adet',
         total: lineTotal,
         purchaseType: c.purchaseType,
+        selectedVariant: c.selectedVariant,
+        variantName: c.selectedVariant?.name,
       };
     });
 

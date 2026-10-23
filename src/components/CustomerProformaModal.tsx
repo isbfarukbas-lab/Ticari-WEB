@@ -38,7 +38,8 @@ export const CustomerProformaModal: React.FC<CustomerProformaModalProps> = ({
 
   const totalMaterial = cart.reduce((sum, item) => {
     if (item.isCustom || !item.product) return sum;
-    return sum + item.product.materialPrice * item.quantity;
+    const variantDiff = item.selectedVariant?.priceDifference || 0;
+    return sum + (item.product.materialPrice + variantDiff) * item.quantity;
   }, 0);
 
   const totalLabor = cart.reduce((sum, item) => {
@@ -47,7 +48,11 @@ export const CustomerProformaModal: React.FC<CustomerProformaModalProps> = ({
     return sum + item.product.workmanshipPrice * item.quantity;
   }, 0);
 
-  const grandTotal = totalMaterial + totalLabor;
+  const subTotal = totalMaterial + totalLabor;
+  const freeShippingThreshold = settings?.freeShippingThreshold ?? 3000;
+  const standardShippingCost = settings?.standardShippingCost ?? 180;
+  const shippingCost = isPureStoreOrder && subTotal > 0 && subTotal < freeShippingThreshold ? standardShippingCost : 0;
+  const grandTotal = subTotal + shippingCost;
 
   const p1 = settings?.paymentStages?.stage1Percent ?? 35;
   const p2 = settings?.paymentStages?.stage2Percent ?? 40;
@@ -183,9 +188,11 @@ export const CustomerProformaModal: React.FC<CustomerProformaModalProps> = ({
                 if (!item.product) return null;
                 const isLaborOnly = item.product.id.startsWith('labor-');
                 const isMaterialOnly = item.purchaseType === 'material_only';
+                const variantDiff = item.selectedVariant?.priceDifference || 0;
+                const unitMatPrice = item.product.materialPrice + variantDiff;
                 const line = isMaterialOnly 
-                  ? item.product.materialPrice * item.quantity 
-                  : (item.product.materialPrice + item.product.workmanshipPrice) * item.quantity;
+                  ? unitMatPrice * item.quantity 
+                  : (unitMatPrice + item.product.workmanshipPrice) * item.quantity;
 
                 if (isPureStoreOrder) {
                   return (
@@ -194,9 +201,14 @@ export const CustomerProformaModal: React.FC<CustomerProformaModalProps> = ({
                       <td className="py-2.5 px-3 print:py-1 print:px-1.5 font-semibold text-slate-900">
                         <div>
                           {item.product.brand} - {item.product.name}
+                          {item.selectedVariant && (
+                            <span className="ml-1.5 font-normal text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded text-[10px] print:text-[8px] border border-emerald-200">
+                              {item.selectedVariant.name}
+                            </span>
+                          )}
                         </div>
                         <div className="text-[9px] print:text-[7.5px] text-slate-400 font-mono mt-0.5">
-                          Ürün Kodu: {item.product.code}
+                          Ürün Kodu: {item.selectedVariant?.code || item.product.code}
                         </div>
                       </td>
                       <td className="py-2.5 px-3 print:py-1 print:px-1.5 text-slate-600">
@@ -206,7 +218,7 @@ export const CustomerProformaModal: React.FC<CustomerProformaModalProps> = ({
                         {item.quantity} {item.product.unit}
                       </td>
                       <td className="py-2.5 px-3 print:py-1 print:px-1.5 text-right font-mono text-slate-600">
-                        {item.product.materialPrice.toLocaleString('tr-TR')} ₺
+                        {unitMatPrice.toLocaleString('tr-TR')} ₺
                       </td>
                       <td className="py-2.5 px-3 print:py-1 print:px-1.5 text-right font-mono font-bold text-slate-900">
                         {line.toLocaleString('tr-TR')} ₺
@@ -221,9 +233,16 @@ export const CustomerProformaModal: React.FC<CustomerProformaModalProps> = ({
                     <td className="py-2.5 px-3 print:py-1 print:px-1.5 font-semibold text-slate-900">
                       <div>
                         {item.product.brand} - {item.product.name}
+                        {item.selectedVariant && (
+                          <span className="ml-1.5 font-normal text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded text-[10px] print:text-[8px] border border-emerald-200">
+                            {item.selectedVariant.name}
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[9px] print:text-[7.5px] text-slate-400 font-mono">Kod: {item.product.code}</span>
+                        <span className="text-[9px] print:text-[7.5px] text-slate-400 font-mono">
+                          Kod: {item.selectedVariant?.code || item.product.code}
+                        </span>
                         {isMaterialOnly && (
                           <span className="text-[9px] print:text-[7.5px] font-bold bg-slate-100 text-slate-800 px-1.5 py-0.2 rounded">
                             Sadece Malzeme
@@ -236,7 +255,7 @@ export const CustomerProformaModal: React.FC<CustomerProformaModalProps> = ({
                       {item.quantity} {item.product.unit}
                     </td>
                     <td className="py-2.5 px-3 print:py-1 print:px-1.5 text-right font-mono text-slate-600">
-                      {isLaborOnly ? '0 ₺' : `${(item.product.materialPrice * item.quantity).toLocaleString('tr-TR')} ₺`}
+                      {isLaborOnly ? '0 ₺' : `${(unitMatPrice * item.quantity).toLocaleString('tr-TR')} ₺`}
                     </td>
                     <td className="py-2.5 px-3 print:py-1 print:px-1.5 text-right font-mono text-slate-600">
                       {isMaterialOnly ? '0 ₺' : `${(item.product.workmanshipPrice * item.quantity).toLocaleString('tr-TR')} ₺`}
@@ -280,9 +299,9 @@ export const CustomerProformaModal: React.FC<CustomerProformaModalProps> = ({
                   <div className="flex justify-between text-slate-600">
                     <span>Kargo & Ambar Sevkiyatı:</span>
                     <span className="font-bold text-emerald-700">
-                      {grandTotal >= (settings?.freeShippingThreshold ?? 3000)
-                        ? `Ücretsiz (${(settings?.freeShippingThreshold ?? 3000).toLocaleString('tr-TR')} ₺ Üzeri)`
-                        : `${(settings?.standardShippingCost ?? 180).toLocaleString('tr-TR')} ₺ (Standart Kargo)`}
+                      {subTotal >= freeShippingThreshold
+                        ? `Ücretsiz (${freeShippingThreshold.toLocaleString('tr-TR')} ₺ Üzeri)`
+                        : `${standardShippingCost.toLocaleString('tr-TR')} ₺ (Standart Kargo)`}
                     </span>
                   </div>
                   <div className="flex justify-between text-slate-600">

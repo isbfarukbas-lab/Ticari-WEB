@@ -31,6 +31,8 @@ export const CustomerOrderLookupModal: React.FC<CustomerOrderLookupModalProps> =
   supportPhone = '0544 768 51 37',
 }) => {
   const [query, setQuery] = useState('');
+  const [phoneLast4, setPhoneLast4] = useState('');
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [remoteResults, setRemoteResults] = useState<LeadRequest[]>([]);
@@ -39,6 +41,8 @@ export const CustomerOrderLookupModal: React.FC<CustomerOrderLookupModalProps> =
   useEffect(() => {
     if (!isOpen) {
       setQuery('');
+      setPhoneLast4('');
+      setValidationError(null);
       setSearched(false);
       setIsSearching(false);
       setRemoteResults([]);
@@ -48,24 +52,55 @@ export const CustomerOrderLookupModal: React.FC<CustomerOrderLookupModalProps> =
   if (!isOpen) return null;
 
   const normalizePhone = (val: string) => val.replace(/\D/g, '').slice(-10);
+  const isOrderCodeQuery = /[a-zA-Z]/.test(query.trim());
+
+  const maskFullName = (name?: string): string => {
+    const clean = (name || '').trim();
+    if (!clean) return 'Müşteri';
+    if (clean.includes('***')) return clean;
+    const parts = clean.split(/\s+/);
+    const first = `${parts[0].slice(0, 2)}***`;
+    const second = parts[1] ? ` ${parts[1].slice(0, 1)}***` : '';
+    return `${first}${second}`;
+  };
 
   const matchedLeads = (() => {
+    if (!searched) return [];
     const trimmed = query.trim();
     if (!trimmed) return [];
     const upper = trimmed.toUpperCase().replace(/^#/, '');
     const digits = normalizePhone(trimmed);
+    const cleanLast4 = phoneLast4.replace(/\D/g, '').slice(-4);
 
-    const localMatches = leads.filter((lead) => {
-      const orderMatch =
-        (lead.orderNumber && lead.orderNumber.toUpperCase().replace(/^#/, '') === upper) ||
-        lead.id.toUpperCase() === upper;
-      const phoneMatch = digits.length >= 7 && normalizePhone(lead.phone || '').includes(digits);
-      return orderMatch || phoneMatch;
-    });
+    const localMatches = leads
+      .filter((lead) => {
+        const leadPhone10 = normalizePhone(lead.phone || '');
+        if (isOrderCodeQuery) {
+          if (cleanLast4.length !== 4) return false;
+          const orderMatch =
+            (lead.orderNumber && lead.orderNumber.toUpperCase().replace(/^#/, '') === upper) ||
+            lead.id.toUpperCase() === upper;
+          return orderMatch && leadPhone10.slice(-4) === cleanLast4;
+        }
+        return digits.length === 10 && leadPhone10 === digits;
+      })
+      .map((l) => ({
+        ...l,
+        fullName: maskFullName(l.fullName),
+        address: undefined,
+        email: undefined,
+      }));
 
     const mergedMap = new Map<string, LeadRequest>();
     localMatches.forEach((l) => mergedMap.set(l.id, l));
-    remoteResults.forEach((l) => mergedMap.set(l.id, l));
+    remoteResults.forEach((l) =>
+      mergedMap.set(l.id, {
+        ...l,
+        fullName: maskFullName(l.fullName),
+        address: undefined,
+        email: undefined,
+      })
+    );
 
     return Array.from(mergedMap.values()).sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -74,11 +109,31 @@ export const CustomerOrderLookupModal: React.FC<CustomerOrderLookupModalProps> =
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationError(null);
     const trimmed = query.trim();
     if (!trimmed) return;
+
+    const cleanLast4 = phoneLast4.replace(/\D/g, '');
+    const digits = normalizePhone(trimmed);
+
+    if (isOrderCodeQuery) {
+      if (cleanLast4.length !== 4) {
+        setValidationError(
+          'KVKK güvenliği için sipariş numarasıyla sorgularken telefonunuzun son 4 hanesini giriniz.'
+        );
+        return;
+      }
+    } else if (digits.length < 10) {
+      setValidationError('Lütfen 10 haneli telefon numaranızı eksiksiz giriniz (Örn: 05XX XXX XX XX).');
+      return;
+    }
+
     setIsSearching(true);
     try {
-      const cloudMatches = await dbService.lookupCustomerLeads({ query: trimmed });
+      const cloudMatches = await dbService.lookupCustomerLeads({
+        query: trimmed,
+        phoneLast4: isOrderCodeQuery ? cleanLast4.slice(-4) : undefined,
+      });
       setRemoteResults(cloudMatches);
     } finally {
       setIsSearching(false);
@@ -133,30 +188,67 @@ export const CustomerOrderLookupModal: React.FC<CustomerOrderLookupModalProps> =
 
         {/* Body */}
         <div className="p-5 sm:p-6 overflow-y-auto space-y-5 flex-1">
-          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2.5">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Telefon Numaranız (05XX...) veya Sipariş No (RV-SP-...)"
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  if (searched) {
-                    setSearched(false);
-                    setRemoteResults([]);
-                  }
-                }}
-                className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-2xl pl-10 pr-4 py-3 text-xs font-semibold text-[#0A0A0B] placeholder:text-slate-400 focus:outline-none focus:border-black"
-              />
+          <form onSubmit={handleSearch} className="space-y-2.5">
+            <div className="flex flex-col sm:flex-row gap-2.5">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="10 Haneli Telefon (05XX...) veya Sipariş No (RV-SP-...)"
+                  value={query}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    setValidationError(null);
+                    if (searched) {
+                      setSearched(false);
+                      setRemoteResults([]);
+                    }
+                  }}
+                  className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-2xl pl-10 pr-4 py-3 text-xs font-semibold text-[#0A0A0B] placeholder:text-slate-400 focus:outline-none focus:border-black"
+                />
+              </div>
+
+              {isOrderCodeQuery && (
+                <div className="relative sm:w-44">
+                  <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={4}
+                    placeholder="Tel Son 4 Hane"
+                    value={phoneLast4}
+                    onChange={(e) => {
+                      setPhoneLast4(e.target.value.replace(/\D/g, '').slice(0, 4));
+                      setValidationError(null);
+                      if (searched) {
+                        setSearched(false);
+                        setRemoteResults([]);
+                      }
+                    }}
+                    className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-2xl pl-9 pr-3 py-3 text-xs font-mono font-bold text-[#0A0A0B] placeholder:font-sans placeholder:font-normal placeholder:text-slate-400 focus:outline-none focus:border-black"
+                  />
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isSearching}
+                className="btn-pill-black text-xs py-3 px-6 font-bold shrink-0 justify-center disabled:opacity-60"
+              >
+                {isSearching ? 'Sorgulanıyor...' : 'Sorgula'}
+              </button>
             </div>
-            <button
-              type="submit"
-              disabled={isSearching}
-              className="btn-pill-black text-xs py-3 px-6 font-bold shrink-0 justify-center disabled:opacity-60"
-            >
-              {isSearching ? 'Sorgulanıyor...' : 'Sorgula'}
-            </button>
+
+            {validationError && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                <span>{validationError}</span>
+              </div>
+            )}
+
+            <p className="text-[11px] text-[#64748B]">
+              KVKK güvenliği gereği açık teslimat adresiniz ve iletişim bilgileriniz bu ekranda yıldızlanarak korunur.
+            </p>
           </form>
 
           {searched && matchedLeads.length === 0 && (

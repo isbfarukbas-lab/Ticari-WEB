@@ -114,6 +114,12 @@ export interface LeadRequest {
   paymentMethod?: 'credit_card' | 'bank_transfer' | 'cash_on_delivery';
   shippingCost?: number;
   customerId?: string;
+  invoiceInfo?: {
+    type: 'individual' | 'corporate';
+    companyTitle?: string;
+    taxOffice?: string;
+    taxNumber?: string;
+  };
   items: { 
     productId?: string;
     name: string; 

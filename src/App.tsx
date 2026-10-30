@@ -1,21 +1,48 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { CustomerHeader } from './components/CustomerHeader';
-import { CustomerLandingPage } from './components/CustomerLandingPage';
-import { CustomerConfigurator } from './components/CustomerConfigurator';
 import { CustomerStore } from './components/CustomerStore';
 import { CustomerCartDrawer } from './components/CustomerCartDrawer';
-import { CustomerCheckoutModal } from './components/CustomerCheckoutModal';
-import { CustomerInspectionModal } from './components/CustomerInspectionModal';
-import { CustomerProformaModal } from './components/CustomerProformaModal';
-import { CustomerCallbackModal } from './components/CustomerCallbackModal';
 import { CustomerTrustSection } from './components/CustomerTrustSection';
 import { CustomerFooter } from './components/CustomerFooter';
-import { CustomerLegalModal, LegalTabKey } from './components/CustomerLegalModal';
-import { CustomerAuthModal } from './components/CustomerAuthModal';
-import { CustomerAccountDrawer } from './components/CustomerAccountDrawer';
-import { CustomerOrderLookupModal } from './components/CustomerOrderLookupModal';
-import { AdminPortal } from './components/AdminPortal';
-import { AdminLoginScreen } from './components/AdminLoginScreen';
+import type { LegalTabKey } from './components/CustomerLegalModal';
+
+// Lazy-loaded heavy routes & modals so storefront visitors download ~50% less initial JS
+const CustomerLandingPage = lazy(() =>
+  import('./components/CustomerLandingPage').then((m) => ({ default: m.CustomerLandingPage }))
+);
+const CustomerConfigurator = lazy(() =>
+  import('./components/CustomerConfigurator').then((m) => ({ default: m.CustomerConfigurator }))
+);
+const CustomerCheckoutModal = lazy(() =>
+  import('./components/CustomerCheckoutModal').then((m) => ({ default: m.CustomerCheckoutModal }))
+);
+const CustomerInspectionModal = lazy(() =>
+  import('./components/CustomerInspectionModal').then((m) => ({ default: m.CustomerInspectionModal }))
+);
+const CustomerProformaModal = lazy(() =>
+  import('./components/CustomerProformaModal').then((m) => ({ default: m.CustomerProformaModal }))
+);
+const CustomerCallbackModal = lazy(() =>
+  import('./components/CustomerCallbackModal').then((m) => ({ default: m.CustomerCallbackModal }))
+);
+const CustomerLegalModal = lazy(() =>
+  import('./components/CustomerLegalModal').then((m) => ({ default: m.CustomerLegalModal }))
+);
+const CustomerAuthModal = lazy(() =>
+  import('./components/CustomerAuthModal').then((m) => ({ default: m.CustomerAuthModal }))
+);
+const CustomerAccountDrawer = lazy(() =>
+  import('./components/CustomerAccountDrawer').then((m) => ({ default: m.CustomerAccountDrawer }))
+);
+const CustomerOrderLookupModal = lazy(() =>
+  import('./components/CustomerOrderLookupModal').then((m) => ({ default: m.CustomerOrderLookupModal }))
+);
+const AdminPortal = lazy(() =>
+  import('./components/AdminPortal').then((m) => ({ default: m.AdminPortal }))
+);
+const AdminLoginScreen = lazy(() =>
+  import('./components/AdminLoginScreen').then((m) => ({ default: m.AdminLoginScreen }))
+);
 
 import { CATEGORIES, INITIAL_PRODUCTS, isLegacyDemoProductId } from './data/initialProducts';
 import { INITIAL_SETTINGS } from './data/initialSettings';
@@ -1185,38 +1212,54 @@ export const App: React.FC = () => {
   if (currentView === 'admin') {
     if (!isAdminAuthenticated) {
       return (
-        <AdminLoginScreen
-          correctPassword={settings.adminPassword || 'rvoba2026'}
-          onLoginSuccess={handleAdminLogin}
-          onNavigateHome={navigateToStore}
-        />
+        <Suspense
+          fallback={
+            <div className="min-h-screen flex items-center justify-center bg-[#0A0A0B] text-white text-xs font-bold">
+              Yönetici Ekranı Yükleniyor...
+            </div>
+          }
+        >
+          <AdminLoginScreen
+            correctPassword={settings.adminPassword || 'rvoba2026'}
+            onLoginSuccess={handleAdminLogin}
+            onNavigateHome={navigateToStore}
+          />
+        </Suspense>
       );
     }
 
     return (
-      <AdminPortal
-        categories={CATEGORIES}
-        products={products}
-        leads={leads}
-        settings={settings}
-        customers={allUsers}
-        onDeleteCustomer={handleDeleteCustomer}
-        onResetCustomerPassword={handleResetCustomerPassword}
-        onUpdateProduct={handleUpdateProduct}
-        onAddProduct={handleAddProduct}
-        onDeleteProduct={handleDeleteProduct}
-        onClearAllProducts={handleClearAllProducts}
-        onToggleActive={handleToggleActive}
-        onResetDefaults={handleResetDefaults}
-        onUpdateSettings={handleUpdateSettings}
-        onUpdateLeadStatus={handleUpdateLeadStatus}
-        onUpdateLeadTracking={handleUpdateLeadTracking}
-        onDeleteLead={handleDeleteLead}
-        onNavigateCustomer={navigateToStore}
-        onLogout={handleAdminLogout}
-        onRefreshCloud={refreshAdminDataFromSupabase}
-        onImportFullBackup={handleImportFullBackup}
-      />
+      <Suspense
+        fallback={
+          <div className="min-h-screen flex items-center justify-center bg-[#FBFBFC] text-[#0A0A0B] text-xs font-bold">
+            RVOBA® Yönetim Paneli Yükleniyor...
+          </div>
+        }
+      >
+        <AdminPortal
+          categories={CATEGORIES}
+          products={products}
+          leads={leads}
+          settings={settings}
+          customers={allUsers}
+          onDeleteCustomer={handleDeleteCustomer}
+          onResetCustomerPassword={handleResetCustomerPassword}
+          onUpdateProduct={handleUpdateProduct}
+          onAddProduct={handleAddProduct}
+          onDeleteProduct={handleDeleteProduct}
+          onClearAllProducts={handleClearAllProducts}
+          onToggleActive={handleToggleActive}
+          onResetDefaults={handleResetDefaults}
+          onUpdateSettings={handleUpdateSettings}
+          onUpdateLeadStatus={handleUpdateLeadStatus}
+          onUpdateLeadTracking={handleUpdateLeadTracking}
+          onDeleteLead={handleDeleteLead}
+          onNavigateCustomer={navigateToStore}
+          onLogout={handleAdminLogout}
+          onRefreshCloud={refreshAdminDataFromSupabase}
+          onImportFullBackup={handleImportFullBackup}
+        />
+      </Suspense>
     );
   }
 
@@ -1251,6 +1294,7 @@ export const App: React.FC = () => {
           favoritesCount={favoritesCount}
           onToggleFavoritesOnly={handleToggleFavoritesOnly}
           showFavoritesOnly={showFavoritesOnly}
+          enableCreditCard={Boolean(settings.paymentMethods?.enableCreditCard)}
         />
       </div>
 
@@ -1260,13 +1304,21 @@ export const App: React.FC = () => {
           /* ======================================================== */
           /* 1. MÜŞTERİ KARŞILAMA & TANITIM VİTRİNİ SAYFASI           */
           /* ======================================================== */
-          <CustomerLandingPage
-            onStartConfiguring={navigateToConfigurator}
-            onOpenInspection={() => setIsInspectionOpen(true)}
-            onNavigateStore={navigateToStore}
-            projects={settings.beforeAfterProjects}
-            content={settings.content}
-          />
+          <Suspense
+            fallback={
+              <div className="py-24 text-center text-xs font-bold text-[#64748B]">
+                Sayfa Yükleniyor...
+              </div>
+            }
+          >
+            <CustomerLandingPage
+              onStartConfiguring={navigateToConfigurator}
+              onOpenInspection={() => setIsInspectionOpen(true)}
+              onNavigateStore={navigateToStore}
+              projects={settings.beforeAfterProjects}
+              content={settings.content}
+            />
+          </Suspense>
         ) : currentView === 'store' ? (
           /* ======================================================== */
           /* 2. MİMARİ ÜRÜN & MALZEME MAĞAZASI (STORE)                */
@@ -1291,6 +1343,7 @@ export const App: React.FC = () => {
             showFavoritesOnly={showFavoritesOnly}
             onToggleFavoritesOnly={handleToggleFavoritesOnly}
             freeShippingThreshold={settings.freeShippingThreshold}
+            enableCreditCard={Boolean(settings.paymentMethods?.enableCreditCard)}
             isLoading={isCatalogLoading}
           />
         ) : (
@@ -1322,29 +1375,37 @@ export const App: React.FC = () => {
               </button>
             </div>
 
-            <CustomerConfigurator
-              categories={CATEGORIES}
-              products={products}
-              cart={cart}
-              settings={settings}
-              onAddToCart={handleAddToCart}
-              onSetCategoryItem={handleSetCategoryItem}
-              onAddCustomRequest={handleAddCustomRequest}
-              onOpenCart={() => setIsCartOpen(true)}
-              onOpenInspection={() => setIsInspectionOpen(true)}
-              onOpenProforma={() => setIsProformaOpen(true)}
-              onOpenCallback={() => setIsCallbackOpen(true)}
-              selectedCity={selectedCity}
-              setSelectedCity={setSelectedCity}
-              selectedDistrict={selectedDistrict}
-              setSelectedDistrict={setSelectedDistrict}
-              activeRoom={activeRoom}
-              setActiveRoom={setActiveRoom}
-              defaultSqM={defaultSqM}
-              setDefaultSqM={setDefaultSqM}
-              phoneNumber={settings.phoneNumber}
-              onNavigateStore={navigateToStore}
-            />
+            <Suspense
+              fallback={
+                <div className="py-24 text-center text-xs font-bold text-[#64748B]">
+                  Hesaplayıcı Yükleniyor...
+                </div>
+              }
+            >
+              <CustomerConfigurator
+                categories={CATEGORIES}
+                products={products}
+                cart={cart}
+                settings={settings}
+                onAddToCart={handleAddToCart}
+                onSetCategoryItem={handleSetCategoryItem}
+                onAddCustomRequest={handleAddCustomRequest}
+                onOpenCart={() => setIsCartOpen(true)}
+                onOpenInspection={() => setIsInspectionOpen(true)}
+                onOpenProforma={() => setIsProformaOpen(true)}
+                onOpenCallback={() => setIsCallbackOpen(true)}
+                selectedCity={selectedCity}
+                setSelectedCity={setSelectedCity}
+                selectedDistrict={selectedDistrict}
+                setSelectedDistrict={setSelectedDistrict}
+                activeRoom={activeRoom}
+                setActiveRoom={setActiveRoom}
+                defaultSqM={defaultSqM}
+                setDefaultSqM={setDefaultSqM}
+                phoneNumber={settings.phoneNumber}
+                onNavigateStore={navigateToStore}
+              />
+            </Suspense>
           </div>
         )}
       </main>
@@ -1429,110 +1490,119 @@ export const App: React.FC = () => {
         mode={currentView === 'configurator' ? 'configurator' : 'store'}
       />
 
-      {/* Direct Online Checkout Modal */}
-      <CustomerCheckoutModal
-        isOpen={isCheckoutOpen}
-        onClose={() => setIsCheckoutOpen(false)}
-        cart={cart}
-        currentUser={currentUser}
-        onOrderCompleted={async (order, opts) => {
-          const res = await handleSaveLead(order, opts);
-          if (res.ok) {
-            handleClearCart();
-          }
-          return res;
-        }}
-        phoneNumber={settings.phoneNumber}
-        supportPhone={settings.supportPhone}
-        settings={settings}
-      />
+      {/* Lazy-Loaded Modals & Drawers (fetched on demand when opened) */}
+      <Suspense fallback={null}>
+        {isCheckoutOpen && (
+          <CustomerCheckoutModal
+            isOpen={isCheckoutOpen}
+            onClose={() => setIsCheckoutOpen(false)}
+            cart={cart}
+            currentUser={currentUser}
+            onOrderCompleted={async (order, opts) => {
+              const res = await handleSaveLead(order, opts);
+              if (res.ok) {
+                handleClearCart();
+              }
+              return res;
+            }}
+            phoneNumber={settings.phoneNumber}
+            supportPhone={settings.supportPhone}
+            settings={settings}
+          />
+        )}
 
-      {/* Free Discovery Modal */}
-      <CustomerInspectionModal
-        isOpen={isInspectionOpen}
-        onClose={() => setIsInspectionOpen(false)}
-        cart={cart}
-        currentUser={currentUser}
-        onSaveLead={handleSaveLead}
-        phoneNumber={settings.phoneNumber}
-        selectedCity={selectedCity}
-        selectedDistrict={selectedDistrict}
-        serviceAreas={settings.serviceAreas}
-      />
+        {isInspectionOpen && (
+          <CustomerInspectionModal
+            isOpen={isInspectionOpen}
+            onClose={() => setIsInspectionOpen(false)}
+            cart={cart}
+            currentUser={currentUser}
+            onSaveLead={handleSaveLead}
+            phoneNumber={settings.phoneNumber}
+            selectedCity={selectedCity}
+            selectedDistrict={selectedDistrict}
+            serviceAreas={settings.serviceAreas}
+          />
+        )}
 
-      {/* Proforma PDF Modal */}
-      <CustomerProformaModal
-        isOpen={isProformaOpen}
-        onClose={() => setIsProformaOpen(false)}
-        cart={cart}
-        settings={settings}
-        city={selectedCity}
-        district={selectedDistrict}
-        deliveryDays={dynamicDeliveryDays}
-      />
+        {isProformaOpen && (
+          <CustomerProformaModal
+            isOpen={isProformaOpen}
+            onClose={() => setIsProformaOpen(false)}
+            cart={cart}
+            settings={settings}
+            city={selectedCity}
+            district={selectedDistrict}
+            deliveryDays={dynamicDeliveryDays}
+          />
+        )}
 
-      {/* Mimar Beni Arasın Modal */}
-      <CustomerCallbackModal
-        isOpen={isCallbackOpen}
-        onClose={() => setIsCallbackOpen(false)}
-        cart={cart}
-        activeRoom={activeRoom}
-        defaultSqM={defaultSqM}
-        onSaveLead={handleSaveLead}
-        selectedCity={selectedCity}
-        selectedDistrict={selectedDistrict}
-      />
+        {isCallbackOpen && (
+          <CustomerCallbackModal
+            isOpen={isCallbackOpen}
+            onClose={() => setIsCallbackOpen(false)}
+            cart={cart}
+            activeRoom={activeRoom}
+            defaultSqM={defaultSqM}
+            onSaveLead={handleSaveLead}
+            selectedCity={selectedCity}
+            selectedDistrict={selectedDistrict}
+          />
+        )}
 
-      {/* Legal & Compliance Modal (Sanal POS & ETBİS Zorunluluğu) */}
-      <CustomerLegalModal
-        isOpen={legalModalTab !== null}
-        onClose={() => setLegalModalTab(null)}
-        defaultTab={legalModalTab || 'sozlesme'}
-        companyName={settings.companyName}
-        supportPhone={settings.supportPhone}
-        settings={settings}
-      />
+        {legalModalTab !== null && (
+          <CustomerLegalModal
+            isOpen={legalModalTab !== null}
+            onClose={() => setLegalModalTab(null)}
+            defaultTab={legalModalTab || 'sozlesme'}
+            companyName={settings.companyName}
+            supportPhone={settings.supportPhone}
+            settings={settings}
+          />
+        )}
 
-      {/* Customer Authentication Modal (Giriş Yap / Üye Ol / Şifremi Unuttum) */}
-      <CustomerAuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        onLoginSuccess={handleLoginSuccess}
-        users={allUsers}
-        onRegisterUser={handleRegisterUser}
-        serviceAreas={settings.serviceAreas}
-        initialTab={authInitialTab}
-        phoneNumber={settings.phoneNumber}
-      />
+        {isAuthModalOpen && (
+          <CustomerAuthModal
+            isOpen={isAuthModalOpen}
+            onClose={() => setIsAuthModalOpen(false)}
+            onLoginSuccess={handleLoginSuccess}
+            users={allUsers}
+            onRegisterUser={handleRegisterUser}
+            serviceAreas={settings.serviceAreas}
+            initialTab={authInitialTab}
+            phoneNumber={settings.phoneNumber}
+          />
+        )}
 
-      {/* Customer Account & Orders Drawer (Hesabım & Siparişlerim) */}
-      {currentUser && (
-        <CustomerAccountDrawer
-          isOpen={isAccountDrawerOpen}
-          onClose={() => setIsAccountDrawerOpen(false)}
-          user={currentUser}
-          leads={leads}
-          onLogout={handleCustomerLogout}
-          onUpdateUser={handleUpdateUser}
-          onNavigateStore={() => {
-            setIsAccountDrawerOpen(false);
-            navigateToStore();
-          }}
-          onNavigateConfigurator={() => {
-            setIsAccountDrawerOpen(false);
-            navigateToConfigurator();
-          }}
-        />
-      )}
+        {currentUser && isAccountDrawerOpen && (
+          <CustomerAccountDrawer
+            isOpen={isAccountDrawerOpen}
+            onClose={() => setIsAccountDrawerOpen(false)}
+            user={currentUser}
+            leads={leads}
+            onLogout={handleCustomerLogout}
+            onUpdateUser={handleUpdateUser}
+            onNavigateStore={() => {
+              setIsAccountDrawerOpen(false);
+              navigateToStore();
+            }}
+            onNavigateConfigurator={() => {
+              setIsAccountDrawerOpen(false);
+              navigateToConfigurator();
+            }}
+          />
+        )}
 
-      {/* Üyeliksiz Sipariş & Keşif Sorgulama Modalı */}
-      <CustomerOrderLookupModal
-        isOpen={isOrderLookupOpen}
-        onClose={() => setIsOrderLookupOpen(false)}
-        leads={leads}
-        phoneNumber={settings.phoneNumber}
-        supportPhone={settings.supportPhone}
-      />
+        {isOrderLookupOpen && (
+          <CustomerOrderLookupModal
+            isOpen={isOrderLookupOpen}
+            onClose={() => setIsOrderLookupOpen(false)}
+            leads={leads}
+            phoneNumber={settings.phoneNumber}
+            supportPhone={settings.supportPhone}
+          />
+        )}
+      </Suspense>
 
     </div>
   );

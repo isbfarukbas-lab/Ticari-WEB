@@ -66,6 +66,7 @@ interface CustomerStoreProps {
   showFavoritesOnly: boolean;
   onToggleFavoritesOnly: () => void;
   freeShippingThreshold?: number;
+  enableCreditCard?: boolean;
   isLoading?: boolean;
 }
 
@@ -89,6 +90,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
   showFavoritesOnly,
   onToggleFavoritesOnly,
   freeShippingThreshold = 3000,
+  enableCreditCard = false,
   isLoading = false,
 }) => {
   const [sortBy, setSortBy] = useState<'featured' | 'price_asc' | 'price_desc' | 'discount'>('featured');
@@ -152,6 +154,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
     setPreviewProduct(null);
     setPreviewImageIndex(0);
     if (
+      window.location.search.includes('urun=') ||
       window.location.pathname.startsWith('/urun/') ||
       window.location.hash.startsWith('#urun/')
     ) {
@@ -400,17 +403,12 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
     window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
-  // Cart calculations for mobile floating bar
-  const totalCartCount = cart.length;
-  const totalCartPrice = cart.reduce((sum, item) => {
-    if (item.isCustom || !item.product) return sum;
-    const isMaterialOnly = item.purchaseType === 'material_only';
-    const variantDiff = item.selectedVariant?.priceDifference || 0;
-    const line = isMaterialOnly 
-      ? (item.product.materialPrice + variantDiff) * item.quantity 
-      : (item.product.materialPrice + variantDiff + item.product.workmanshipPrice) * item.quantity;
-    return sum + line;
-  }, 0);
+  const effectiveStorePerk2 =
+    !enableCreditCard &&
+    content?.storePerk2 &&
+    /taksit|kredi kart|pos/i.test(content.storePerk2)
+      ? '%3 Havale/EFT İndirimi & Kapıda Ödeme'
+      : content?.storePerk2 || '%3 Havale/EFT İndirimi & Kapıda Ödeme';
 
   return (
     <div className="space-y-8 sm:space-y-12 pb-32">
@@ -445,7 +443,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
               </span>
               <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-50 text-slate-800 font-semibold border border-slate-200">
                 <CreditCard className="w-3.5 h-3.5 text-slate-700" />
-                <span>{content?.storePerk2 || '%3 Havale İndirimi & Kapıda Ödeme'}</span>
+                <span>{effectiveStorePerk2}</span>
               </span>
               <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-slate-50 text-slate-800 font-semibold border border-slate-200">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
@@ -469,9 +467,9 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
       </section>
 
       {/* ======================================================== */}
-      {/* 2. BEST SELLERS SHOWCASE (LOKOMOTİF 4 TREND ÜRÜN)        */}
+      {/* 2. BEST SELLERS SHOWCASE (5+ ÜRÜN OLDUĞUNDA AKTİF)       */}
       {/* ======================================================== */}
-      {bestSellers.length > 0 && (
+      {storeItems.length >= 5 && bestSellers.length > 0 && (
       <section id="cok-satanlar" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6">
           <div>
@@ -1671,7 +1669,9 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
       {/* ======================================================== */}
       <aside 
         aria-label="Canlı Destek ve Hızlı Sipariş"
-        className="fixed bottom-6 right-6 z-40 flex items-center gap-2"
+        className={`fixed right-4 sm:right-6 z-40 flex items-center gap-2 transition-all duration-300 ${
+          cart.length > 0 ? 'bottom-24 lg:bottom-6' : 'bottom-6'
+        }`}
       >
         <a
           href={`https://wa.me/${phoneNumber}?text=${encodeURIComponent('Merhaba RVOBA®, web sitenizdeki ürünler ve teslimat hakkında danışmak istiyorum.')}`}

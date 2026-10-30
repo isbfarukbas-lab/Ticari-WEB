@@ -66,12 +66,6 @@ import {
   CustomerUser
 } from '../types';
 import { INITIAL_SETTINGS } from '../data/initialSettings';
-import {
-  getCustomCloudEndpoint,
-  setCustomCloudEndpoint,
-  normalizeCloudEndpoint,
-  syncToCloudAndTabs,
-} from '../utils/cloudSync';
 import { dbService } from '../services/dbService';
 import { SUPABASE_URL } from '../services/supabaseClient';
 import { uploadOptimizedImage } from '../utils/imageOptimizer';
@@ -321,7 +315,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   );
   const [localFreeShipping, setLocalFreeShipping] = useState(settings.freeShippingThreshold ?? 3000);
   const [localStandardShipping, setLocalStandardShipping] = useState(settings.standardShippingCost ?? 180);
-  const [cloudEndpoint, setCloudEndpoint] = useState(() => settings.cloudEndpoint || getCustomCloudEndpoint());
   const [localWebhookUrl, setLocalWebhookUrl] = useState(() => settings.notificationWebhookUrl || '');
   const [localTelegramConfig, setLocalTelegramConfig] = useState(() => settings.telegramConfig || { enabled: false, botToken: '', chatId: '' });
   const [localResendConfig, setLocalResendConfig] = useState(() => settings.resendConfig || { apiKey: '', fromEmail: 'RVOBA <siparis@rvoba.com>' });
@@ -350,7 +343,6 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     if (settings.legalInfo) setLocalLegalInfo(settings.legalInfo);
     setLocalFreeShipping(settings.freeShippingThreshold ?? 3000);
     setLocalStandardShipping(settings.standardShippingCost ?? 180);
-    if (settings.cloudEndpoint !== undefined) setCloudEndpoint(settings.cloudEndpoint);
     if (settings.notificationWebhookUrl !== undefined) setLocalWebhookUrl(settings.notificationWebhookUrl);
     if (settings.telegramConfig) setLocalTelegramConfig(settings.telegramConfig);
     if (settings.resendConfig) setLocalResendConfig(settings.resendConfig);
@@ -5087,6 +5079,15 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 <div className="flex justify-between gap-4">
                   <span className="text-[#64748B] shrink-0">Ödeme & Kargo:</span>
                   <span className="font-semibold text-emerald-800 text-right">{paymentAndShippingText}</span>
+                </div>
+              )}
+              {selectedLeadDetail.invoiceInfo?.type === 'corporate' && (
+                <div className="flex justify-between gap-4 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                  <span className="text-amber-900 font-bold shrink-0">Kurumsal Fatura:</span>
+                  <span className="font-semibold text-amber-950 text-right">
+                    {selectedLeadDetail.invoiceInfo.companyTitle} • {selectedLeadDetail.invoiceInfo.taxOffice} V.D. •{' '}
+                    <span className="font-mono font-bold">{selectedLeadDetail.invoiceInfo.taxNumber}</span>
+                  </span>
                 </div>
               )}
               {selectedLeadDetail.timeSlot && (

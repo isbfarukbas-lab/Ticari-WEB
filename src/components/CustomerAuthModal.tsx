@@ -99,7 +99,6 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
       // 1. Authenticate against Supabase PostgreSQL across all devices (rate-limited)
       const cloudRes = await dbService.loginCustomer(loginIdentifier, hashedInput);
       if (cloudRes.ok && cloudRes.user) {
-        await dbService.saveCustomer(cloudRes.user);
         onLoginSuccess(cloudRes.user);
         onClose();
         return;
@@ -134,7 +133,6 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
         const cleanUser: CustomerUser = { ...localUser };
         delete cleanUser.password;
         await dbService.registerCustomer(cleanUser, hashedInput);
-        await dbService.saveCustomer(cleanUser);
         onLoginSuccess(cleanUser);
         onClose();
       } else {
@@ -202,7 +200,6 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
       }
 
       const savedUser = regRes.user || newUser;
-      await dbService.saveCustomer(savedUser);
       onRegisterUser(savedUser);
       onLoginSuccess(savedUser);
       onClose();
@@ -291,7 +288,6 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
         return;
       }
 
-      await dbService.saveCustomer(res.user);
       onLoginSuccess(res.user);
       onClose();
     } catch {

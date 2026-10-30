@@ -506,18 +506,25 @@ class DatabaseService {
   }
 
   /**
-   * Customer Order Lookup (Account Drawer & Guest Order Tracking)
+   * Customer Order Lookup (Session-Authenticated Account Drawer & KVKK-Masked Guest Order Tracking)
    */
   async lookupCustomerLeads(params: {
     customerId?: string;
     phone?: string;
     query?: string;
+    phoneLast4?: string;
   }): Promise<LeadRequest[]> {
     try {
+      const token = params.customerId ? this.getCustomerSessionToken() : '';
+      const queryPayload =
+        params.customerId && token && !params.query
+          ? `__TOKEN__:${token}`
+          : params.query || null;
+
       const { data, error } = await supabase.rpc('lookup_customer_leads', {
         p_customer_id: params.customerId || null,
-        p_phone: params.phone || null,
-        p_query: params.query || null,
+        p_phone: params.phoneLast4 || params.phone || null,
+        p_query: queryPayload,
       });
       if (error) {
         console.warn('Lookup customer leads RPC error:', error.message);
@@ -681,22 +688,6 @@ class DatabaseService {
     } catch (e) {
       console.warn('Update customer profile error:', e);
       return false;
-    }
-  }
-
-  /**
-   * Legacy helper kept for backward compatibility
-   */
-  async saveCustomer(user: CustomerUser): Promise<void> {
-    try {
-      const existingRaw = localStorage.getItem('rvoba_customers_v1');
-      const users: CustomerUser[] = existingRaw ? JSON.parse(existingRaw) : [];
-      const cleanUser = { ...user };
-      delete cleanUser.password;
-      const updated = [cleanUser, ...users.filter((u) => u.id !== user.id)];
-      localStorage.setItem('rvoba_customers_v1', JSON.stringify(updated));
-    } catch (e) {
-      console.warn('Customer local cache error:', e);
     }
   }
 

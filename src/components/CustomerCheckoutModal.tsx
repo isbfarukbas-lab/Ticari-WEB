@@ -116,7 +116,15 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
   const [district, setDistrict] = useState('');
   const [address, setAddress] = useState('');
   const [deliveryNote, setDeliveryNote] = useState('');
+  const [invoiceType, setInvoiceType] = useState<'individual' | 'corporate'>('individual');
+  const [companyTitle, setCompanyTitle] = useState('');
+  const [taxOffice, setTaxOffice] = useState('');
+  const [taxNumber, setTaxNumber] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'credit_card' | 'bank_transfer' | 'cash_on_delivery'>(getDefaultPaymentMethod());
+
+  const hasRealIban = Boolean(
+    bankInfo.iban && !/^TR00\s*0000/i.test(bankInfo.iban.trim())
+  );
   
   // Credit Card Virtual POS State
   const [cardHolder, setCardHolder] = useState('');
@@ -389,6 +397,10 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
   const buildDraftLead = (provCode?: string): LeadRequest => {
     const randomSuffix = Math.floor(10000 + Math.random() * 90000);
     const orderNo = `RV-SP-${randomSuffix}`;
+    const invoiceSummary =
+      invoiceType === 'corporate'
+        ? ` | Kurumsal Fatura: ${companyTitle.trim()} (${taxOffice.trim()} V.D. - ${taxNumber.trim()})`
+        : '';
     return {
       id: `order-${Date.now()}`,
       customerId: currentUser?.id,
@@ -406,10 +418,20 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
       leadType: 'web_order',
       paymentMethod,
       shippingCost,
+      invoiceInfo:
+        invoiceType === 'corporate'
+          ? {
+              type: 'corporate',
+              companyTitle: companyTitle.trim(),
+              taxOffice: taxOffice.trim(),
+              taxNumber: taxNumber.trim(),
+            }
+          : { type: 'individual' },
       paymentSummary:
-        paymentMethod === 'credit_card'
+        (paymentMethod === 'credit_card'
           ? `Ödeme: Sanal POS (3D Secure ONAYLI - Provizyon: ${provCode || provisionRef || 'PRV-OK'} - ${activeBankObj.name} ${selectedInstallment} Taksit${cardNumber ? ` - Kart Sonu: ${cardNumber.replace(/\s/g, '').slice(-4)}` : ''}) | Kargo: ${isFreeShipping ? 'Ücretsiz' : `${shippingCost} ₺`}`
-          : `Ödeme Tercihi: ${paymentMethod === 'bank_transfer' ? 'Banka Havalesi / EFT' : 'Kapıda / Ambar Tesliminde Ödeme'} | Kargo: ${isFreeShipping ? 'Ücretsiz' : `${shippingCost} ₺`}`,
+          : `Ödeme Tercihi: ${paymentMethod === 'bank_transfer' ? 'Banka Havalesi / EFT' : 'Kapıda / Ambar Tesliminde Ödeme'} | Kargo: ${isFreeShipping ? 'Ücretsiz' : `${shippingCost} ₺`}`) +
+        invoiceSummary,
       items: cart.map((c) => {
         const variantDiff = c.selectedVariant?.priceDifference || 0;
         return {
@@ -442,6 +464,16 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
 
     if (!fullName.trim() || !phone.trim() || !address.trim() || !district.trim()) {
       setFormError('Lütfen zorunlu alanları (Ad Soyad, Telefon, İlçe ve Adres) doldurunuz.');
+      return;
+    }
+
+    if (
+      invoiceType === 'corporate' &&
+      (!companyTitle.trim() || !taxOffice.trim() || !taxNumber.trim())
+    ) {
+      setFormError(
+        'Kurumsal fatura için Firma Unvanı, Vergi Dairesi ve Vergi Numarası alanlarını doldurunuz.'
+      );
       return;
     }
 
@@ -680,25 +712,33 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
                   <div className="font-bold flex items-center justify-between text-[#0A0A0B]">
                     <span className="flex items-center gap-1.5">
                       <Building2 className="w-4 h-4 text-slate-700" />
-                      <span>Havale / EFT Hesap Bilgilerimiz:</span>
+                      <span>Havale / EFT Ödeme Bilgilendirmesi:</span>
                     </span>
-                    <button
-                      type="button"
-                      onClick={handleCopyIban}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-slate-300 text-[10px] font-bold text-[#0A0A0B] hover:bg-slate-100 transition"
-                    >
-                      {copiedIban ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                      <span>{copiedIban ? 'IBAN Kopyalandı' : 'IBAN Kopyala'}</span>
-                    </button>
+                    {hasRealIban && (
+                      <button
+                        type="button"
+                        onClick={handleCopyIban}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-slate-300 text-[10px] font-bold text-[#0A0A0B] hover:bg-slate-100 transition"
+                      >
+                        {copiedIban ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                        <span>{copiedIban ? 'IBAN Kopyalandı' : 'IBAN Kopyala'}</span>
+                      </button>
+                    )}
                   </div>
-                  <div className="text-[11px] font-mono space-y-1 text-slate-700">
-                    <p><strong>Banka:</strong> {bankInfo.bankName}</p>
-                    <p><strong>Alıcı:</strong> {bankInfo.accountHolder}</p>
-                    <p><strong>IBAN:</strong> <span className="select-all bg-white px-1.5 py-0.5 rounded border border-slate-200 font-bold">{bankInfo.iban}</span></p>
-                    <p className="text-[10px] text-slate-500 pt-1">
-                      * Açıklama kısmına <strong>{createdOrder.orderNumber}</strong> numarasını yazmayı unutmayınız.
+                  {hasRealIban ? (
+                    <div className="text-[11px] font-mono space-y-1 text-slate-700">
+                      <p><strong>Banka:</strong> {bankInfo.bankName}</p>
+                      <p><strong>Alıcı:</strong> {bankInfo.accountHolder}</p>
+                      <p><strong>IBAN:</strong> <span className="select-all bg-white px-1.5 py-0.5 rounded border border-slate-200 font-bold">{bankInfo.iban}</span></p>
+                      <p className="text-[10px] text-slate-500 pt-1">
+                        * Açıklama kısmına <strong>{createdOrder.orderNumber}</strong> numarasını yazmayı unutmayınız.
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      %{bankInfo.transferDiscountPercent} havale indiriminiz sipariş tutarınıza tanımlanmıştır. Stok kontrolünün hemen ardından resmi kurumsal IBAN bilgimiz müşteri temsilcimiz tarafından <strong>{createdOrder.phone}</strong> numaranıza iletilecektir.
                     </p>
-                  </div>
+                  )}
                 </div>
               )}
 
@@ -805,6 +845,84 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-xl px-3.5 py-2.5 text-xs text-[#0A0A0B] focus:outline-none focus:border-black transition"
                   />
+                </div>
+
+                {/* Bireysel / Kurumsal (B2B) Fatura Tercihi */}
+                <div className="pt-1 space-y-2.5">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <span className="text-[11px] font-bold text-[#0A0A0B]">Fatura Tipi:</span>
+                    <div className="inline-flex rounded-xl bg-[#F1F3F5] p-0.5 border border-[#E8EAED]">
+                      <button
+                        type="button"
+                        onClick={() => setInvoiceType('individual')}
+                        className={`px-3 py-1 rounded-lg text-[11px] font-bold transition ${
+                          invoiceType === 'individual'
+                            ? 'bg-white text-[#0A0A0B] shadow-sm'
+                            : 'text-[#64748B] hover:text-[#0A0A0B]'
+                        }`}
+                      >
+                        Bireysel Fatura
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setInvoiceType('corporate')}
+                        className={`px-3 py-1 rounded-lg text-[11px] font-bold transition ${
+                          invoiceType === 'corporate'
+                            ? 'bg-[#0A0A0B] text-white shadow-sm'
+                            : 'text-[#64748B] hover:text-[#0A0A0B]'
+                        }`}
+                      >
+                        Kurumsal (Şirket Faturası)
+                      </button>
+                    </div>
+                  </div>
+
+                  {invoiceType === 'corporate' && (
+                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
+                      <div>
+                        <label className="block text-[11px] font-bold text-[#0A0A0B] mb-1">
+                          Resmi Şirket / Firma Unvanı *
+                        </label>
+                        <input
+                          type="text"
+                          required={invoiceType === 'corporate'}
+                          placeholder="Örn: Yılmaz Elektrik Mimarlık İnşaat Ltd. Şti."
+                          value={companyTitle}
+                          onChange={(e) => setCompanyTitle(e.target.value)}
+                          className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-[#0A0A0B] focus:outline-none focus:border-black transition"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div>
+                          <label className="block text-[11px] font-bold text-[#0A0A0B] mb-1">
+                            Vergi Dairesi *
+                          </label>
+                          <input
+                            type="text"
+                            required={invoiceType === 'corporate'}
+                            placeholder="Örn: Kadıköy V.D."
+                            value={taxOffice}
+                            onChange={(e) => setTaxOffice(e.target.value)}
+                            className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs text-[#0A0A0B] focus:outline-none focus:border-black transition"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-[#0A0A0B] mb-1">
+                            Vergi Numarası / TCKN *
+                          </label>
+                          <input
+                            type="text"
+                            required={invoiceType === 'corporate'}
+                            maxLength={11}
+                            placeholder="10 veya 11 haneli VKN/TCKN"
+                            value={taxNumber}
+                            onChange={(e) => setTaxNumber(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                            className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs font-mono font-bold text-[#0A0A0B] focus:outline-none focus:border-black transition"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1269,21 +1387,29 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-emerald-950 flex items-center gap-1.5">
                         <Building2 className="w-3.5 h-3.5 text-emerald-700" />
-                        <span>Resmi Banka & IBAN Bilgisi</span>
+                        <span>{hasRealIban ? 'Resmi Banka & IBAN Bilgisi' : 'Havale / EFT İndirimli Sipariş'}</span>
                       </span>
-                      <button
-                        type="button"
-                        onClick={handleCopyIban}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-emerald-300 text-[10px] font-bold text-emerald-900 hover:bg-emerald-100 transition"
-                      >
-                        {copiedIban ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                        <span>{copiedIban ? 'IBAN Kopyalandı' : 'IBAN Kopyala'}</span>
-                      </button>
+                      {hasRealIban && (
+                        <button
+                          type="button"
+                          onClick={handleCopyIban}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-emerald-300 text-[10px] font-bold text-emerald-900 hover:bg-emerald-100 transition"
+                        >
+                          {copiedIban ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                          <span>{copiedIban ? 'IBAN Kopyalandı' : 'IBAN Kopyala'}</span>
+                        </button>
+                      )}
                     </div>
-                    <div className="text-[11px] font-mono text-slate-700 space-y-0.5">
-                      <div><strong>Banka:</strong> {bankInfo.bankName} — <strong>Alıcı:</strong> {bankInfo.accountHolder}</div>
-                      <div><strong>IBAN:</strong> <span className="font-bold text-[#0A0A0B] select-all">{bankInfo.iban}</span></div>
-                    </div>
+                    {hasRealIban ? (
+                      <div className="text-[11px] font-mono text-slate-700 space-y-0.5">
+                        <div><strong>Banka:</strong> {bankInfo.bankName} — <strong>Alıcı:</strong> {bankInfo.accountHolder}</div>
+                        <div><strong>IBAN:</strong> <span className="font-bold text-[#0A0A0B] select-all">{bankInfo.iban}</span></div>
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-emerald-900 leading-relaxed">
+                        %{bankInfo.transferDiscountPercent} havale indiriminiz tutardan düşülmüştür. Sipariş onayınızın hemen ardından resmi kurumsal IBAN bilgimiz SMS / WhatsApp ile tarafınıza iletilecektir.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

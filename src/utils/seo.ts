@@ -41,11 +41,11 @@ export function slugifyTurkish(text: string): string {
 }
 
 /**
- * Builds clean SEO product path: `/urun/3x2-5-mm-ttr-kablo--custom-prod-1792587210217`
+ * Builds clean HTTP-200-guaranteed SEO product path: `/?urun=3x2-5-mm-ttr-kablo--custom-prod-1792587210217`
  */
 export function buildProductPath(product: Pick<Product, 'id' | 'name'>): string {
   const slug = slugifyTurkish(product.name);
-  return `/urun/${slug}--${encodeURIComponent(product.id)}`;
+  return `/?urun=${slug}--${encodeURIComponent(product.id)}`;
 }
 
 export function buildProductFullUrl(product: Pick<Product, 'id' | 'name'>): string {
@@ -57,13 +57,26 @@ export function buildProductFullUrl(product: Pick<Product, 'id' | 'name'>): stri
 }
 
 /**
- * Extracts product ID from either clean path (`/urun/slug--id` or `/urun/id`)
- * OR legacy hash (`#urun/id`) for 100% backward compatibility.
+ * Extracts product ID from `/?urun=slug--id`, `/urun/slug--id`, OR legacy `#urun/id`.
  */
 export function extractProductIdFromLocation(
   pathname: string = typeof window !== 'undefined' ? window.location.pathname : '/',
-  hash: string = typeof window !== 'undefined' ? window.location.hash : ''
+  hash: string = typeof window !== 'undefined' ? window.location.hash : '',
+  search: string = typeof window !== 'undefined' ? window.location.search : ''
 ): string | null {
+  if (search) {
+    try {
+      const params = new URLSearchParams(search);
+      const urunParam = params.get('urun')?.trim();
+      if (urunParam) {
+        const doubleDashIdx = urunParam.indexOf('--');
+        return doubleDashIdx !== -1 ? urunParam.slice(doubleDashIdx + 2) || null : urunParam;
+      }
+    } catch {
+      // Ignore malformed search query
+    }
+  }
+
   if (pathname.startsWith('/urun/')) {
     const rawSegment = decodeURIComponent(pathname.slice('/urun/'.length).replace(/\/+$/, ''));
     if (!rawSegment) return null;

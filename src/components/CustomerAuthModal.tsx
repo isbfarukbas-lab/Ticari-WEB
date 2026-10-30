@@ -80,19 +80,41 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
 
     try {
       const cleanIdent = loginIdentifier.trim().toLowerCase();
-      const user = users.find(u => 
-        (u.email.toLowerCase() === cleanIdent || u.phone.replace(/\s+/g, '') === cleanIdent.replace(/\s+/g, ''))
-      );
+      const hashedInput = await dbService.hashPassword(loginPassword);
 
-      if (!user) {
-        setError('E-posta/Telefon veya şifreniz hatalı. Lütfen tekrar deneyiniz.');
-        setIsSubmitting(false);
+      // 1. Authenticate against Supabase PostgreSQL across all devices
+      const cloudRes = await dbService.loginCustomer(loginIdentifier, hashedInput);
+      if (cloudRes.ok && cloudRes.user) {
+        await dbService.saveCustomer(cloudRes.user);
+        onLoginSuccess(cloudRes.user);
+        onClose();
         return;
       }
 
-      const isValid = await dbService.verifyPassword(loginPassword, user.password);
+      if (cloudRes.error === 'wrong_password') {
+        setError('E-posta/Telefon veya şifreniz hatalı. Lütfen tekrar deneyiniz.');
+        return;
+      }
+
+      // 2. Fallback & seamless auto-migration for accounts created locally before cloud upgrade
+      const localUser = users.find(
+        (u) =>
+          u.email.toLowerCase() === cleanIdent ||
+          u.phone.replace(/\D/g, '') === cleanIdent.replace(/\D/g, '')
+      );
+
+      if (!localUser) {
+        setError('E-posta/Telefon veya şifreniz hatalı. Lütfen tekrar deneyiniz.');
+        return;
+      }
+
+      const isValid = await dbService.verifyPassword(loginPassword, localUser.password);
       if (isValid) {
-        onLoginSuccess(user);
+        const cleanUser: CustomerUser = { ...localUser };
+        delete cleanUser.password;
+        await dbService.registerCustomer(cleanUser, hashedInput);
+        await dbService.saveCustomer(cleanUser);
+        onLoginSuccess(cleanUser);
         onClose();
       } else {
         setError('E-posta/Telefon veya şifreniz hatalı. Lütfen tekrar deneyiniz.');
@@ -128,17 +150,6 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
       return;
     }
 
-    // Check existing email or phone
-    const existing = users.find(u => 
-      u.email.toLowerCase() === email.trim().toLowerCase() ||
-      u.phone.replace(/\s+/g, '') === phone.replace(/\s+/g, '')
-    );
-
-    if (existing) {
-      setError('Bu telefon veya e-posta adresiyle kayıtlı bir hesap zaten bulunuyor. Lütfen giriş yapınız.');
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
@@ -150,14 +161,26 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
         phone: phone.trim(),
         city,
         district,
-        password: hashedPassword,
         addresses: [],
         createdAt: new Date().toISOString(),
       };
 
-      await dbService.saveCustomer(newUser);
-      onRegisterUser(newUser);
-      onLoginSuccess(newUser);
+      const regRes = await dbService.registerCustomer(newUser, hashedPassword);
+      if (!regRes.ok) {
+        if (regRes.error === 'already_exists') {
+          setError('Bu telefon veya e-posta adresiyle kayıtlı bir hesap zaten bulunuyor. Lütfen giriş yapınız.');
+          return;
+        }
+        if (regRes.error !== 'network_error') {
+          setError('Kayıt oluşturulurken bir hata meydana geldi. Lütfen bilgilerinizi kontrol ediniz.');
+          return;
+        }
+      }
+
+      const savedUser = regRes.user || newUser;
+      await dbService.saveCustomer(savedUser);
+      onRegisterUser(savedUser);
+      onLoginSuccess(savedUser);
       onClose();
     } catch {
       setError('Kayıt oluşturulurken bir hata meydana geldi.');

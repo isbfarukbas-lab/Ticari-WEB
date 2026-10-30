@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Lock, Eye, EyeOff, ArrowLeft, ShieldCheck, KeyRound, AlertCircle } from 'lucide-react';
+import { dbService, AdminSecrets } from '../services/dbService';
 
 interface AdminLoginScreenProps {
   correctPassword?: string;
-  onLoginSuccess: (rememberMe: boolean) => void;
+  onLoginSuccess: (rememberMe: boolean, password: string, secrets?: AdminSecrets) => void;
   onNavigateHome: () => void;
 }
 
@@ -18,19 +19,32 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanPassword = password.trim();
+    if (!cleanPassword) return;
+
     setError(null);
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      if (password.trim() === correctPassword) {
-        onLoginSuccess(rememberMe);
-      } else {
-        setError('Girdiğiniz şifre hatalı. Lütfen tekrar deneyiniz.');
-        setIsSubmitting(false);
+    try {
+      const res = await dbService.verifyAdminLogin(cleanPassword);
+      if (res.ok) {
+        onLoginSuccess(rememberMe, cleanPassword, res.secrets);
+        return;
       }
-    }, 200);
+
+      if (res.networkError && cleanPassword === correctPassword) {
+        onLoginSuccess(rememberMe, cleanPassword);
+        return;
+      }
+
+      setError('Girdiğiniz şifre hatalı. Lütfen tekrar deneyiniz.');
+    } catch {
+      setError('Bağlantı sırasında bir hata oluştu. Lütfen tekrar deneyiniz.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

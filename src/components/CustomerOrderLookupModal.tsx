@@ -14,6 +14,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { LeadRequest } from '../types';
+import { dbService } from '../services/dbService';
 
 interface CustomerOrderLookupModalProps {
   isOpen: boolean;
@@ -32,11 +33,15 @@ export const CustomerOrderLookupModal: React.FC<CustomerOrderLookupModalProps> =
 }) => {
   const [query, setQuery] = useState('');
   const [searched, setSearched] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [remoteResults, setRemoteResults] = useState<LeadRequest[]>([]);
 
   useEffect(() => {
     if (!isOpen) {
       setQuery('');
       setSearched(false);
+      setIsSearching(false);
+      setRemoteResults([]);
     }
   }, [isOpen]);
 
@@ -50,19 +55,35 @@ export const CustomerOrderLookupModal: React.FC<CustomerOrderLookupModalProps> =
     const upper = trimmed.toUpperCase().replace(/^#/, '');
     const digits = normalizePhone(trimmed);
 
-    return leads.filter((lead) => {
+    const localMatches = leads.filter((lead) => {
       const orderMatch =
         (lead.orderNumber && lead.orderNumber.toUpperCase().replace(/^#/, '') === upper) ||
         lead.id.toUpperCase() === upper;
       const phoneMatch = digits.length >= 7 && normalizePhone(lead.phone || '').includes(digits);
       return orderMatch || phoneMatch;
     });
+
+    const mergedMap = new Map<string, LeadRequest>();
+    localMatches.forEach((l) => mergedMap.set(l.id, l));
+    remoteResults.forEach((l) => mergedMap.set(l.id, l));
+
+    return Array.from(mergedMap.values()).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
   })();
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!query.trim()) return;
-    setSearched(true);
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    setIsSearching(true);
+    try {
+      const cloudMatches = await dbService.lookupCustomerLeads({ query: trimmed });
+      setRemoteResults(cloudMatches);
+    } finally {
+      setIsSearching(false);
+      setSearched(true);
+    }
   };
 
   const getStepIndex = (status?: LeadRequest['status'] | string) => {
@@ -115,16 +136,20 @@ export const CustomerOrderLookupModal: React.FC<CustomerOrderLookupModalProps> =
                 value={query}
                 onChange={(e) => {
                   setQuery(e.target.value);
-                  if (searched) setSearched(false);
+                  if (searched) {
+                    setSearched(false);
+                    setRemoteResults([]);
+                  }
                 }}
                 className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-2xl pl-10 pr-4 py-3 text-xs font-semibold text-[#0A0A0B] placeholder:text-slate-400 focus:outline-none focus:border-black"
               />
             </div>
             <button
               type="submit"
-              className="btn-pill-black text-xs py-3 px-6 font-bold shrink-0 justify-center"
+              disabled={isSearching}
+              className="btn-pill-black text-xs py-3 px-6 font-bold shrink-0 justify-center disabled:opacity-60"
             >
-              Sorgula
+              {isSearching ? 'Sorgulanıyor...' : 'Sorgula'}
             </button>
           </form>
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   User, 
@@ -21,6 +21,7 @@ import {
   Truck
 } from 'lucide-react';
 import { CustomerUser, CustomerAddress, LeadRequest } from '../types';
+import { dbService } from '../services/dbService';
 
 interface CustomerAccountDrawerProps {
   isOpen: boolean;
@@ -59,16 +60,48 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
   const [editCity, setEditCity] = useState(user.city);
   const [editDistrict, setEditDistrict] = useState(user.district);
   const [isSavedFeedback, setIsSavedFeedback] = useState(false);
+  const [remoteOrders, setRemoteOrders] = useState<LeadRequest[]>([]);
+
+  useEffect(() => {
+    setEditFullName(user.fullName);
+    setEditPhone(user.phone);
+    setEditCity(user.city);
+    setEditDistrict(user.district);
+  }, [user]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let active = true;
+    dbService
+      .lookupCustomerLeads({ customerId: user.id, phone: user.phone })
+      .then((cloudLeads) => {
+        if (active) {
+          setRemoteOrders(cloudLeads);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [isOpen, user.id, user.phone]);
 
   if (!isOpen) return null;
 
-  // Filter user orders & leads by customerId or phone match
+  // Filter user orders & leads by customerId or phone match and merge with live Supabase orders
   const userCleanPhone = user.phone.replace(/\D/g, '');
-  const userOrders = leads.filter(l => {
+  const localUserOrders = leads.filter(l => {
     if (l.customerId === user.id) return true;
     const lCleanPhone = (l.phone || '').replace(/\D/g, '');
     return lCleanPhone.length > 8 && userCleanPhone.length > 8 && lCleanPhone.endsWith(userCleanPhone.slice(-8));
   });
+
+  const userOrders = (() => {
+    const merged = new Map<string, LeadRequest>();
+    localUserOrders.forEach((l) => merged.set(l.id, l));
+    remoteOrders.forEach((l) => merged.set(l.id, l));
+    return Array.from(merged.values()).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  })();
 
   const handleAddAddress = (e: React.FormEvent) => {
     e.preventDefault();

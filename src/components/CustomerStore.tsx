@@ -59,6 +59,7 @@ interface CustomerStoreProps {
   showFavoritesOnly: boolean;
   onToggleFavoritesOnly: () => void;
   freeShippingThreshold?: number;
+  isLoading?: boolean;
 }
 
 export const CustomerStore: React.FC<CustomerStoreProps> = ({
@@ -81,6 +82,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
   showFavoritesOnly,
   onToggleFavoritesOnly,
   freeShippingThreshold = 3000,
+  isLoading = false,
 }) => {
   const [sortBy, setSortBy] = useState<'featured' | 'price_asc' | 'price_desc' | 'discount'>('featured');
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
@@ -809,23 +811,47 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
       {/* ======================================================== */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {filteredProducts.length === 0 ? (
+        {isLoading && filteredProducts.length === 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
+            {[1, 2, 3, 4].map((skeleton) => (
+              <div
+                key={skeleton}
+                className="rounded-2xl bg-white border border-[#E8EAED] overflow-hidden p-4 space-y-3 animate-pulse"
+              >
+                <div className="aspect-[4/3] w-full rounded-xl bg-slate-100" />
+                <div className="h-3 w-24 rounded bg-slate-100" />
+                <div className="h-4 w-3/4 rounded bg-slate-200" />
+                <div className="h-8 w-full rounded-full bg-slate-100 mt-2" />
+              </div>
+            ))}
+          </div>
+        ) : filteredProducts.length === 0 ? (
           <div className="py-20 text-center bg-white rounded-3xl border border-[#E8EAED] p-8">
             <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center mx-auto mb-3">
-              <Search className="w-6 h-6" />
+              {products.length === 0 ? <Package className="w-6 h-6" /> : <Search className="w-6 h-6" />}
             </div>
-            <h3 className="text-base font-bold text-[#0A0A0B]">Aramanızla Eşleşen Ürün Bulunamadı</h3>
-            <p className="text-xs text-[#64748B] mt-1">Farklı bir kelime deneyebilir veya kategoriyi değiştirebilirsiniz.</p>
-            <button
-              onClick={() => { 
-                onSelectCategory('all'); 
-                onSearchChange(''); 
-                if (showFavoritesOnly) onToggleFavoritesOnly();
-              }}
-              className="mt-4 btn-pill-black text-xs py-2 px-4 font-bold"
-            >
-              Tüm Ürünleri Göster
-            </button>
+            <h3 className="text-base font-bold text-[#0A0A0B]">
+              {products.length === 0
+                ? 'Katalog Ürünleri Yakında Burada Listelenecek'
+                : 'Aramanızla Eşleşen Ürün Bulunamadı'}
+            </h3>
+            <p className="text-xs text-[#64748B] mt-1">
+              {products.length === 0
+                ? 'Koleksiyonumuz güncellenmektedir. Özel malzeme veya tadilat talepleriniz için WhatsApp hattımızdan bize ulaşabilirsiniz.'
+                : 'Farklı bir kelime deneyebilir veya kategoriyi değiştirebilirsiniz.'}
+            </p>
+            {(selectedCategory !== 'all' || searchQuery || showFavoritesOnly) && (
+              <button
+                onClick={() => {
+                  onSelectCategory('all');
+                  onSearchChange('');
+                  if (showFavoritesOnly) onToggleFavoritesOnly();
+                }}
+                className="mt-4 btn-pill-black text-xs py-2 px-4 font-bold"
+              >
+                Tüm Ürünleri Göster
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">

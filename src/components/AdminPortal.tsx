@@ -85,6 +85,7 @@ interface AdminPortalProps {
   onDeleteLead: (leadId: string) => void;
   onNavigateCustomer: () => void;
   onLogout?: () => void;
+  onRefreshCloud?: () => Promise<void> | void;
   onImportFullBackup?: (data: {
     products?: Product[];
     settings?: SiteSettings;
@@ -123,6 +124,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   onDeleteLead,
   onNavigateCustomer,
   onLogout,
+  onRefreshCloud,
   onImportFullBackup,
 }) => {
   // Active Admin Module Tab
@@ -3092,53 +3094,34 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-[#F8F9FA] border border-[#E8EAED] space-y-2">
-                <label className="block text-xs font-bold text-[#0A0A0B]">
-                  Özel Bulut Veritabanı Bağlantısı (Opsiyonel — Firebase / Supabase REST URL)
-                </label>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <input
-                    type="url"
-                    placeholder="Örn: https://rvoba-db-default-rtdb.europe-west1.firebasedatabase.app"
-                    value={cloudEndpoint}
-                    onChange={(e) => setCloudEndpoint(e.target.value)}
-                    className="flex-1 bg-white border border-[#CBD5E1] rounded-xl px-3.5 py-2 text-xs font-mono text-[#0A0A0B] focus:outline-none focus:border-black"
-                  />
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      const normalized = normalizeCloudEndpoint(cloudEndpoint);
-                      setCloudEndpoint(normalized);
-                      setCustomCloudEndpoint(normalized);
-                      const updatedSettings: SiteSettings = {
-                        ...settings,
-                        cloudEndpoint: normalized,
-                      };
-                      onUpdateSettings(updatedSettings);
-                      if (!normalized) {
-                        showToast('Bulut bağlantısı kaldırıldı (Yalnızca yerel senkronizasyon aktif).');
-                        return;
-                      }
-                      const ok = await syncToCloudAndTabs({
-                        products,
-                        settings: updatedSettings,
-                        leads,
-                        customers,
-                      });
-                      if (ok) {
-                        showToast('Bulut bağlantısı kaydedildi ve tüm veriler canlı veritabanına gönderildi!');
-                      } else {
-                        showToast('Adres kaydedildi ancak bulut sunucusuna ulaşılamadı. URL izinlerini kontrol edin.');
-                      }
-                    }}
-                    className="btn-pill-black text-xs py-2 px-5 font-bold"
-                  >
-                    Bağlantıyı Kaydet & Buluta Gönder
-                  </button>
+              <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                    <div>
+                      <span className="block text-xs font-extrabold text-emerald-950">
+                        Supabase PostgreSQL Bulut Veritabanı Aktif (eu-central-1 • Tüm Cihazlar Canlı Senkron)
+                      </span>
+                      <span className="block text-[11px] text-emerald-800">
+                        Eklediğiniz/sildiğiniz ürünler, fiyatlar, siparişler ve müşteri hesapları tüm tarayıcılarda ve telefonlarda anında ortak veritabanından çalışır.
+                      </span>
+                    </div>
+                  </div>
+
+                  {onRefreshCloud && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await onRefreshCloud();
+                        showToast('Veriler Supabase bulut veritabanından başarıyla yenilendi!');
+                      }}
+                      className="btn-pill-black bg-emerald-700 hover:bg-emerald-800 text-white text-xs py-2 px-4 font-bold shrink-0 flex items-center gap-1.5"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Buluttan Yenile</span>
+                    </button>
+                  )}
                 </div>
-                <p className="text-[11px] text-[#64748B]">
-                  ✓ Aynı cihazdaki tüm sekmeler (Admin ve Canlı Site) gerçek zamanlı olarak otomatik senkronize olur. Farklı cihazlar arası otomatik senkronizasyon için ücretsiz bir Firebase Realtime Database URL'si girebilir veya JSON Yedek İndir/Yükle butonlarını kullanabilirsiniz.
-                </p>
               </div>
 
               {/* Telegram Anlık Mobil Sipariş Bildirimi */}

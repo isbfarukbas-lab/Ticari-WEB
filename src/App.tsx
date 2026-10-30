@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { CustomerHeader } from './components/CustomerHeader';
 import { CustomerLandingPage } from './components/CustomerLandingPage';
 import { CustomerConfigurator } from './components/CustomerConfigurator';
@@ -17,12 +17,53 @@ import { CustomerOrderLookupModal } from './components/CustomerOrderLookupModal'
 import { AdminPortal } from './components/AdminPortal';
 import { AdminLoginScreen } from './components/AdminLoginScreen';
 
-import { CATEGORIES, INITIAL_PRODUCTS } from './data/initialProducts';
+import { CATEGORIES, INITIAL_PRODUCTS, isLegacyDemoProductId } from './data/initialProducts';
 import { INITIAL_SETTINGS } from './data/initialSettings';
 import { CartItem, Product, ProductVariant, LeadRequest, CustomRequestItem, CategoryKey, SiteSettings, CustomerUser } from './types';
 import { ShoppingBag, ArrowUpRight, ArrowLeft, Hammer, Calendar } from 'lucide-react';
-import { syncToCloudAndTabs, fetchFromCloud, subscribeToLiveSync } from './utils/cloudSync';
-import { dbService } from './services/dbService';
+import { syncToCloudAndTabs, subscribeToLiveSync } from './utils/cloudSync';
+import { dbService, AdminSecrets } from './services/dbService';
+
+const normalizeLeadRecord = (l: LeadRequest): LeadRequest => {
+  const rawStatus = l.status as string | undefined;
+  const normalizedStatus: LeadRequest['status'] =
+    rawStatus === 'sozlesme_imzalandi' || rawStatus === 'completed'
+      ? 'sozlesme_imzalandi'
+      : rawStatus === 'kesif_verildi' || rawStatus === 'scheduled'
+      ? 'kesif_verildi'
+      : rawStatus === 'arandi' || rawStatus === 'contacted'
+      ? 'arandi'
+      : 'bekliyor';
+  return { ...l, status: normalizedStatus };
+};
+
+const mergePublicSettings = (prev: SiteSettings, incoming?: Partial<SiteSettings> | null): SiteSettings => {
+  if (!incoming || typeof incoming !== 'object') return prev;
+  const mergedContent = {
+    ...INITIAL_SETTINGS.content,
+    ...(prev.content || {}),
+    ...(incoming.content || {}),
+  };
+  const paymentMethods = {
+    ...INITIAL_SETTINGS.paymentMethods,
+    ...(prev.paymentMethods || {}),
+    ...(incoming.paymentMethods || {}),
+    enableCreditCard:
+      incoming.paymentMethods?.enableCreditCard ??
+      prev.paymentMethods?.enableCreditCard ??
+      false,
+  };
+  return {
+    ...prev,
+    ...incoming,
+    // Keep private admin secrets in memory when public settings (which strip secrets) arrive
+    adminPassword: incoming.adminPassword ?? prev.adminPassword,
+    telegramConfig: incoming.telegramConfig ?? prev.telegramConfig,
+    notificationWebhookUrl: incoming.notificationWebhookUrl ?? prev.notificationWebhookUrl,
+    paymentMethods: paymentMethods as SiteSettings['paymentMethods'],
+    content: mergedContent as SiteSettings['content'],
+  };
+};
 
 export const App: React.FC = () => {
   // Navigation view: 'store' (Satış Vitrini & E-Ticaret) | 'configurator' (Komple Tadilat Teklifi) | 'landing' (Kurumsal Tanıtım) | 'admin' (Yönetici)
@@ -54,24 +95,18 @@ export const App: React.FC = () => {
     };
   }, []);
 
-  // Products state with localStorage persistence (strictly respects admin deletions & edits, merges rich schema attributes)
+  // Products state: strips all 30 legacy demo products immediately and syncs live from Supabase
   const [products, setProducts] = useState<Product[]>(() => {
     try {
       const saved = localStorage.getItem('rvoba_products_v1');
       if (saved !== null) {
         const parsed: Product[] = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          const initMap = new Map(INITIAL_PRODUCTS.map((p) => [p.id, p]));
-          return parsed.map((p) => {
-            const init = initMap.get(p.id);
-            if (!init) return p;
-            return {
-              ...p,
-              variants: p.variants && p.variants.length > 0 ? p.variants : init.variants,
-              coverageRule: p.coverageRule || init.coverageRule,
-              images: p.images && p.images.length > 0 ? p.images : (init.images || [p.image, ...(p.roomImage ? [p.roomImage] : [])]),
-            };
-          });
+          const cleaned = parsed.filter((p) => p && p.id && !isLegacyDemoProductId(p.id));
+          if (cleaned.length !== parsed.length) {
+            localStorage.setItem('rvoba_products_v1', JSON.stringify(cleaned));
+          }
+          return cleaned;
         }
       }
     } catch (e) {
@@ -79,6 +114,8 @@ export const App: React.FC = () => {
     }
     return INITIAL_PRODUCTS;
   });
+
+  const [isCatalogLoading, setIsCatalogLoading] = useState<boolean>(true);
 
   useEffect(() => {
     try {
@@ -88,14 +125,19 @@ export const App: React.FC = () => {
     }
   }, [products]);
 
-  // Cart state with localStorage persistence (starts clean with 0 items)
+  // Cart state with localStorage persistence (starts clean with 0 items & strips legacy demo products)
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
       const saved = localStorage.getItem('rvoba_cart_v1');
       if (saved) {
         const parsed: CartItem[] = JSON.parse(saved);
-        // Clean out any legacy sample items if present
-        return parsed.filter((item) => item.id !== 'sample-1' && item.id !== 'sample-2');
+        return parsed.filter(
+          (item) =>
+            item.id !== 'sample-1' &&
+            item.id !== 'sample-2' &&
+            !isLegacyDemoProductId(item.productId) &&
+            !isLegacyDemoProductId(item.product?.id)
+        );
       }
     } catch (e) {
       console.error(e);
@@ -291,23 +333,12 @@ export const App: React.FC = () => {
       syncToCloudAndTabs({ customers: next });
       return next;
     });
+    dbService.updateCustomerProfile(updatedUser.id, updatedUser).catch((err) => console.warn(err));
   };
 
   const handleCustomerLogout = () => {
     setCurrentUser(null);
     setIsAccountDrawerOpen(false);
-  };
-
-  const handleDeleteCustomer = (customerId: string) => {
-    setAllUsers(prev => {
-      const next = prev.filter(u => u.id !== customerId);
-      syncToCloudAndTabs({ customers: next });
-      return next;
-    });
-    if (currentUser && currentUser.id === customerId) {
-      setCurrentUser(null);
-      setIsAccountDrawerOpen(false);
-    }
   };
 
   // Admin authentication state
@@ -319,7 +350,38 @@ export const App: React.FC = () => {
     }
   });
 
-  const handleAdminLogin = (rememberMe: boolean) => {
+  const getActiveAdminKey = useCallback((): string => {
+    return dbService.getStoredAdminKey() || settings.adminPassword || 'rvoba2026';
+  }, [settings.adminPassword]);
+
+  const handleDeleteCustomer = (customerId: string) => {
+    setAllUsers(prev => {
+      const next = prev.filter(u => u.id !== customerId);
+      syncToCloudAndTabs({ customers: next });
+      return next;
+    });
+    if (currentUser && currentUser.id === customerId) {
+      setCurrentUser(null);
+      setIsAccountDrawerOpen(false);
+    }
+    dbService.adminDeleteCustomer(getActiveAdminKey(), customerId).catch((err) => console.warn(err));
+  };
+
+  const applyAdminSecrets = useCallback((secrets?: AdminSecrets) => {
+    if (!secrets) return;
+    setSettings((prev) => ({
+      ...prev,
+      adminPassword: secrets.adminPassword ?? prev.adminPassword,
+      notificationWebhookUrl: secrets.notificationWebhookUrl ?? prev.notificationWebhookUrl,
+      telegramConfig: secrets.telegramConfig
+        ? { ...(prev.telegramConfig || {}), ...secrets.telegramConfig }
+        : prev.telegramConfig,
+    }));
+  }, []);
+
+  const handleAdminLogin = (rememberMe: boolean, password: string, secrets?: AdminSecrets) => {
+    dbService.setStoredAdminKey(password, rememberMe);
+    applyAdminSecrets(secrets);
     setIsAdminAuthenticated(true);
     try {
       sessionStorage.setItem('rvoba_admin_auth', 'true');
@@ -333,6 +395,7 @@ export const App: React.FC = () => {
 
   const handleAdminLogout = () => {
     setIsAdminAuthenticated(false);
+    dbService.clearStoredAdminKey();
     try {
       sessionStorage.removeItem('rvoba_admin_auth');
       localStorage.removeItem('rvoba_admin_auth');
@@ -349,7 +412,15 @@ export const App: React.FC = () => {
   const [favorites, setFavorites] = useState<Record<string, boolean>>(() => {
     try {
       const saved = localStorage.getItem('rvoba_favs_v1');
-      return saved ? JSON.parse(saved) : {};
+      if (saved) {
+        const parsed = JSON.parse(saved) as Record<string, boolean>;
+        const cleaned: Record<string, boolean> = {};
+        Object.entries(parsed).forEach(([k, v]) => {
+          if (v && !isLegacyDemoProductId(k)) cleaned[k] = true;
+        });
+        return cleaned;
+      }
+      return {};
     } catch {
       return {};
     }
@@ -487,17 +558,198 @@ export const App: React.FC = () => {
 
   const handleClearCart = () => setCart([]);
 
-  // Live Cross-Tab & Cloud Synchronization
+  const migrationInFlightRef = useRef(false);
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
+
+  // Fetch live catalog & settings from Supabase PostgreSQL (and auto-migrate non-demo admin data once)
+  const refreshCatalogFromSupabase = useCallback(async () => {
+    let snapshot = await dbService.fetchCatalogAndSettings();
+    if (!snapshot) {
+      setIsCatalogLoading(false);
+      return;
+    }
+
+    const currentSettings = settingsRef.current;
+
+    // One-time seamless auto-migration from the admin's existing browser localStorage
+    if (!migrationInFlightRef.current && localStorage.getItem('rvoba_supabase_migrated_v1') !== 'true') {
+      migrationInFlightRef.current = true;
+      try {
+        const rawProds = localStorage.getItem('rvoba_products_v1');
+        const localRealProducts: Product[] = rawProds
+          ? (JSON.parse(rawProds) as Product[]).filter((p) => p && p.id && !isLegacyDemoProductId(p.id))
+          : [];
+
+        const rawLeads = localStorage.getItem('rvoba_leads_v1');
+        const localRealLeads: LeadRequest[] = rawLeads
+          ? (JSON.parse(rawLeads) as LeadRequest[]).filter((l) => l && l.id && l.id !== 'lead-sample-1')
+          : [];
+
+        const rawCustomers = localStorage.getItem('rvoba_customers_v1');
+        const localRealCustomers: CustomerUser[] = rawCustomers
+          ? (JSON.parse(rawCustomers) as CustomerUser[]).filter((u) => u && u.id && u.id !== 'cust-demo-1')
+          : [];
+
+        const hasLocalDataToMigrate =
+          localRealProducts.length > 0 || localRealLeads.length > 0 || localRealCustomers.length > 0;
+
+        if (hasLocalDataToMigrate) {
+          const candidateKeys = Array.from(
+            new Set(
+              [dbService.getStoredAdminKey(), currentSettings.adminPassword, 'rvoba2026']
+                .map((k) => (k || '').trim())
+                .filter(Boolean)
+            )
+          );
+
+          let verifiedKey = '';
+          for (const candidate of candidateKeys) {
+            const check = await dbService.verifyAdminLogin(candidate);
+            if (check.ok) {
+              verifiedKey = candidate;
+              break;
+            }
+          }
+
+          if (verifiedKey) {
+            if (!snapshot.catalogInitialized) {
+              if (localRealProducts.length > 0) {
+                await dbService.replaceAllProducts(verifiedKey, localRealProducts);
+              }
+              await dbService.saveSettings(verifiedKey, currentSettings);
+              verifiedKey = dbService.getStoredAdminKey() || currentSettings.adminPassword || verifiedKey;
+            }
+            if (localRealLeads.length > 0) {
+              await dbService.adminBulkUpsertLeads(verifiedKey, localRealLeads);
+            }
+            if (localRealCustomers.length > 0) {
+              await dbService.adminBulkUpsertCustomers(verifiedKey, localRealCustomers);
+            }
+            localStorage.setItem('rvoba_supabase_migrated_v1', 'true');
+            const refreshed = await dbService.fetchCatalogAndSettings();
+            if (refreshed) snapshot = refreshed;
+          }
+        } else if (snapshot.catalogInitialized) {
+          localStorage.setItem('rvoba_supabase_migrated_v1', 'true');
+        }
+      } catch (err) {
+        console.warn('Auto-migration warning:', err);
+      } finally {
+        migrationInFlightRef.current = false;
+      }
+    }
+
+    setProducts(snapshot.products);
+    // Remove deleted products from active cart automatically
+    const validIds = new Set(snapshot.products.map((p) => p.id));
+    setCart((prev) =>
+      prev.filter((item) => item.isCustom || (item.productId && validIds.has(item.productId)))
+    );
+
+    if (snapshot.settings) {
+      setSettings((prev) => mergePublicSettings(prev, snapshot!.settings));
+    }
+
+    setIsCatalogLoading(false);
+  }, []);
+
+  // Refresh full Admin CRM data (orders, customers, private secrets, catalog) from Supabase
+  const refreshAdminDataFromSupabase = useCallback(async () => {
+    const candidateKeys = Array.from(
+      new Set(
+        [dbService.getStoredAdminKey(), settings.adminPassword, 'rvoba2026']
+          .map((k) => (k || '').trim())
+          .filter(Boolean)
+      )
+    );
+
+    let activeKey = '';
+    for (const candidate of candidateKeys) {
+      const verify = await dbService.verifyAdminLogin(candidate);
+      if (verify.ok) {
+        activeKey = candidate;
+        dbService.setStoredAdminKey(candidate);
+        applyAdminSecrets(verify.secrets);
+        break;
+      }
+      if (verify.networkError) {
+        return;
+      }
+    }
+
+    if (!activeKey) {
+      // Stored admin session password is out of date (changed on another device)
+      setIsAdminAuthenticated(false);
+      dbService.clearStoredAdminKey();
+      sessionStorage.removeItem('rvoba_admin_auth');
+      localStorage.removeItem('rvoba_admin_auth');
+      return;
+    }
+
+    const [cloudLeads, cloudCustomers, catalogSnap] = await Promise.all([
+      dbService.adminListLeads(activeKey),
+      dbService.adminListCustomers(activeKey),
+      dbService.fetchCatalogAndSettings(),
+    ]);
+
+    if (cloudLeads) {
+      setLeads(cloudLeads.map(normalizeLeadRecord));
+    }
+    if (cloudCustomers) {
+      setAllUsers(cloudCustomers);
+    }
+    if (catalogSnap) {
+      setProducts(catalogSnap.products);
+      if (catalogSnap.settings) {
+        setSettings((prev) => mergePublicSettings(prev, catalogSnap.settings));
+      }
+    }
+  }, [settings.adminPassword, applyAdminSecrets]);
+
+  // Initial Supabase load + live Realtime subscription + focus refresh
+  useEffect(() => {
+    refreshCatalogFromSupabase();
+
+    const unsubscribeRealtime = dbService.subscribeToRealtimeCatalog(() => {
+      refreshCatalogFromSupabase();
+    });
+
+    const handleWindowFocus = () => {
+      refreshCatalogFromSupabase();
+    };
+    window.addEventListener('focus', handleWindowFocus);
+
+    return () => {
+      unsubscribeRealtime();
+      window.removeEventListener('focus', handleWindowFocus);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keep Admin CRM (orders & customers) synchronized when logged in as admin
+  useEffect(() => {
+    if (!isAdminAuthenticated) return;
+    refreshAdminDataFromSupabase();
+
+    if (currentView !== 'admin') return;
+    const interval = window.setInterval(() => {
+      refreshAdminDataFromSupabase();
+    }, 20000);
+    return () => window.clearInterval(interval);
+  }, [isAdminAuthenticated, currentView, refreshAdminDataFromSupabase]);
+
+  // Live Cross-Tab Synchronization (same browser instant tab sync)
   useEffect(() => {
     const unsubscribe = subscribeToLiveSync((payload) => {
       if (Array.isArray(payload.products)) {
-        setProducts(payload.products);
+        setProducts(payload.products.filter((p) => p && p.id && !isLegacyDemoProductId(p.id)));
       }
       if (payload.settings && typeof payload.settings === 'object') {
-        setSettings((prev) => ({ ...prev, ...payload.settings }));
+        setSettings((prev) => mergePublicSettings(prev, payload.settings));
       }
       if (Array.isArray(payload.leads)) {
-        setLeads(payload.leads);
+        setLeads(payload.leads.map(normalizeLeadRecord));
       }
       if (Array.isArray(payload.customers)) {
         setAllUsers(payload.customers);
@@ -507,7 +759,7 @@ export const App: React.FC = () => {
     return unsubscribe;
   }, []);
 
-  // Admin operations
+  // Admin operations (immediately persisted to Supabase PostgreSQL)
   const handleUpdateProduct = (updated: Product) => {
     setProducts((prev) => {
       const next = prev.map((p) => (p.id === updated.id ? updated : p));
@@ -517,6 +769,7 @@ export const App: React.FC = () => {
     setCart((prev) =>
       prev.map((c) => (!c.isCustom && c.productId === updated.id ? { ...c, product: updated } : c))
     );
+    dbService.upsertProduct(getActiveAdminKey(), updated).catch((err) => console.warn(err));
   };
 
   const handleAddProduct = (newProd: Product) => {
@@ -525,6 +778,7 @@ export const App: React.FC = () => {
       syncToCloudAndTabs({ products: next });
       return next;
     });
+    dbService.upsertProduct(getActiveAdminKey(), newProd).catch((err) => console.warn(err));
   };
 
   const handleDeleteProduct = (productId: string) => {
@@ -534,6 +788,7 @@ export const App: React.FC = () => {
       return next;
     });
     setCart((prev) => prev.filter((c) => c.productId !== productId));
+    dbService.deleteProduct(getActiveAdminKey(), productId).catch((err) => console.warn(err));
   };
 
   const handleClearAllProducts = () => {
@@ -541,22 +796,31 @@ export const App: React.FC = () => {
     setCart((prev) => prev.filter((c) => c.isCustom));
     localStorage.setItem('rvoba_products_v1', '[]');
     syncToCloudAndTabs({ products: [] });
+    dbService.clearAllProducts(getActiveAdminKey()).catch((err) => console.warn(err));
   };
 
   const handleToggleActive = (productId: string) => {
+    const target = products.find((p) => p.id === productId);
+    if (!target) return;
+    const toggledProduct: Product = {
+      ...target,
+      isActive: target.isActive === false ? true : false,
+    };
     setProducts((prev) => {
-      const next = prev.map((p) => (p.id === productId ? { ...p, isActive: p.isActive === false ? true : false } : p));
+      const next = prev.map((p) => (p.id === productId ? toggledProduct : p));
       syncToCloudAndTabs({ products: next });
       return next;
     });
+    dbService.upsertProduct(getActiveAdminKey(), toggledProduct).catch((err) => console.warn(err));
   };
 
   const handleResetDefaults = () => {
     setProducts(INITIAL_PRODUCTS);
     syncToCloudAndTabs({ products: INITIAL_PRODUCTS });
-    localStorage.removeItem('rvoba_products_v1');
+    localStorage.setItem('rvoba_products_v1', JSON.stringify(INITIAL_PRODUCTS));
     localStorage.removeItem('restolab_products_v6');
     localStorage.removeItem('restolab_products_v5');
+    dbService.replaceAllProducts(getActiveAdminKey(), INITIAL_PRODUCTS).catch((err) => console.warn(err));
   };
 
   const handleSaveLead = (newLead: LeadRequest) => {
@@ -569,13 +833,15 @@ export const App: React.FC = () => {
       syncToCloudAndTabs({ leads: next });
       return next;
     });
-    // Trigger remote cloud write & alert dispatcher
+    // Persist order to Supabase PostgreSQL & trigger server-side notifications
     dbService.saveLead(enrichedLead, settings).catch((err) => console.warn(err));
   };
 
   const handleUpdateSettings = (newSettings: SiteSettings) => {
+    const prevAdminKey = getActiveAdminKey();
     setSettings(newSettings);
     syncToCloudAndTabs({ settings: newSettings });
+    dbService.saveSettings(prevAdminKey, newSettings).catch((err) => console.warn(err));
   };
 
   const handleUpdateLeadStatus = (leadId: string, status: LeadRequest['status'], adminNotes?: string) => {
@@ -584,6 +850,7 @@ export const App: React.FC = () => {
       syncToCloudAndTabs({ leads: next });
       return next;
     });
+    dbService.adminUpdateLeadStatus(getActiveAdminKey(), leadId, status, adminNotes).catch((err) => console.warn(err));
   };
 
   const handleDeleteLead = (leadId: string) => {
@@ -592,6 +859,7 @@ export const App: React.FC = () => {
       syncToCloudAndTabs({ leads: next });
       return next;
     });
+    dbService.adminDeleteLead(getActiveAdminKey(), leadId).catch((err) => console.warn(err));
   };
 
   const handleImportFullBackup = (data: {
@@ -600,17 +868,24 @@ export const App: React.FC = () => {
     leads?: LeadRequest[];
     customers?: CustomerUser[];
   }) => {
+    const adminKey = getActiveAdminKey();
     if (Array.isArray(data.products)) {
-      setProducts(data.products);
+      const cleanProds = data.products.filter((p) => p && p.id && !isLegacyDemoProductId(p.id));
+      setProducts(cleanProds);
+      dbService.replaceAllProducts(adminKey, cleanProds).catch((err) => console.warn(err));
     }
     if (data.settings && typeof data.settings === 'object') {
       setSettings(data.settings);
+      dbService.saveSettings(adminKey, data.settings).catch((err) => console.warn(err));
     }
     if (Array.isArray(data.leads)) {
-      setLeads(data.leads);
+      const cleanLeads = data.leads.map(normalizeLeadRecord);
+      setLeads(cleanLeads);
+      dbService.adminBulkUpsertLeads(adminKey, cleanLeads).catch((err) => console.warn(err));
     }
     if (Array.isArray(data.customers)) {
       setAllUsers(data.customers);
+      dbService.adminBulkUpsertCustomers(adminKey, data.customers).catch((err) => console.warn(err));
     }
     syncToCloudAndTabs(data);
   };
@@ -709,6 +984,7 @@ export const App: React.FC = () => {
         onDeleteLead={handleDeleteLead}
         onNavigateCustomer={navigateToStore}
         onLogout={handleAdminLogout}
+        onRefreshCloud={refreshAdminDataFromSupabase}
         onImportFullBackup={handleImportFullBackup}
       />
     );
@@ -785,6 +1061,7 @@ export const App: React.FC = () => {
             showFavoritesOnly={showFavoritesOnly}
             onToggleFavoritesOnly={handleToggleFavoritesOnly}
             freeShippingThreshold={settings.freeShippingThreshold}
+            isLoading={isCatalogLoading}
           />
         ) : (
           /* ======================================================== */

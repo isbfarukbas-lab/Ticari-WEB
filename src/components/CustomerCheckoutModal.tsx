@@ -26,13 +26,18 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { CartItem, LeadRequest, CustomerUser, SiteSettings } from '../types';
+import { dbService } from '../services/dbService';
+import { trackEcommerceEvent } from '../utils/seo';
 
 interface CustomerCheckoutModalProps {
   isOpen: boolean;
   onClose: () => void;
   cart: CartItem[];
   currentUser?: CustomerUser | null;
-  onOrderCompleted: (order: LeadRequest) => void;
+  onOrderCompleted: (
+    order: LeadRequest,
+    opts?: { alreadySavedInCloud?: boolean }
+  ) => Promise<{ ok: boolean; lead: LeadRequest; error?: string } | void> | void;
   phoneNumber?: string;
   supportPhone?: string;
   settings?: SiteSettings;
@@ -122,8 +127,11 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
   const [selectedInstallment, setSelectedInstallment] = useState<number>(1);
   const [cardFocus, setCardFocus] = useState<'front' | 'back'>('front');
 
-  // 3D Secure Modal State
+  // 3D Secure Modal State & Live PayTR iFrame State
   const [is3DSecureModalOpen, setIs3DSecureModalOpen] = useState(false);
+  const [paytrIframeUrl, setPaytrIframeUrl] = useState<string | null>(null);
+  const [paytrMerchantOid, setPaytrMerchantOid] = useState<string | null>(null);
+  const [isCheckingPaytr, setIsCheckingPaytr] = useState(false);
   const [smsCode, setSmsCode] = useState('');
   const [smsTimer, setSmsTimer] = useState(180);
   const [smsError, setSmsError] = useState('');
@@ -155,11 +163,38 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
     if (!isOpen) {
       setCreatedOrder(null);
       setIs3DSecureModalOpen(false);
+      setPaytrIframeUrl(null);
+      setPaytrMerchantOid(null);
       setSmsCode('');
       setSmsError('');
       setFormError('');
       return;
     }
+
+    if (cart.length > 0) {
+      const value = cart.reduce((s, c) => {
+        if (!c.product) return s;
+        const diff = c.selectedVariant?.priceDifference || 0;
+        const unit =
+          c.purchaseType === 'material_only'
+            ? c.product.materialPrice + diff
+            : c.product.materialPrice + diff + c.product.workmanshipPrice;
+        return s + unit * c.quantity;
+      }, 0);
+      trackEcommerceEvent('begin_checkout', {
+        value,
+        items: cart
+          .filter((c) => Boolean(c.product))
+          .map((c) => ({
+            item_id: c.product!.id,
+            item_name: c.product!.name,
+            item_brand: c.product!.brand,
+            price: c.product!.materialPrice,
+            quantity: c.quantity,
+          })),
+      });
+    }
+
     if (currentUser) {
       if (!fullName) setFullName(currentUser.fullName);
       if (!phone) setPhone(currentUser.phone);
@@ -199,6 +234,65 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [is3DSecureModalOpen]);
+
+  // Listen for live PayTR 3D Secure callback postMessage & poll order status while PayTR iFrame is open
+  useEffect(() => {
+    if (!paytrIframeUrl || !paytrMerchantOid) return;
+    let active = true;
+
+    const verifyPaytrCompletion = async () => {
+      if (!active) return;
+      setIsCheckingPaytr(true);
+      try {
+        const check = await dbService.checkPaytrOrderStatus(paytrMerchantOid);
+        if (!active) return;
+        if (check.ok && check.status === 'paid' && check.lead) {
+          confetti({
+            particleCount: 110,
+            spread: 75,
+            origin: { y: 0.6 },
+            colors: ['#007A3D', '#0A0A0B', '#F59E0B', '#10B981'],
+          });
+          setProvisionRef(paytrMerchantOid);
+          await onOrderCompleted(check.lead, { alreadySavedInCloud: true });
+          setCreatedOrder(check.lead);
+          setPaytrIframeUrl(null);
+          setPaytrMerchantOid(null);
+        } else if (check.ok && check.status === 'failed') {
+          setFormError(
+            check.failureReason ||
+              '3D Secure kart ödemesi banka tarafından onaylanmadı. Lütfen tekrar deneyiniz.'
+          );
+          setPaytrIframeUrl(null);
+          setPaytrMerchantOid(null);
+        }
+      } finally {
+        if (active) setIsCheckingPaytr(false);
+      }
+    };
+
+    const handleMessage = (ev: MessageEvent) => {
+      const data = ev.data as { type?: string; status?: string; merchantOid?: string } | null;
+      if (data?.type === 'RVOBA_PAYTR_RESULT') {
+        if (data.status === 'fail') {
+          setFormError('Ödeme işlemi iptal edildi veya banka tarafından reddedildi.');
+          setPaytrIframeUrl(null);
+          setPaytrMerchantOid(null);
+          return;
+        }
+        verifyPaytrCompletion();
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    const pollInterval = setInterval(verifyPaytrCompletion, 4000);
+
+    return () => {
+      active = false;
+      window.removeEventListener('message', handleMessage);
+      clearInterval(pollInterval);
+    };
+  }, [paytrIframeUrl, paytrMerchantOid]);
 
   if (!isOpen) return null;
 
@@ -292,8 +386,57 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
     setTimeout(() => setCopiedIban(false), 2500);
   };
 
+  const buildDraftLead = (provCode?: string): LeadRequest => {
+    const randomSuffix = Math.floor(10000 + Math.random() * 90000);
+    const orderNo = `RV-SP-${randomSuffix}`;
+    return {
+      id: `order-${Date.now()}`,
+      customerId: currentUser?.id,
+      orderNumber: orderNo,
+      fullName: fullName.trim(),
+      phone: phone.trim(),
+      email: email.trim() || undefined,
+      city: city.trim(),
+      district: district.trim(),
+      address: `${address.trim()}${deliveryNote.trim() ? ` (Not: ${deliveryNote.trim()})` : ''}`,
+      totalAmount: grandTotal,
+      marketTotalAmount: marketTotal,
+      savingsAmount: totalSavings,
+      status: 'bekliyor',
+      leadType: 'web_order',
+      paymentMethod,
+      shippingCost,
+      paymentSummary:
+        paymentMethod === 'credit_card'
+          ? `Ödeme: Sanal POS (3D Secure ONAYLI - Provizyon: ${provCode || provisionRef || 'PRV-OK'} - ${activeBankObj.name} ${selectedInstallment} Taksit${cardNumber ? ` - Kart Sonu: ${cardNumber.replace(/\s/g, '').slice(-4)}` : ''}) | Kargo: ${isFreeShipping ? 'Ücretsiz' : `${shippingCost} ₺`}`
+          : `Ödeme Tercihi: ${paymentMethod === 'bank_transfer' ? 'Banka Havalesi / EFT' : 'Kapıda / Ambar Tesliminde Ödeme'} | Kargo: ${isFreeShipping ? 'Ücretsiz' : `${shippingCost} ₺`}`,
+      items: cart.map((c) => {
+        const variantDiff = c.selectedVariant?.priceDifference || 0;
+        return {
+          productId: c.productId || c.product?.id,
+          name: c.product?.name || c.customData?.title || 'Özel Sipariş',
+          brand: c.product?.brand || 'RVOBA',
+          quantity: c.quantity,
+          unit: c.product?.unit || 'adet',
+          total: c.product
+            ? c.purchaseType === 'material_only'
+              ? (c.product.materialPrice + variantDiff) * c.quantity
+              : (c.product.materialPrice + variantDiff + c.product.workmanshipPrice) * c.quantity
+            : 0,
+          isCustom: c.isCustom,
+          photoDataUrl: c.customData?.photoDataUrl,
+          customNote: c.customData?.description,
+          purchaseType: c.purchaseType,
+          selectedVariant: c.selectedVariant,
+          variantName: c.selectedVariant?.name,
+        };
+      }),
+      createdAt: new Date().toISOString(),
+    };
+  };
+
   // Form submit handler
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
 
@@ -303,6 +446,37 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
     }
 
     if (paymentMethod === 'credit_card') {
+      setIsSubmitting(true);
+      try {
+        // 1. Try initializing real PayTR 3D Secure iFrame via Supabase Edge Function
+        const draftLead = buildDraftLead();
+        const paytrRes = await dbService.initPaytrCheckout(draftLead);
+        if (paytrRes.ok && paytrRes.iframeUrl && paytrRes.merchantOid) {
+          setPaytrMerchantOid(paytrRes.merchantOid);
+          setPaytrIframeUrl(paytrRes.iframeUrl);
+          setIsSubmitting(false);
+          return;
+        }
+        if (paytrRes.error === 'out_of_stock') {
+          setFormError(
+            paytrRes.reason ||
+              `Stok yetersiz: ${paytrRes.productName || 'Seçili ürün'} için yeterli stok kalmadı.`
+          );
+          setIsSubmitting(false);
+          return;
+        }
+        if (paytrRes.error && paytrRes.error !== 'pos_not_configured' && paytrRes.error !== 'network_error') {
+          setFormError(paytrRes.reason || 'Sanal POS oturumu başlatılamadı. Lütfen bilgilerinizi kontrol ediniz.');
+          setIsSubmitting(false);
+          return;
+        }
+      } catch {
+        // Fall through to built-in 3D Secure flow if PayTR is not configured yet
+      } finally {
+        setIsSubmitting(false);
+      }
+
+      // 2. Fallback built-in 3D Secure flow when PayTR Merchant keys are not configured yet
       const cleanCard = cardNumber.replace(/\s/g, '');
       if (cleanCard.length < 16) {
         setFormError('Lütfen 16 haneli kredi kartı numaranızı eksiksiz giriniz.');
@@ -321,7 +495,6 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
         return;
       }
 
-      // Generate a mock provision ref & trigger 3D Secure modal
       const prov = `PRV-${Math.floor(100000 + Math.random() * 900000)}`;
       setProvisionRef(prov);
       setIs3DSecureModalOpen(true);
@@ -332,67 +505,39 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
     finalizeOrder('standard');
   };
 
-  // Finalize order creation
+  // Finalize order creation (server-side price & stock verified)
   const finalizeOrder = async (mode: 'standard' | '3d_secure') => {
     setIsSubmitting(true);
-    const randomSuffix = Math.floor(10000 + Math.random() * 90000);
-    const orderNo = `RV-SP-${randomSuffix}`;
+    setFormError('');
+    const newLead = buildDraftLead();
 
-    const newLead: LeadRequest = {
-      id: `order-${Date.now()}`,
-      customerId: currentUser?.id,
-      orderNumber: orderNo,
-      fullName: fullName.trim(),
-      phone: phone.trim(),
-      email: email.trim() || undefined,
-      city: city.trim(),
-      district: district.trim(),
-      address: `${address.trim()}${deliveryNote.trim() ? ` (Not: ${deliveryNote.trim()})` : ''}`,
-      totalAmount: grandTotal,
-      marketTotalAmount: marketTotal,
-      savingsAmount: totalSavings,
-      status: 'bekliyor',
-      leadType: 'web_order',
-      paymentMethod,
-      shippingCost,
-      paymentSummary: paymentMethod === 'credit_card'
-        ? `Ödeme: Sanal POS (3D Secure ONAYLI - Provizyon: ${provisionRef || 'PRV-OK'} - ${activeBankObj.name} ${selectedInstallment} Taksit - Kart Sonu: ${cardNumber.replace(/\s/g, '').slice(-4)}) | Kargo: ${isFreeShipping ? 'Ücretsiz' : `${shippingCost} ₺`}`
-        : `Ödeme Tercihi: ${paymentMethod === 'bank_transfer' ? 'Banka Havalesi / EFT' : 'Kapıda / Ambar Tesliminde Ödeme'} | Kargo: ${isFreeShipping ? 'Ücretsiz' : `${shippingCost} ₺`}`,
-      items: cart.map((c) => {
-        const variantDiff = c.selectedVariant?.priceDifference || 0;
-        return {
-          name: c.product?.name || c.customData?.title || 'Özel Sipariş',
-          brand: c.product?.brand || 'RVOBA',
-          quantity: c.quantity,
-          unit: c.product?.unit || 'adet',
-          total: c.product 
-            ? (c.purchaseType === 'material_only' 
-                ? (c.product.materialPrice + variantDiff) * c.quantity 
-                : (c.product.materialPrice + variantDiff + c.product.workmanshipPrice) * c.quantity)
-            : 0,
-          purchaseType: c.purchaseType,
-          selectedVariant: c.selectedVariant,
-          variantName: c.selectedVariant?.name,
-        };
-      }),
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      const result = await onOrderCompleted(newLead);
+      if (result && typeof result === 'object' && result.ok === false) {
+        setFormError(
+          result.error || 'Sipariş oluşturulurken stok yetersizliği veya bağlantı hatası oluştu.'
+        );
+        setIsSubmitting(false);
+        setIs3DSecureModalOpen(false);
+        return;
+      }
 
-    if (mode === '3d_secure') {
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#007A3D', '#0A0A0B', '#F59E0B', '#10B981']
-      });
-    }
+      if (mode === '3d_secure') {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#007A3D', '#0A0A0B', '#F59E0B', '#10B981'],
+        });
+      }
 
-    setTimeout(() => {
-      onOrderCompleted(newLead);
-      setCreatedOrder(newLead);
+      const confirmedLead =
+        result && typeof result === 'object' && result.lead ? result.lead : newLead;
+      setCreatedOrder(confirmedLead);
+    } finally {
       setIsSubmitting(false);
       setIs3DSecureModalOpen(false);
-    }, 500);
+    }
   };
 
   // Verify 3D Secure SMS Code
@@ -1226,6 +1371,76 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
         </div>
 
       </div>
+
+      {/* ======================================================== */}
+      {/* REAL PAYTR 3D SECURE OFFICIAL IFRAME MODAL               */}
+      {/* ======================================================== */}
+      {paytrIframeUrl && (
+        <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[92vh]">
+            <div className="p-4 bg-[#0A0A0B] text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                <div>
+                  <h4 className="text-xs font-bold tracking-tight">PAYTR 3D SECURE GÜVENLİ ÖDEME</h4>
+                  <span className="text-[10px] text-slate-300">
+                    PCI-DSS Level 1 Şifreli Banka Ortak Ödeme Sayfası
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setPaytrIframeUrl(null);
+                  setPaytrMerchantOid(null);
+                }}
+                className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-xs"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="flex-1 bg-white overflow-y-auto min-h-[480px]">
+              <iframe
+                src={paytrIframeUrl}
+                title="PayTR 3D Secure Ödeme"
+                className="w-full h-[520px] border-0"
+                allow="payment *"
+              />
+            </div>
+
+            <div className="p-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-2 text-xs">
+              <span className="text-[11px] text-slate-500">
+                3D Secure onayından sonra siparişiniz otomatik onaylanır.
+              </span>
+              {paytrMerchantOid && (
+                <button
+                  type="button"
+                  disabled={isCheckingPaytr}
+                  onClick={async () => {
+                    setIsCheckingPaytr(true);
+                    try {
+                      const check = await dbService.checkPaytrOrderStatus(paytrMerchantOid);
+                      if (check.ok && check.status === 'paid' && check.lead) {
+                        setProvisionRef(paytrMerchantOid);
+                        await onOrderCompleted(check.lead, { alreadySavedInCloud: true });
+                        setCreatedOrder(check.lead);
+                        setPaytrIframeUrl(null);
+                        setPaytrMerchantOid(null);
+                      }
+                    } finally {
+                      setIsCheckingPaytr(false);
+                    }
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-[#0A0A0B] text-white font-bold text-[11px] hover:bg-slate-800 disabled:opacity-50 transition"
+                >
+                  {isCheckingPaytr ? 'Kontrol Ediliyor...' : 'Ödemeyi Tamamladım, Kontrol Et'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ======================================================== */}
       {/* 3D SECURE SMS VERIFICATION SIMULATION MODAL              */}

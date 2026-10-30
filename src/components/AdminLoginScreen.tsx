@@ -34,6 +34,13 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
         return;
       }
 
+      if (res.error === 'rate_limited') {
+        setError(
+          'Çok fazla hatalı giriş denemesi tespit edildi. Güvenlik kilidi nedeniyle lütfen 10 dakika sonra tekrar deneyiniz.'
+        );
+        return;
+      }
+
       if (res.networkError && cleanPassword === correctPassword) {
         onLoginSuccess(rememberMe, cleanPassword);
         return;
@@ -49,7 +56,6 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
 
   return (
     <div className="min-h-screen bg-[#0A0A0B] text-white flex flex-col justify-between p-4 sm:p-8 font-sans relative overflow-hidden selection:bg-white selection:text-black">
-      
       {/* Subtle architectural background pattern */}
       <div className="absolute inset-0 halftone-texture opacity-20 pointer-events-none" />
       <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-white/5 blur-3xl pointer-events-none" />
@@ -67,14 +73,13 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
 
         <div className="flex items-center gap-1.5 text-xs text-slate-400">
           <ShieldCheck className="w-4 h-4 text-emerald-400" />
-          <span>256-Bit SSL Koruma</span>
+          <span>256-Bit SSL & Rate-Limit Koruma</span>
         </div>
       </header>
 
       {/* Main Login Card */}
       <main className="relative z-10 w-full max-w-md mx-auto my-auto py-8">
         <div className="bg-[#141416] border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
-          
           {/* Header icon & title */}
           <div className="text-center space-y-3 mb-6">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-b from-white/15 to-white/5 border border-white/20 text-white flex items-center justify-center mx-auto shadow-inner">
@@ -152,20 +157,19 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
               className="w-full mt-2 bg-white hover:bg-slate-100 disabled:opacity-50 disabled:hover:bg-white text-black font-bold text-xs py-3.5 px-4 rounded-2xl shadow-xl transition flex items-center justify-center gap-2"
             >
               <Lock className="w-3.5 h-3.5" />
-              <span>{isSubmitting ? 'Giriş Yapılıyor...' : 'Yönetim Paneline Giriş Yap'}</span>
+              <span>{isSubmitting ? 'Doğrulanıyor...' : 'Yönetim Paneline Giriş Yap'}</span>
             </button>
           </form>
 
-          {/* Initial setup hint */}
+          {/* Security protection notice */}
           <div className="mt-6 pt-5 border-t border-white/10 text-center">
             <p className="text-[11px] text-slate-400">
-              💡 Varsayılan Kurulum Şifresi: <code className="bg-white/10 text-emerald-400 px-2 py-0.5 rounded font-mono font-bold">rvoba2026</code>
+              🔒 Yetkisiz erişim denemeleri sunucu tarafında sınırlandırılır ve kayıt altına alınır.
             </p>
             <p className="text-[10px] text-slate-500 mt-1">
-              Panel içine girdikten sonra "Site Ayarları" sekmesinden istediğiniz zaman şifrenizi değiştirebilirsiniz.
+              Yönetici şifrenizi panel içerisindeki "Site Ayarları" sekmesinden dilediğiniz zaman güncelleyebilirsiniz.
             </p>
           </div>
-
         </div>
       </main>
 
@@ -173,7 +177,6 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
       <footer className="relative z-10 text-center text-xs text-slate-500 py-4">
         © {new Date().getFullYear()} RVOBA® Mimarlık ve Yapı Çözümleri. Tüm hakları saklıdır.
       </footer>
-
     </div>
   );
 };

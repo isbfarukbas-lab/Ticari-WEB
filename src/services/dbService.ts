@@ -1,6 +1,13 @@
-import { LeadRequest, CustomerUser, Product, SiteSettings } from '../types';
+import {
+  LeadRequest,
+  CustomerUser,
+  Product,
+  SiteSettings,
+  ResendEmailSettings,
+  VirtualPosSettings,
+} from '../types';
 import { isLegacyDemoProductId } from '../data/initialProducts';
-import { supabase } from './supabaseClient';
+import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './supabaseClient';
 
 export interface AdminSecrets {
   adminPassword?: string;
@@ -10,6 +17,8 @@ export interface AdminSecrets {
     chatId?: string;
     enabled?: boolean;
   };
+  resendConfig?: ResendEmailSettings;
+  posConfig?: VirtualPosSettings;
 }
 
 export interface CatalogSnapshot {
@@ -19,6 +28,7 @@ export interface CatalogSnapshot {
 }
 
 const ADMIN_KEY_STORAGE = 'rvoba_admin_key';
+const CUSTOMER_TOKEN_STORAGE = 'rvoba_customer_token_v1';
 
 class DatabaseService {
   /**
@@ -55,6 +65,34 @@ class DatabaseService {
       localStorage.removeItem(ADMIN_KEY_STORAGE);
     } catch (e) {
       console.warn('Admin key clear error:', e);
+    }
+  }
+
+  /**
+   * Read/write customer session token for authenticated profile updates
+   */
+  getCustomerSessionToken(): string {
+    try {
+      return localStorage.getItem(CUSTOMER_TOKEN_STORAGE) || '';
+    } catch {
+      return '';
+    }
+  }
+
+  setCustomerSessionToken(token?: string): void {
+    if (!token) return;
+    try {
+      localStorage.setItem(CUSTOMER_TOKEN_STORAGE, token);
+    } catch (e) {
+      console.warn('Customer token storage error:', e);
+    }
+  }
+
+  clearCustomerSessionToken(): void {
+    try {
+      localStorage.removeItem(CUSTOMER_TOKEN_STORAGE);
+    } catch (e) {
+      console.warn('Customer token clear error:', e);
     }
   }
 
@@ -155,11 +193,11 @@ class DatabaseService {
   }
 
   /**
-   * Verify admin password against Supabase app_private.admin_config
+   * Verify admin password against Supabase app_private.admin_config (rate-limited)
    */
   async verifyAdminLogin(
     password: string
-  ): Promise<{ ok: boolean; secrets?: AdminSecrets; networkError?: boolean }> {
+  ): Promise<{ ok: boolean; secrets?: AdminSecrets; error?: string; networkError?: boolean }> {
     try {
       const { data, error } = await supabase.rpc('admin_verify_login', {
         p_password: password.trim(),
@@ -168,11 +206,11 @@ class DatabaseService {
         console.warn('Admin login RPC error:', error.message);
         return { ok: false, networkError: true };
       }
-      const res = data as { ok?: boolean; secrets?: AdminSecrets } | null;
+      const res = data as { ok?: boolean; secrets?: AdminSecrets; error?: string } | null;
       if (res?.ok) {
         return { ok: true, secrets: res.secrets };
       }
-      return { ok: false };
+      return { ok: false, error: res?.error };
     } catch (e) {
       console.warn('Admin login network error:', e);
       return { ok: false, networkError: true };
@@ -180,7 +218,7 @@ class DatabaseService {
   }
 
   /**
-   * Save public site settings + private admin secrets (password, Telegram, webhook)
+   * Save public site settings + private admin secrets (password, Telegram, webhook, Resend, POS)
    */
   async saveSettings(adminPassword: string, settings: SiteSettings): Promise<boolean> {
     if (!adminPassword) return false;
@@ -324,6 +362,36 @@ class DatabaseService {
     }
   }
 
+  async adminUpdateLeadTracking(
+    adminPassword: string,
+    leadId: string,
+    status: LeadRequest['status'],
+    adminNotes?: string,
+    trackingCarrier?: string,
+    trackingCode?: string
+  ): Promise<LeadRequest | null> {
+    if (!adminPassword || !leadId) return null;
+    try {
+      const { data, error } = await supabase.rpc('admin_update_lead_tracking', {
+        p_admin_password: adminPassword,
+        p_lead_id: leadId,
+        p_status: status || 'bekliyor',
+        p_admin_notes: adminNotes ?? null,
+        p_tracking_carrier: trackingCarrier ?? null,
+        p_tracking_code: trackingCode ?? null,
+      });
+      if (error) {
+        console.warn('Admin update lead tracking RPC error:', error.message);
+        return null;
+      }
+      const res = data as { ok?: boolean; lead?: LeadRequest } | null;
+      return res?.ok && res.lead ? res.lead : null;
+    } catch (e) {
+      console.warn('Admin update lead tracking error:', e);
+      return null;
+    }
+  }
+
   async adminDeleteLead(adminPassword: string, leadId: string): Promise<boolean> {
     if (!adminPassword || !leadId) return false;
     try {
@@ -395,6 +463,30 @@ class DatabaseService {
     }
   }
 
+  async adminResetCustomerPassword(
+    adminPassword: string,
+    customerId: string,
+    newPasswordPlain: string
+  ): Promise<boolean> {
+    if (!adminPassword || !customerId || !newPasswordPlain.trim()) return false;
+    try {
+      const passwordHash = await this.hashPassword(newPasswordPlain.trim());
+      const { data, error } = await supabase.rpc('admin_reset_customer_password', {
+        p_admin_password: adminPassword,
+        p_customer_id: customerId,
+        p_new_password_hash: passwordHash,
+      });
+      if (error) {
+        console.warn('Admin reset customer password RPC error:', error.message);
+        return false;
+      }
+      return Boolean((data as { ok?: boolean } | null)?.ok);
+    } catch (e) {
+      console.warn('Admin reset customer password error:', e);
+      return false;
+    }
+  }
+
   async adminBulkUpsertCustomers(adminPassword: string, customers: CustomerUser[]): Promise<boolean> {
     if (!adminPassword || customers.length === 0) return false;
     try {
@@ -439,7 +531,7 @@ class DatabaseService {
   }
 
   /**
-   * Customer Registration, Login & Profile Sync across devices
+   * Customer Registration, Login, 6-Digit OTP Password Reset & Session-Protected Profile Sync
    */
   async registerCustomer(
     user: CustomerUser,
@@ -454,7 +546,15 @@ class DatabaseService {
         console.warn('Register customer RPC error:', error.message);
         return { ok: false, error: 'network_error' };
       }
-      const res = data as { ok?: boolean; user?: CustomerUser; error?: string } | null;
+      const res = data as {
+        ok?: boolean;
+        user?: CustomerUser;
+        sessionToken?: string;
+        error?: string;
+      } | null;
+      if (res?.ok && res.sessionToken) {
+        this.setCustomerSessionToken(res.sessionToken);
+      }
       return {
         ok: Boolean(res?.ok),
         user: res?.user,
@@ -479,7 +579,15 @@ class DatabaseService {
         console.warn('Login customer RPC error:', error.message);
         return { ok: false, error: 'network_error' };
       }
-      const res = data as { ok?: boolean; user?: CustomerUser; error?: string } | null;
+      const res = data as {
+        ok?: boolean;
+        user?: CustomerUser;
+        sessionToken?: string;
+        error?: string;
+      } | null;
+      if (res?.ok && res.sessionToken) {
+        this.setCustomerSessionToken(res.sessionToken);
+      }
       return {
         ok: Boolean(res?.ok),
         user: res?.user,
@@ -491,12 +599,79 @@ class DatabaseService {
     }
   }
 
+  async requestPasswordReset(
+    identifier: string
+  ): Promise<{ ok: boolean; emailSent?: boolean; maskedEmail?: string; error?: string }> {
+    try {
+      const { data, error } = await supabase.rpc('request_customer_password_reset', {
+        p_identifier: identifier.trim(),
+      });
+      if (error) {
+        console.warn('Password reset request RPC error:', error.message);
+        return { ok: false, error: 'network_error' };
+      }
+      const res = data as {
+        ok?: boolean;
+        emailSent?: boolean;
+        maskedEmail?: string;
+        error?: string;
+      } | null;
+      return {
+        ok: Boolean(res?.ok),
+        emailSent: res?.emailSent,
+        maskedEmail: res?.maskedEmail,
+        error: res?.error,
+      };
+    } catch (e) {
+      console.warn('Password reset request error:', e);
+      return { ok: false, error: 'network_error' };
+    }
+  }
+
+  async confirmPasswordReset(
+    identifier: string,
+    code: string,
+    newPasswordPlain: string
+  ): Promise<{ ok: boolean; user?: CustomerUser; error?: string }> {
+    try {
+      const newPasswordHash = await this.hashPassword(newPasswordPlain.trim());
+      const { data, error } = await supabase.rpc('confirm_customer_password_reset', {
+        p_identifier: identifier.trim(),
+        p_code: code.trim(),
+        p_new_password_hash: newPasswordHash,
+      });
+      if (error) {
+        console.warn('Confirm password reset RPC error:', error.message);
+        return { ok: false, error: 'network_error' };
+      }
+      const res = data as {
+        ok?: boolean;
+        user?: CustomerUser;
+        sessionToken?: string;
+        error?: string;
+      } | null;
+      if (res?.ok && res.sessionToken) {
+        this.setCustomerSessionToken(res.sessionToken);
+      }
+      return {
+        ok: Boolean(res?.ok),
+        user: res?.user,
+        error: res?.error,
+      };
+    } catch (e) {
+      console.warn('Confirm password reset error:', e);
+      return { ok: false, error: 'network_error' };
+    }
+  }
+
   async updateCustomerProfile(customerId: string, user: CustomerUser): Promise<boolean> {
     if (!customerId) return false;
     try {
+      const token = this.getCustomerSessionToken();
+      const payload = token ? { ...user, _sessionToken: token } : user;
       const { data, error } = await supabase.rpc('update_customer_profile', {
         p_customer_id: customerId,
-        p_user: user,
+        p_user: payload,
       });
       if (error) {
         console.warn('Update customer profile RPC error:', error.message);
@@ -522,6 +697,63 @@ class DatabaseService {
       localStorage.setItem('rvoba_customers_v1', JSON.stringify(updated));
     } catch (e) {
       console.warn('Customer local cache error:', e);
+    }
+  }
+
+  /**
+   * Initialize PayTR 3D Secure iFrame checkout via Supabase Edge Function `payment-checkout`
+   */
+  async initPaytrCheckout(lead: LeadRequest): Promise<{
+    ok: boolean;
+    iframeUrl?: string;
+    merchantOid?: string;
+    totalAmount?: number;
+    error?: string;
+    reason?: string;
+    productName?: string;
+  }> {
+    try {
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/payment-checkout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          action: 'init_paytr',
+          lead,
+        }),
+      });
+      const json = await resp.json();
+      return json;
+    } catch (e) {
+      console.warn('PayTR checkout init error:', e);
+      return { ok: false, error: 'network_error' };
+    }
+  }
+
+  async checkPaytrOrderStatus(merchantOid: string): Promise<{
+    ok: boolean;
+    status?: string;
+    failureReason?: string;
+    lead?: LeadRequest | null;
+  }> {
+    try {
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/payment-checkout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({
+          action: 'check_status',
+          merchantOid,
+        }),
+      });
+      return await resp.json();
+    } catch (e) {
+      console.warn('PayTR check status error:', e);
+      return { ok: false };
     }
   }
 
@@ -573,42 +805,59 @@ class DatabaseService {
   }
 
   /**
-   * Save a new lead/order to Supabase PostgreSQL (which also triggers server-side pg_net alerts)
+   * Save a new lead/order to Supabase PostgreSQL:
+   * - Server recalculates/verifies product prices, shipping & transfer discount
+   * - Atomically decrements product stock_count
+   * - Sends server-side Telegram + Webhook + Resend Customer Confirmation Email via pg_net
    */
-  async saveLead(lead: LeadRequest, settings?: SiteSettings): Promise<void> {
-    // 1. Cache locally for instant responsiveness
-    try {
-      const existingRaw = localStorage.getItem('rvoba_leads_v1');
-      const leads: LeadRequest[] = existingRaw ? JSON.parse(existingRaw) : [];
-      const updated = [lead, ...leads.filter((l) => l.id !== lead.id)];
-      localStorage.setItem('rvoba_leads_v1', JSON.stringify(updated));
-    } catch (e) {
-      console.warn('LocalStorage save failed:', e);
-    }
-
-    // 2. Dispatch cross-tab sync event
-    window.dispatchEvent(new CustomEvent('rvoba:new-lead', { detail: lead }));
-
-    // 3. Persist to Supabase via submit_lead RPC (triggers server-side Telegram/Webhook via pg_net)
+  async saveLead(
+    lead: LeadRequest,
+    settings?: SiteSettings
+  ): Promise<{ ok: boolean; lead: LeadRequest; error?: string }> {
     let savedToSupabase = false;
+    let verifiedLead: LeadRequest = lead;
+
     try {
       const { data, error } = await supabase.rpc('submit_lead', {
         p_lead: lead,
       });
-      if (!error && (data as { ok?: boolean } | null)?.ok) {
-        savedToSupabase = true;
-      } else if (error) {
+
+      if (error) {
+        if (error.message && error.message.includes('Stok yetersiz')) {
+          return { ok: false, lead, error: error.message };
+        }
         console.warn('Supabase submit_lead RPC error:', error.message);
+      } else {
+        const res = data as { ok?: boolean; lead?: LeadRequest } | null;
+        if (res?.ok) {
+          savedToSupabase = true;
+          if (res.lead) {
+            verifiedLead = res.lead;
+          }
+        }
       }
     } catch (err) {
       console.warn('Supabase submit_lead network error:', err);
     }
 
-    // 4. Fallback client-side notification ONLY if Supabase call did not succeed
+    // Cache verified lead locally for instant responsiveness
+    try {
+      const existingRaw = localStorage.getItem('rvoba_leads_v1');
+      const leads: LeadRequest[] = existingRaw ? JSON.parse(existingRaw) : [];
+      const updated = [verifiedLead, ...leads.filter((l) => l.id !== verifiedLead.id)];
+      localStorage.setItem('rvoba_leads_v1', JSON.stringify(updated));
+    } catch (e) {
+      console.warn('LocalStorage save failed:', e);
+    }
+
+    // Dispatch cross-tab sync event
+    window.dispatchEvent(new CustomEvent('rvoba:new-lead', { detail: verifiedLead }));
+
+    // Fallback client-side notification ONLY if Supabase call did not succeed
     if (!savedToSupabase) {
       const tg = settings?.telegramConfig;
       if (tg?.enabled && tg.botToken && tg.chatId) {
-        const itemsList = (lead.items || [])
+        const itemsList = (verifiedLead.items || [])
           .map(
             (it) =>
               `• ${it.quantity} ${it.unit} ${it.name}${it.variantName ? ` [${it.variantName}]` : ''}`
@@ -617,11 +866,11 @@ class DatabaseService {
 
         const tgMsg =
           `🚨 <b>RVOBA® — YENİ SİPARİŞ / TALEP!</b>\n\n` +
-          `<b>Sipariş No:</b> ${lead.orderNumber || lead.id}\n` +
-          `<b>Müşteri:</b> ${lead.fullName}\n` +
-          `<b>Telefon:</b> ${lead.phone}\n` +
-          `<b>Konum:</b> ${lead.district} / ${lead.city}\n` +
-          `<b>Tutar:</b> ${lead.totalAmount.toLocaleString('tr-TR')} ₺\n\n` +
+          `<b>Sipariş No:</b> ${verifiedLead.orderNumber || verifiedLead.id}\n` +
+          `<b>Müşteri:</b> ${verifiedLead.fullName}\n` +
+          `<b>Telefon:</b> ${verifiedLead.phone}\n` +
+          `<b>Konum:</b> ${verifiedLead.district} / ${verifiedLead.city}\n` +
+          `<b>Tutar:</b> ${verifiedLead.totalAmount.toLocaleString('tr-TR')} ₺\n\n` +
           `<b>Kalemler:</b>\n${itemsList}`;
 
         this.sendTelegramAlert(tgMsg, tg.botToken, tg.chatId);
@@ -631,17 +880,19 @@ class DatabaseService {
         this.sendWebhookNotification(
           'new_order',
           {
-            orderNumber: lead.orderNumber,
-            customerName: lead.fullName,
-            phone: lead.phone,
-            city: `${lead.district} / ${lead.city}`,
-            totalAmount: `${lead.totalAmount.toLocaleString('tr-TR')} ₺`,
-            items: lead.items,
+            orderNumber: verifiedLead.orderNumber,
+            customerName: verifiedLead.fullName,
+            phone: verifiedLead.phone,
+            city: `${verifiedLead.district} / ${verifiedLead.city}`,
+            totalAmount: `${verifiedLead.totalAmount.toLocaleString('tr-TR')} ₺`,
+            items: verifiedLead.items,
           },
           settings.notificationWebhookUrl
         );
       }
     }
+
+    return { ok: true, lead: verifiedLead };
   }
 }
 

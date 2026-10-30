@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  X, 
-  User, 
-  Mail, 
-  Phone, 
-  Lock, 
-  Eye, 
-  EyeOff, 
-  CheckCircle2, 
-  ArrowRight, 
-  ShieldCheck, 
+import {
+  X,
+  User,
+  Mail,
+  Phone,
+  Lock,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  ArrowRight,
+  ShieldCheck,
   AlertCircle,
-  MapPin,
-  Sparkles
+  KeyRound,
+  MessageCircle,
 } from 'lucide-react';
 import { CustomerUser, ServiceArea } from '../types';
 import { dbService } from '../services/dbService';
@@ -25,6 +25,7 @@ interface CustomerAuthModalProps {
   onRegisterUser: (newUser: CustomerUser) => void;
   serviceAreas?: ServiceArea[];
   initialTab?: 'login' | 'register';
+  phoneNumber?: string;
 }
 
 export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
@@ -33,18 +34,13 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
   onLoginSuccess,
   users,
   onRegisterUser,
-  serviceAreas = [],
   initialTab = 'login',
+  phoneNumber = '905447685137',
 }) => {
   const [tab, setTab] = useState<'login' | 'register' | 'forgot'>(initialTab);
-  useEffect(() => {
-    if (isOpen) {
-      setTab(initialTab);
-    }
-  }, [initialTab, isOpen]);
-  
+
   // Login fields
-  const [loginIdentifier, setLoginIdentifier] = useState(''); // phone or email
+  const [loginIdentifier, setLoginIdentifier] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginRemember, setLoginRemember] = useState(true);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
@@ -57,37 +53,62 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
   const [district, setDistrict] = useState('Kadıköy');
   const [registerPassword, setRegisterPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [showRegisterPassword] = useState(false);
   const [agreedTerms, setAgreedTerms] = useState(true);
+
+  // 2-Step Real Password Reset (6-Digit OTP) fields
+  const [forgotStep, setForgotStep] = useState<'request' | 'confirm'>('request');
+  const [forgotIdentifier, setForgotIdentifier] = useState('');
+  const [forgotOtpCode, setForgotOtpCode] = useState('');
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
+  const [forgotEmailSent, setForgotEmailSent] = useState(false);
+  const [forgotMaskedEmail, setForgotMaskedEmail] = useState<string | undefined>(undefined);
 
   // Status & Error
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (isOpen) {
+      setTab(initialTab);
+      setError(null);
+      setSuccessMessage(null);
+      setForgotStep('request');
+      setForgotOtpCode('');
+      setForgotNewPassword('');
+      setForgotConfirmPassword('');
+    }
+  }, [initialTab, isOpen]);
+
   if (!isOpen) return null;
 
-  // Selected city districts from service areas or defaults
-  const currentCityObj = serviceAreas.find(s => s.city.toLowerCase() === city.toLowerCase());
-  const districtList = currentCityObj?.districts || [
-    'Kadıköy', 'Beşiktaş', 'Üsküdar', 'Ataşehir', 'Bakırköy', 'Sarıyer', 'Şişli', 'Maltepe', 'Tüm İlçe'
-  ];
+  const cleanSupportWa = phoneNumber.replace(/\D/g, '') || '905447685137';
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccessMessage(null);
     setIsSubmitting(true);
 
     try {
       const cleanIdent = loginIdentifier.trim().toLowerCase();
       const hashedInput = await dbService.hashPassword(loginPassword);
 
-      // 1. Authenticate against Supabase PostgreSQL across all devices
+      // 1. Authenticate against Supabase PostgreSQL across all devices (rate-limited)
       const cloudRes = await dbService.loginCustomer(loginIdentifier, hashedInput);
       if (cloudRes.ok && cloudRes.user) {
         await dbService.saveCustomer(cloudRes.user);
         onLoginSuccess(cloudRes.user);
         onClose();
+        return;
+      }
+
+      if (cloudRes.error === 'rate_limited') {
+        setError(
+          'Çok fazla hatalı giriş denemesi yapıldı. Güvenlik nedeniyle lütfen 10 dakika sonra tekrar deneyiniz.'
+        );
         return;
       }
 
@@ -129,6 +150,7 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccessMessage(null);
 
     if (!fullName.trim() || !phone.trim() || !email.trim()) {
       setError('Lütfen tüm zorunlu alanları eksiksiz doldurunuz.');
@@ -168,7 +190,9 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
       const regRes = await dbService.registerCustomer(newUser, hashedPassword);
       if (!regRes.ok) {
         if (regRes.error === 'already_exists') {
-          setError('Bu telefon veya e-posta adresiyle kayıtlı bir hesap zaten bulunuyor. Lütfen giriş yapınız.');
+          setError(
+            'Bu telefon veya e-posta adresiyle kayıtlı bir hesap zaten bulunuyor. Lütfen giriş yapınız.'
+          );
           return;
         }
         if (regRes.error !== 'network_error') {
@@ -189,19 +213,106 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
     }
   };
 
+  const handleRequestPasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccessMessage(null);
+
+    if (!forgotIdentifier.trim()) {
+      setError('Lütfen kayıtlı e-posta adresinizi veya telefon numaranızı giriniz.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await dbService.requestPasswordReset(forgotIdentifier);
+      if (!res.ok) {
+        if (res.error === 'rate_limited') {
+          setError('Çok fazla sıfırlama talebi gönderildi. Lütfen 10 dakika sonra tekrar deneyiniz.');
+        } else if (res.error === 'not_found') {
+          setError('Bu e-posta veya telefon numarasıyla kayıtlı bir müşteri hesabı bulunamadı.');
+        } else {
+          setError('Şifre sıfırlama talebi oluşturulurken bir sorun oluştu.');
+        }
+        return;
+      }
+
+      setForgotEmailSent(Boolean(res.emailSent));
+      setForgotMaskedEmail(res.maskedEmail);
+      setForgotStep('confirm');
+      setSuccessMessage(
+        res.emailSent
+          ? `6 haneli doğrulama kodunuz ${res.maskedEmail || 'kayıtlı e-posta adresinize'} gönderildi (15 dk geçerli).`
+          : 'Hesabınız doğrulandı ve 6 haneli güvenlik kodunuz oluşturuldu. E-posta ulaşmadıysa aşağıdaki WhatsApp destek butonundan anında şifre yenileme talep edebilirsiniz.'
+      );
+    } catch {
+      setError('Bağlantı hatası oluştu. Lütfen tekrar deneyiniz.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleConfirmPasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    const cleanOtp = forgotOtpCode.replace(/\D/g, '');
+    if (cleanOtp.length !== 6) {
+      setError('Lütfen 6 haneli doğrulama kodunu eksiksiz giriniz.');
+      return;
+    }
+    if (forgotNewPassword.length < 5) {
+      setError('Yeni şifreniz en az 5 karakterden oluşmalıdır.');
+      return;
+    }
+    if (forgotNewPassword !== forgotConfirmPassword) {
+      setError('Yeni şifreler birbiriyle eşleşmiyor.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const res = await dbService.confirmPasswordReset(
+        forgotIdentifier,
+        cleanOtp,
+        forgotNewPassword
+      );
+
+      if (!res.ok || !res.user) {
+        if (res.error === 'rate_limited') {
+          setError('Çok fazla hatalı kod denemesi yapıldı. Lütfen 10 dakika bekleyiniz.');
+        } else if (res.error === 'code_expired') {
+          setError('Doğrulama kodunun süresi dolmuş (15 dk). Lütfen yeni kod isteyiniz.');
+        } else if (res.error === 'invalid_code') {
+          setError('Girdiğiniz 6 haneli doğrulama kodu hatalı.');
+        } else {
+          setError('Şifre güncellenemedi. Lütfen tekrar deneyiniz.');
+        }
+        return;
+      }
+
+      await dbService.saveCustomer(res.user);
+      onLoginSuccess(res.user);
+      onClose();
+    } catch {
+      setError('Şifre sıfırlanırken bir sorun oluştu.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div 
-        onClick={onClose} 
-        className="fixed inset-0 bg-[#0A0A0B]/70 backdrop-blur-sm transition-opacity" 
+      <div
+        onClick={onClose}
+        className="fixed inset-0 bg-[#0A0A0B]/70 backdrop-blur-sm transition-opacity"
       />
 
       {/* Modal Box */}
       <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 sm:p-8 text-[#0A0A0B] z-10 max-h-[92vh] overflow-y-auto border border-[#E8EAED] animate-in fade-in zoom-in-95 duration-200">
-        
         {/* Close Button */}
-        <button 
+        <button
           onClick={onClose}
           className="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-black transition"
           aria-label="Kapat"
@@ -218,14 +329,18 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
             RVOBA<span className="text-xs font-bold -mt-2 inline-block">®</span>
           </span>
           <h2 className="text-lg font-display font-bold text-[#0A0A0B] mt-0.5">
-            {tab === 'login' ? 'Müşteri Girişi' : tab === 'register' ? 'Yeni Hesap Oluştur' : 'Şifremi Unuttum'}
+            {tab === 'login'
+              ? 'Müşteri Girişi'
+              : tab === 'register'
+              ? 'Yeni Hesap Oluştur'
+              : 'Şifre Yenileme'}
           </h2>
           <p className="text-xs text-[#64748B] mt-1 max-w-xs mx-auto">
-            {tab === 'login' 
-              ? 'Siparişlerinizi ve keşif randevularınızı takip etmek için giriş yapın.' 
-              : tab === 'register' 
-              ? 'Hızlı sipariş, adres kaydı ve özel mimari fırsatlar için kaydolun.' 
-              : 'Hesabınıza kayıtlı telefon veya e-posta ile şifrenizi yenileyin.'}
+            {tab === 'login'
+              ? 'Siparişlerinizi ve keşif randevularınızı takip etmek için giriş yapın.'
+              : tab === 'register'
+              ? 'Hızlı sipariş, adres kaydı ve özel mimari fırsatlar için kaydolun.'
+              : 'Hesabınıza kayıtlı telefon veya e-posta ile şifrenizi güvenli şekilde yenileyin.'}
           </p>
         </div>
 
@@ -234,10 +349,14 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
           <div className="flex rounded-full bg-[#F1F3F5] p-1 mb-5">
             <button
               type="button"
-              onClick={() => { setTab('login'); setError(null); }}
+              onClick={() => {
+                setTab('login');
+                setError(null);
+                setSuccessMessage(null);
+              }}
               className={`flex-1 py-2 text-xs font-bold rounded-full transition ${
-                tab === 'login' 
-                  ? 'bg-white text-[#0A0A0B] shadow-sm' 
+                tab === 'login'
+                  ? 'bg-white text-[#0A0A0B] shadow-sm'
                   : 'text-[#64748B] hover:text-black'
               }`}
             >
@@ -245,10 +364,14 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => { setTab('register'); setError(null); }}
+              onClick={() => {
+                setTab('register');
+                setError(null);
+                setSuccessMessage(null);
+              }}
               className={`flex-1 py-2 text-xs font-bold rounded-full transition ${
-                tab === 'register' 
-                  ? 'bg-white text-[#0A0A0B] shadow-sm' 
+                tab === 'register'
+                  ? 'bg-white text-[#0A0A0B] shadow-sm'
                   : 'text-[#64748B] hover:text-black'
               }`}
             >
@@ -267,8 +390,8 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
 
         {/* Success Notice */}
         {successMessage && (
-          <div className="mb-4 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center gap-2 text-xs text-emerald-800 animate-in fade-in">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <div className="mb-4 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-start gap-2 text-xs text-emerald-800 animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
             <span>{successMessage}</span>
           </div>
         )}
@@ -289,7 +412,10 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
                   required
                   placeholder="ornek@mail.com veya 0532..."
                   value={loginIdentifier}
-                  onChange={(e) => { setLoginIdentifier(e.target.value); setError(null); }}
+                  onChange={(e) => {
+                    setLoginIdentifier(e.target.value);
+                    setError(null);
+                  }}
                   className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-2xl pl-10 pr-4 py-2.5 text-xs text-[#0A0A0B] placeholder:text-slate-400 focus:outline-none focus:border-black font-medium"
                 />
               </div>
@@ -302,7 +428,13 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
                 </label>
                 <button
                   type="button"
-                  onClick={() => { setTab('forgot'); setError(null); }}
+                  onClick={() => {
+                    setTab('forgot');
+                    setForgotStep('request');
+                    setForgotIdentifier(loginIdentifier);
+                    setError(null);
+                    setSuccessMessage(null);
+                  }}
                   className="text-[11px] font-medium text-slate-500 hover:text-black underline"
                 >
                   Şifremi Unuttum?
@@ -317,7 +449,10 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
                   required
                   placeholder="Şifreniz"
                   value={loginPassword}
-                  onChange={(e) => { setLoginPassword(e.target.value); setError(null); }}
+                  onChange={(e) => {
+                    setLoginPassword(e.target.value);
+                    setError(null);
+                  }}
                   className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-2xl pl-10 pr-10 py-2.5 text-xs text-[#0A0A0B] placeholder:text-slate-400 focus:outline-none focus:border-black"
                 />
                 <button
@@ -352,10 +487,11 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
 
-            {/* Quick Demo Credentials hint */}
             {users.length === 0 && (
               <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 text-center text-[11px] text-slate-600">
-                <span>Henüz bir hesabınız yok mu? Hemen yukarıdan <strong>"Üye Ol"</strong> sekmesine geçebilirsiniz.</span>
+                <span>
+                  Henüz bir hesabınız yok mu? Hemen yukarıdan <strong>"Üye Ol"</strong> sekmesine geçebilirsiniz.
+                </span>
               </div>
             )}
           </form>
@@ -498,7 +634,8 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
                   className="w-4 h-4 rounded text-black focus:ring-black accent-black mt-0.5 cursor-pointer shrink-0"
                 />
                 <span>
-                  <strong className="text-black">Kullanıcı Sözleşmesi</strong> ve <strong className="text-black">KVKK Aydınlatma Metni</strong>'ni okudum, onaylıyorum.
+                  <strong className="text-black">Kullanıcı Sözleşmesi</strong> ve{' '}
+                  <strong className="text-black">KVKK Aydınlatma Metni</strong>'ni okudum, onaylıyorum.
                 </span>
               </label>
             </div>
@@ -514,38 +651,142 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
           </form>
         )}
 
-        {/* TAB 3: ŞİFREMİ UNUTTUM */}
+        {/* TAB 3: ŞİFREMİ UNUTTUM (GERÇEK 2 ADIMLI 6 HANELİ OTP + WHATSAPP DESTEK) */}
         {tab === 'forgot' && (
           <div className="space-y-4">
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Kayıtlı telefon numaranızı veya e-posta adresinizi giriniz. Sistemde kayıtlı hesabınızın şifresi SMS / WhatsApp üzerinden doğrulanacaktır.
-            </p>
-            <div>
-              <label className="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider mb-1">
-                Kayıtlı Telefon veya E-posta
-              </label>
-              <input
-                type="text"
-                placeholder="0532... veya mail@ornek.com"
-                className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-2xl px-3.5 py-2.5 text-xs text-[#0A0A0B] focus:outline-none focus:border-black font-medium"
-              />
-            </div>
+            {forgotStep === 'request' ? (
+              <form onSubmit={handleRequestPasswordReset} className="space-y-4">
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Kayıtlı telefon numaranızı veya e-posta adresinizi giriniz. Hesabınıza 15 dakika geçerli{' '}
+                  <strong>6 haneli tek kullanımlık doğrulama kodu</strong> gönderilecektir.
+                </p>
 
-            <button
-              type="button"
-              onClick={() => {
-                setSuccessMessage('Şifre sıfırlama bağlantısı / SMS doğrulama kodu başarıyla iletildi.');
-                setTimeout(() => setTab('login'), 2000);
-              }}
-              className="w-full btn-pill-black bg-[#0A0A0B] hover:bg-slate-800 text-white font-bold text-xs py-2.5 rounded-2xl shadow-md"
-            >
-              Sıfırlama Kodu Gönder
-            </button>
+                <div>
+                  <label className="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider mb-1">
+                    Kayıtlı Telefon veya E-posta
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={forgotIdentifier}
+                    onChange={(e) => {
+                      setForgotIdentifier(e.target.value);
+                      setError(null);
+                    }}
+                    placeholder="0532... veya mail@ornek.com"
+                    className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-2xl px-3.5 py-2.5 text-xs text-[#0A0A0B] focus:outline-none focus:border-black font-medium"
+                  />
+                </div>
 
-            <div className="text-center pt-2">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full btn-pill-black bg-[#0A0A0B] hover:bg-slate-800 text-white font-bold text-xs py-3 rounded-2xl shadow-md disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Kod Oluşturuluyor...' : '6 Haneli Doğrulama Kodu Gönder'}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleConfirmPasswordReset} className="space-y-3.5">
+                <div>
+                  <label className="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider mb-1">
+                    6 Haneli Doğrulama Kodu {forgotMaskedEmail ? `(${forgotMaskedEmail})` : ''}
+                  </label>
+                  <div className="relative">
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
+                      <KeyRound className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      required
+                      value={forgotOtpCode}
+                      onChange={(e) => {
+                        setForgotOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6));
+                        setError(null);
+                      }}
+                      placeholder="123456"
+                      className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-2xl pl-10 pr-4 py-2.5 text-sm font-mono font-bold tracking-[0.25em] text-[#0A0A0B] focus:outline-none focus:border-black"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider mb-1">
+                      Yeni Şifre (Min. 5)
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={forgotNewPassword}
+                      onChange={(e) => setForgotNewPassword(e.target.value)}
+                      placeholder="••••••"
+                      className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-2xl px-3 py-2 text-xs text-[#0A0A0B] focus:outline-none focus:border-black"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#4B5563] uppercase tracking-wider mb-1">
+                      Yeni Şifre Tekrar
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={forgotConfirmPassword}
+                      onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                      placeholder="••••••"
+                      className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-2xl px-3 py-2 text-xs text-[#0A0A0B] focus:outline-none focus:border-black"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full btn-pill-black bg-[#0A0A0B] hover:bg-slate-800 text-white font-bold text-xs py-3 rounded-2xl shadow-md disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Şifre Güncelleniyor...' : 'Şifremi Yenile ve Giriş Yap'}
+                </button>
+
+                {!forgotEmailSent && (
+                  <a
+                    href={`https://wa.me/${cleanSupportWa}?text=${encodeURIComponent(
+                      `Merhaba, rvoba.com müşteri hesabım (${forgotIdentifier}) için şifre sıfırlama desteği rica ediyorum.`
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-2.5 px-4 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 font-bold text-xs flex items-center justify-center gap-1.5 transition"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>WhatsApp Destek Hattından Anında Şifre Yenile</span>
+                  </a>
+                )}
+
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForgotStep('request');
+                      setError(null);
+                      setSuccessMessage(null);
+                    }}
+                    className="text-[11px] font-semibold text-slate-500 hover:text-black underline"
+                  >
+                    Farklı bir e-posta / telefon gir
+                  </button>
+                </div>
+              </form>
+            )}
+
+            <div className="text-center pt-1">
               <button
                 type="button"
-                onClick={() => { setTab('login'); setError(null); }}
+                onClick={() => {
+                  setTab('login');
+                  setError(null);
+                  setSuccessMessage(null);
+                }}
                 className="text-xs font-bold text-slate-600 hover:text-black underline"
               >
                 Giriş Ekranına Geri Dön
@@ -559,7 +800,6 @@ export const CustomerAuthModal: React.FC<CustomerAuthModalProps> = ({
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
           <span>256-Bit SSL Şifreli Güvenli Müşteri Alanı</span>
         </div>
-
       </div>
     </div>
   );

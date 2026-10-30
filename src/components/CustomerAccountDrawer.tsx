@@ -1,27 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  X, 
-  User, 
-  Package, 
-  MapPin, 
-  Phone, 
-  Mail, 
-  LogOut, 
-  Plus, 
-  Trash2, 
-  CheckCircle2, 
-  Clock, 
-  Calendar, 
-  ArrowUpRight, 
-  ShoppingBag, 
-  ShieldCheck,
-  Building,
-  Edit2,
+import {
+  X,
+  Package,
+  MapPin,
+  LogOut,
+  Plus,
+  Trash2,
+  CheckCircle2,
+  Clock,
+  Calendar,
+  ShoppingBag,
   Save,
-  Truck
+  Truck,
+  Copy,
+  ExternalLink,
 } from 'lucide-react';
 import { CustomerUser, CustomerAddress, LeadRequest } from '../types';
 import { dbService } from '../services/dbService';
+import { getCargoTrackingUrl } from '../utils/cargoTracking';
 
 interface CustomerAccountDrawerProps {
   isOpen: boolean;
@@ -46,6 +42,7 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'orders' | 'addresses' | 'profile'>('orders');
   const [orderSubTab, setOrderSubTab] = useState<'active' | 'archived'>('active');
+  const [copiedTrackingId, setCopiedTrackingId] = useState<string | null>(null);
 
   // New Address state
   const [isAddingAddress, setIsAddingAddress] = useState(false);
@@ -88,10 +85,14 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
 
   // Filter user orders & leads by customerId or phone match and merge with live Supabase orders
   const userCleanPhone = user.phone.replace(/\D/g, '');
-  const localUserOrders = leads.filter(l => {
+  const localUserOrders = leads.filter((l) => {
     if (l.customerId === user.id) return true;
     const lCleanPhone = (l.phone || '').replace(/\D/g, '');
-    return lCleanPhone.length > 8 && userCleanPhone.length > 8 && lCleanPhone.endsWith(userCleanPhone.slice(-8));
+    return (
+      lCleanPhone.length > 8 &&
+      userCleanPhone.length > 8 &&
+      lCleanPhone.endsWith(userCleanPhone.slice(-8))
+    );
   });
 
   const userOrders = (() => {
@@ -102,6 +103,12 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   })();
+
+  const handleCopyTrackingCode = (orderId: string, code: string) => {
+    navigator.clipboard?.writeText(code);
+    setCopiedTrackingId(orderId);
+    setTimeout(() => setCopiedTrackingId(null), 2000);
+  };
 
   const handleAddAddress = (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,7 +136,7 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
   const handleDeleteAddress = (addrId: string) => {
     const updated: CustomerUser = {
       ...user,
-      addresses: user.addresses.filter(a => a.id !== addrId),
+      addresses: user.addresses.filter((a) => a.id !== addrId),
     };
     onUpdateUser(updated);
   };
@@ -208,14 +215,13 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
       {/* Backdrop */}
-      <div 
+      <div
         onClick={onClose}
-        className="absolute inset-0 bg-[#0A0A0B]/60 backdrop-blur-sm transition-opacity" 
+        className="absolute inset-0 bg-[#0A0A0B]/60 backdrop-blur-sm transition-opacity"
       />
 
       <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
         <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col font-sans">
-          
           {/* Header */}
           <div className="p-6 bg-[#0A0A0B] text-white">
             <div className="flex items-center justify-between pb-4 border-b border-white/10">
@@ -273,7 +279,6 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
 
           {/* Body */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            
             {/* TAB 1: SİPARİŞLERİM & TEKLİFLERİM */}
             {activeTab === 'orders' && (
               <div className="space-y-4">
@@ -329,13 +334,19 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
                         </button>
                       )}
                       <button
-                        onClick={() => { onClose(); onNavigateStore(); }}
+                        onClick={() => {
+                          onClose();
+                          onNavigateStore();
+                        }}
                         className="btn-pill-black text-xs py-2.5 font-bold"
                       >
                         Ürünlerimizi İncele
                       </button>
                       <button
-                        onClick={() => { onClose(); onNavigateConfigurator(); }}
+                        onClick={() => {
+                          onClose();
+                          onNavigateConfigurator();
+                        }}
                         className="btn-pill-outline text-xs py-2"
                       >
                         Tadilat Teklifi Hesapla
@@ -345,7 +356,11 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
                 ) : (
                   <div className="space-y-3">
                     {displayedOrders.map((ord) => {
-                      const isStore = ord.leadType === 'web_order' || ord.leadType === 'store_order' || ord.id.startsWith('store-order') || ord.id.startsWith('order-');
+                      const isStore =
+                        ord.leadType === 'web_order' ||
+                        ord.leadType === 'store_order' ||
+                        ord.id.startsWith('store-order') ||
+                        ord.id.startsWith('order-');
                       const isInspection = !isStore && !!ord.preferredDate;
                       const stepIdx = getStepIndex(ord.status);
                       const steps = isStore
@@ -356,9 +371,13 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
                         ord.adminNotes &&
                         !ord.adminNotes.startsWith('Ödeme Tercihi:') &&
                         !ord.adminNotes.startsWith('Ödeme: Sanal POS');
+                      const trackingUrl = getCargoTrackingUrl(ord.trackingCarrier, ord.trackingCode);
 
                       return (
-                        <div key={ord.id} className="p-4 rounded-2xl bg-[#F8F9FA] border border-[#E8EAED] space-y-3 text-xs">
+                        <div
+                          key={ord.id}
+                          className="p-4 rounded-2xl bg-[#F8F9FA] border border-[#E8EAED] space-y-3 text-xs"
+                        >
                           <div className="flex items-center justify-between gap-2 pb-2 border-b border-[#E8EAED]">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               {isStore ? (
@@ -369,7 +388,11 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
                                 <Package className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                               )}
                               <span className="font-bold text-black">
-                                {isStore ? 'Online Sipariş' : isInspection ? 'Lazer Keşif Randevusu' : 'Tadilat Teklifi'}
+                                {isStore
+                                  ? 'Online Sipariş'
+                                  : isInspection
+                                  ? 'Lazer Keşif Randevusu'
+                                  : 'Tadilat Teklifi'}
                               </span>
                               {ord.orderNumber && (
                                 <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-900">
@@ -408,6 +431,43 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
                             })}
                           </div>
 
+                          {/* Live Cargo Tracking Card */}
+                          {(ord.trackingCode || ord.trackingCarrier) && (
+                            <div className="p-3 rounded-xl bg-purple-50 border border-purple-200 text-[11px] text-purple-950 space-y-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-1.5 font-extrabold text-purple-900">
+                                  <Truck className="w-3.5 h-3.5 text-purple-700 shrink-0" />
+                                  <span>{ord.trackingCarrier || 'Kargo & Lojistik Sevkiyatı'}</span>
+                                </div>
+                                {ord.trackingCode && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopyTrackingCode(ord.id, ord.trackingCode!)}
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-purple-200 text-[10px] font-mono font-bold text-purple-900 hover:bg-purple-100 transition"
+                                    title="Takip Kodunu Kopyala"
+                                  >
+                                    <span>{ord.trackingCode}</span>
+                                    <Copy className="w-2.5 h-2.5" />
+                                    {copiedTrackingId === ord.id && (
+                                      <span className="text-emerald-700 font-sans">✓</span>
+                                    )}
+                                  </button>
+                                )}
+                              </div>
+                              {trackingUrl && (
+                                <a
+                                  href={trackingUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="w-full py-1.5 px-3 rounded-lg bg-purple-700 hover:bg-purple-800 text-white font-bold text-[11px] flex items-center justify-center gap-1.5 transition"
+                                >
+                                  <span>Kargom Nerede? (Canlı Takip)</span>
+                                  <ExternalLink className="w-3 h-3" />
+                                </a>
+                              )}
+                            </div>
+                          )}
+
                           {/* Tracking / Admin Note if provided */}
                           {hasTrackingNote && (
                             <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-950 flex items-start gap-2">
@@ -425,7 +485,9 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
                           <div className="text-[11px] text-slate-500 space-y-1">
                             <div className="flex justify-between">
                               <span>Tarih:</span>
-                              <span className="font-mono text-black">{new Date(ord.createdAt).toLocaleDateString('tr-TR')}</span>
+                              <span className="font-mono text-black">
+                                {new Date(ord.createdAt).toLocaleDateString('tr-TR')}
+                              </span>
                             </div>
                             {(ord.city || ord.district) && (
                               <div className="flex justify-between gap-2">
@@ -442,37 +504,51 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
                                   {ord.paymentMethod === 'bank_transfer'
                                     ? 'Banka Havalesi / EFT'
                                     : ord.paymentMethod === 'cash_on_delivery'
-                                      ? 'Kapıda / Ambar Ödeme'
-                                      : 'Kredi Kartı'}
+                                    ? 'Kapıda / Ambar Ödeme'
+                                    : 'Kredi Kartı (3D Secure)'}
                                 </span>
                               </div>
                             )}
                             {ord.preferredDate && (
                               <div className="flex justify-between text-purple-700 font-semibold">
                                 <span>Randevu:</span>
-                                <span>{ord.preferredDate} ({ord.timeSlot || 'Gün Boyu'})</span>
+                                <span>
+                                  {ord.preferredDate} ({ord.timeSlot || 'Gün Boyu'})
+                                </span>
                               </div>
                             )}
                             {isStore && ord.shippingCost !== undefined && (
                               <div className="flex justify-between">
                                 <span>Kargo & Sevkiyat:</span>
                                 <span className="font-mono font-semibold text-black">
-                                  {ord.shippingCost > 0 ? `${ord.shippingCost.toLocaleString('tr-TR')} ₺` : 'Ücretsiz'}
+                                  {ord.shippingCost > 0
+                                    ? `${ord.shippingCost.toLocaleString('tr-TR')} ₺`
+                                    : 'Ücretsiz'}
                                 </span>
                               </div>
                             )}
-                            {isStore && itemsSubtotal > 0 && (itemsSubtotal + (ord.shippingCost || 0) > ord.totalAmount) && (
-                              <div className="flex justify-between text-emerald-700 font-semibold">
-                                <span>Havale / EFT İndirimi:</span>
-                                <span className="font-mono">
-                                  -{(itemsSubtotal + (ord.shippingCost || 0) - ord.totalAmount).toLocaleString('tr-TR')} ₺
-                                </span>
-                              </div>
-                            )}
+                            {isStore &&
+                              itemsSubtotal > 0 &&
+                              itemsSubtotal + (ord.shippingCost || 0) > ord.totalAmount && (
+                                <div className="flex justify-between text-emerald-700 font-semibold">
+                                  <span>Havale / EFT İndirimi:</span>
+                                  <span className="font-mono">
+                                    -
+                                    {(
+                                      itemsSubtotal +
+                                      (ord.shippingCost || 0) -
+                                      ord.totalAmount
+                                    ).toLocaleString('tr-TR')}{' '}
+                                    ₺
+                                  </span>
+                                </div>
+                              )}
                             <div className="flex justify-between pt-1 border-t border-slate-200/70">
                               <span className="font-semibold text-slate-700">Toplam Tutar:</span>
                               <span className="font-mono font-bold text-black text-xs">
-                                {ord.totalAmount > 0 ? `${ord.totalAmount.toLocaleString('tr-TR')} ₺` : 'Keşif Sonrası'}
+                                {ord.totalAmount > 0
+                                  ? `${ord.totalAmount.toLocaleString('tr-TR')} ₺`
+                                  : 'Keşif Sonrası'}
                               </span>
                             </div>
                           </div>
@@ -481,9 +557,14 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
                           {ord.items && ord.items.length > 0 && (
                             <div className="pt-2 border-t border-[#E8EAED] space-y-1.5 text-[11px]">
                               {ord.items.map((it, idx) => (
-                                <div key={idx} className="flex items-center justify-between gap-2 text-slate-700">
+                                <div
+                                  key={idx}
+                                  className="flex items-center justify-between gap-2 text-slate-700"
+                                >
                                   <div className="flex items-center gap-1.5 flex-wrap">
-                                    <span>{it.quantity} {it.unit} • {it.name}</span>
+                                    <span>
+                                      {it.quantity} {it.unit} • {it.name}
+                                    </span>
                                     {it.variantName && (
                                       <span className="text-[9px] font-bold bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded-full border border-slate-200">
                                         {it.variantName}
@@ -495,7 +576,9 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
                                       </span>
                                     )}
                                   </div>
-                                  <span className="font-mono shrink-0">{it.total > 0 ? `${it.total.toLocaleString('tr-TR')} ₺` : ''}</span>
+                                  <span className="font-mono shrink-0">
+                                    {it.total > 0 ? `${it.total.toLocaleString('tr-TR')} ₺` : ''}
+                                  </span>
                                 </div>
                               ))}
                             </div>
@@ -529,11 +612,14 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
 
                 {/* Add Address Form */}
                 {isAddingAddress && (
-                  <form onSubmit={handleAddAddress} className="p-4 rounded-2xl bg-[#F8F9FA] border-2 border-dashed border-slate-300 space-y-3 text-xs animate-in fade-in">
+                  <form
+                    onSubmit={handleAddAddress}
+                    className="p-4 rounded-2xl bg-[#F8F9FA] border-2 border-dashed border-slate-300 space-y-3 text-xs animate-in fade-in"
+                  >
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-black">Yeni Adres Bilgisi</span>
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={() => setIsAddingAddress(false)}
                         className="text-slate-400 hover:text-black"
                       >
@@ -542,7 +628,9 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 mb-1">Adres Başlığı (Örn: Evim, Yazlık, Ofis)</label>
+                      <label className="block text-[10px] font-bold text-slate-500 mb-1">
+                        Adres Başlığı (Örn: Evim, Yazlık, Ofis)
+                      </label>
                       <input
                         type="text"
                         value={newAddrTitle}
@@ -553,7 +641,9 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
 
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-500 mb-1">Şehir</label>
+                        <label className="block text-[10px] font-bold text-slate-500 mb-1">
+                          Şehir
+                        </label>
                         <input
                           type="text"
                           value={newAddrCity}
@@ -562,7 +652,9 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-500 mb-1">İlçe</label>
+                        <label className="block text-[10px] font-bold text-slate-500 mb-1">
+                          İlçe
+                        </label>
                         <input
                           type="text"
                           value={newAddrDistrict}
@@ -573,7 +665,9 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 mb-1">Açık Adres (Cadde, Sokak, No, Daire)</label>
+                      <label className="block text-[10px] font-bold text-slate-500 mb-1">
+                        Açık Adres (Cadde, Sokak, No, Daire)
+                      </label>
                       <textarea
                         rows={2}
                         required
@@ -605,19 +699,26 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
                 {/* Address Cards */}
                 {user.addresses.length === 0 && !isAddingAddress ? (
                   <div className="p-6 text-center bg-[#F8F9FA] rounded-2xl border text-xs text-slate-500">
-                    <span>Kayıtlı teslimat adresiniz bulunmuyor. Yukarıdaki "Yeni Adres" butonundan ekleyebilirsiniz.</span>
+                    <span>
+                      Kayıtlı teslimat adresiniz bulunmuyor. Yukarıdaki "Yeni Adres" butonundan ekleyebilirsiniz.
+                    </span>
                   </div>
                 ) : (
                   <div className="space-y-2.5">
                     {user.addresses.map((addr) => (
-                      <div key={addr.id} className="p-3.5 rounded-2xl bg-[#F8F9FA] border border-[#E8EAED] flex items-start justify-between gap-3 text-xs">
+                      <div
+                        key={addr.id}
+                        className="p-3.5 rounded-2xl bg-[#F8F9FA] border border-[#E8EAED] flex items-start justify-between gap-3 text-xs"
+                      >
                         <div className="flex items-start gap-2.5">
                           <MapPin className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                           <div>
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-black">{addr.title}</span>
                               {addr.isDefault && (
-                                <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">Varsayılan</span>
+                                <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">
+                                  Varsayılan
+                                </span>
                               )}
                             </div>
                             <p className="text-slate-600 text-[11px] mt-0.5 leading-relaxed">
@@ -659,7 +760,9 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
                 )}
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Ad Soyad</label>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                    Ad Soyad
+                  </label>
                   <input
                     type="text"
                     value={editFullName}
@@ -669,7 +772,9 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Telefon Numarası</label>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                    Telefon Numarası
+                  </label>
                   <input
                     type="tel"
                     value={editPhone}
@@ -680,7 +785,9 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Varsayılan Şehir</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      Varsayılan Şehir
+                    </label>
                     <input
                       type="text"
                       value={editCity}
@@ -689,7 +796,9 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Varsayılan İlçe</label>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      Varsayılan İlçe
+                    </label>
                     <input
                       type="text"
                       value={editDistrict}
@@ -710,14 +819,11 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
                 </div>
               </form>
             )}
-
           </div>
 
           {/* Footer Logout */}
           <div className="p-4 border-t border-[#E8EAED] bg-[#FBFBFC] flex items-center justify-between">
-            <span className="text-[11px] text-slate-400">
-              RVOBA® Müşteri Hesabı
-            </span>
+            <span className="text-[11px] text-slate-400">RVOBA® Müşteri Hesabı</span>
             <button
               onClick={() => {
                 onLogout();
@@ -729,7 +835,6 @@ export const CustomerAccountDrawer: React.FC<CustomerAccountDrawerProps> = ({
               <span>Çıkış Yap</span>
             </button>
           </div>
-
         </div>
       </div>
     </div>

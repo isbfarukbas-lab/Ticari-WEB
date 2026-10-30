@@ -3,18 +3,17 @@ import {
   X,
   Search,
   Package,
-  Clock,
-  CheckCircle2,
   Truck,
-  Calendar,
   Phone,
   MessageCircle,
   AlertCircle,
   Wrench,
-  FileText,
+  Copy,
+  ExternalLink,
 } from 'lucide-react';
 import { LeadRequest } from '../types';
 import { dbService } from '../services/dbService';
+import { getCargoTrackingUrl } from '../utils/cargoTracking';
 
 interface CustomerOrderLookupModalProps {
   isOpen: boolean;
@@ -35,6 +34,7 @@ export const CustomerOrderLookupModal: React.FC<CustomerOrderLookupModalProps> =
   const [searched, setSearched] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [remoteResults, setRemoteResults] = useState<LeadRequest[]>([]);
+  const [copiedTrackingId, setCopiedTrackingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -84,6 +84,12 @@ export const CustomerOrderLookupModal: React.FC<CustomerOrderLookupModalProps> =
       setIsSearching(false);
       setSearched(true);
     }
+  };
+
+  const handleCopyTrackingCode = (leadId: string, code: string) => {
+    navigator.clipboard?.writeText(code);
+    setCopiedTrackingId(leadId);
+    setTimeout(() => setCopiedTrackingId(null), 2000);
   };
 
   const getStepIndex = (status?: LeadRequest['status'] | string) => {
@@ -164,7 +170,9 @@ export const CustomerOrderLookupModal: React.FC<CustomerOrderLookupModalProps> =
               </p>
               <div className="pt-2 flex items-center justify-center gap-2">
                 <a
-                  href={`https://wa.me/${phoneNumber}?text=${encodeURIComponent(`Merhaba, ${query} bilgisiyle verdiğim siparişin/talebin durumunu öğrenmek istiyorum.`)}`}
+                  href={`https://wa.me/${phoneNumber}?text=${encodeURIComponent(
+                    `Merhaba, ${query} bilgisiyle verdiğim siparişin/talebin durumunu öğrenmek istiyorum.`
+                  )}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition"
@@ -204,6 +212,7 @@ export const CustomerOrderLookupModal: React.FC<CustomerOrderLookupModalProps> =
                   !lead.adminNotes.startsWith('Ödeme Tercihi:') &&
                   !lead.adminNotes.startsWith('Ödeme: Sanal POS');
                 const itemsSubtotal = (lead.items || []).reduce((s, it) => s + (it.total || 0), 0);
+                const trackingUrl = getCargoTrackingUrl(lead.trackingCarrier, lead.trackingCode);
 
                 return (
                   <div
@@ -264,6 +273,45 @@ export const CustomerOrderLookupModal: React.FC<CustomerOrderLookupModalProps> =
                       })}
                     </div>
 
+                    {/* Live Cargo Tracking Card */}
+                    {(lead.trackingCode || lead.trackingCarrier) && (
+                      <div className="p-3.5 rounded-xl bg-purple-50 border border-purple-200 text-xs text-purple-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5 font-extrabold text-purple-900">
+                            <Truck className="w-4 h-4 text-purple-700 shrink-0" />
+                            <span>{lead.trackingCarrier || 'Kargo & Lojistik Sevkiyatı'}</span>
+                          </div>
+                          {lead.trackingCode && (
+                            <div className="flex items-center gap-2 text-[11px]">
+                              <span className="text-purple-700">Takip Kodu:</span>
+                              <button
+                                type="button"
+                                onClick={() => handleCopyTrackingCode(lead.id, lead.trackingCode!)}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white border border-purple-200 font-mono font-bold text-purple-900 hover:bg-purple-100 transition"
+                              >
+                                <span>{lead.trackingCode}</span>
+                                <Copy className="w-3 h-3" />
+                                {copiedTrackingId === lead.id && (
+                                  <span className="text-emerald-700 font-sans text-[10px]">Kopyalandı</span>
+                                )}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        {trackingUrl && (
+                          <a
+                            href={trackingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs transition shrink-0"
+                          >
+                            <span>Kargom Nerede? (Canlı Takip)</span>
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                      </div>
+                    )}
+
                     {/* Admin Note / Tracking Info */}
                     {hasTrackingNote && (
                       <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 flex items-start gap-2">
@@ -303,7 +351,9 @@ export const CustomerOrderLookupModal: React.FC<CustomerOrderLookupModalProps> =
                               )}
                             </div>
                             <span className="font-mono font-bold text-[#0A0A0B]">
-                              {item.total > 0 ? `${item.total.toLocaleString('tr-TR')} ₺` : 'Keşifte Netleşecek'}
+                              {item.total > 0
+                                ? `${item.total.toLocaleString('tr-TR')} ₺`
+                                : 'Keşifte Netleşecek'}
                             </span>
                           </div>
                         ))}
@@ -329,18 +379,27 @@ export const CustomerOrderLookupModal: React.FC<CustomerOrderLookupModalProps> =
                           <div className="flex justify-between">
                             <span>Kargo & Sevkiyat:</span>
                             <span className="font-mono font-semibold text-[#0A0A0B]">
-                              {lead.shippingCost > 0 ? `${lead.shippingCost.toLocaleString('tr-TR')} ₺` : 'Ücretsiz'}
+                              {lead.shippingCost > 0
+                                ? `${lead.shippingCost.toLocaleString('tr-TR')} ₺`
+                                : 'Ücretsiz'}
                             </span>
                           </div>
                         )}
-                        {itemsSubtotal > 0 && itemsSubtotal + (lead.shippingCost || 0) > lead.totalAmount && (
-                          <div className="flex justify-between text-emerald-700 font-semibold">
-                            <span>Havale / EFT İndirimi:</span>
-                            <span className="font-mono">
-                              -{(itemsSubtotal + (lead.shippingCost || 0) - lead.totalAmount).toLocaleString('tr-TR')} ₺
-                            </span>
-                          </div>
-                        )}
+                        {itemsSubtotal > 0 &&
+                          itemsSubtotal + (lead.shippingCost || 0) > lead.totalAmount && (
+                            <div className="flex justify-between text-emerald-700 font-semibold">
+                              <span>Havale / EFT İndirimi:</span>
+                              <span className="font-mono">
+                                -
+                                {(
+                                  itemsSubtotal +
+                                  (lead.shippingCost || 0) -
+                                  lead.totalAmount
+                                ).toLocaleString('tr-TR')}{' '}
+                                ₺
+                              </span>
+                            </div>
+                          )}
                       </div>
                     )}
 
@@ -351,7 +410,11 @@ export const CustomerOrderLookupModal: React.FC<CustomerOrderLookupModalProps> =
                       </span>
                       <a
                         href={`https://wa.me/${phoneNumber}?text=${encodeURIComponent(
-                          `Merhaba, ${lead.orderNumber ? `#${lead.orderNumber} numaralı siparişim` : `${lead.fullName} adına kaydım`} hakkında bilgi almak istiyorum.`
+                          `Merhaba, ${
+                            lead.orderNumber
+                              ? `#${lead.orderNumber} numaralı siparişim`
+                              : `${lead.fullName} adına kaydım`
+                          } hakkında bilgi almak istiyorum.`
                         )}`}
                         target="_blank"
                         rel="noopener noreferrer"

@@ -23,6 +23,36 @@ import { CartItem, Product, ProductVariant, LeadRequest, CustomRequestItem, Cate
 import { ShoppingBag, ArrowUpRight, ArrowLeft, Hammer, Calendar } from 'lucide-react';
 import { syncToCloudAndTabs, subscribeToLiveSync } from './utils/cloudSync';
 import { dbService, AdminSecrets } from './services/dbService';
+import { migrateProductImagesToCdn, isBase64DataUrl } from './utils/imageOptimizer';
+import {
+  updatePageSeo,
+  initAnalytics,
+  trackEcommerceEvent,
+  extractProductIdFromLocation,
+} from './utils/seo';
+
+const resolveViewFromLocation = (): 'landing' | 'configurator' | 'store' | 'admin' => {
+  const hash = window.location.hash;
+  const pathname = window.location.pathname.replace(/\/+$/, '') || '/';
+  if (hash === '#admin' || pathname === '/admin' || pathname.endsWith('/admin')) return 'admin';
+  if (
+    hash === '#hesapla' ||
+    hash === '#teklif' ||
+    pathname === '/teklif' ||
+    pathname === '/hesapla'
+  ) {
+    return 'configurator';
+  }
+  if (
+    hash === '#tanitim' ||
+    hash === '#hakkimizda' ||
+    pathname === '/tanitim' ||
+    pathname === '/hakkimizda'
+  ) {
+    return 'landing';
+  }
+  return 'store';
+};
 
 const normalizeLeadRecord = (l: LeadRequest): LeadRequest => {
   const rawStatus = l.status as string | undefined;
@@ -60,6 +90,11 @@ const mergePublicSettings = (prev: SiteSettings, incoming?: Partial<SiteSettings
     adminPassword: incoming.adminPassword ?? prev.adminPassword,
     telegramConfig: incoming.telegramConfig ?? prev.telegramConfig,
     notificationWebhookUrl: incoming.notificationWebhookUrl ?? prev.notificationWebhookUrl,
+    resendConfig: incoming.resendConfig ?? prev.resendConfig,
+    posConfig: incoming.posConfig ?? prev.posConfig,
+    analyticsConfig: incoming.analyticsConfig
+      ? { ...(prev.analyticsConfig || {}), ...incoming.analyticsConfig }
+      : prev.analyticsConfig,
     paymentMethods: paymentMethods as SiteSettings['paymentMethods'],
     content: mergedContent as SiteSettings['content'],
   };
@@ -67,31 +102,20 @@ const mergePublicSettings = (prev: SiteSettings, incoming?: Partial<SiteSettings
 
 export const App: React.FC = () => {
   // Navigation view: 'store' (Satış Vitrini & E-Ticaret) | 'configurator' (Komple Tadilat Teklifi) | 'landing' (Kurumsal Tanıtım) | 'admin' (Yönetici)
-  const [currentView, setCurrentView] = useState<'landing' | 'configurator' | 'store' | 'admin'>(() => {
-    if (window.location.hash === '#admin' || window.location.pathname.endsWith('/admin')) return 'admin';
-    if (window.location.hash === '#hesapla' || window.location.hash === '#teklif') return 'configurator';
-    if (window.location.hash === '#tanitim') return 'landing';
-    return 'store';
-  });
+  const [currentView, setCurrentView] = useState<'landing' | 'configurator' | 'store' | 'admin'>(
+    resolveViewFromLocation
+  );
 
-  // Synchronize hash changes
+  // Synchronize clean URL paths & backward-compatible hash changes
   useEffect(() => {
-    const handleHash = () => {
-      if (window.location.hash === '#admin' || window.location.pathname.endsWith('/admin')) {
-        setCurrentView('admin');
-      } else if (window.location.hash === '#hesapla' || window.location.hash === '#teklif') {
-        setCurrentView('configurator');
-      } else if (window.location.hash === '#tanitim') {
-        setCurrentView('landing');
-      } else {
-        setCurrentView('store');
-      }
+    const handleLocationChange = () => {
+      setCurrentView(resolveViewFromLocation());
     };
-    window.addEventListener('hashchange', handleHash);
-    window.addEventListener('popstate', handleHash);
+    window.addEventListener('hashchange', handleLocationChange);
+    window.addEventListener('popstate', handleLocationChange);
     return () => {
-      window.removeEventListener('hashchange', handleHash);
-      window.removeEventListener('popstate', handleHash);
+      window.removeEventListener('hashchange', handleLocationChange);
+      window.removeEventListener('popstate', handleLocationChange);
     };
   }, []);
 
@@ -242,6 +266,20 @@ export const App: React.FC = () => {
     }
   }, [settings]);
 
+  // Initialize Google Analytics 4 (gtag.js) & Meta Pixel when configured in Admin Settings
+  useEffect(() => {
+    initAnalytics(settings.analyticsConfig);
+  }, [settings.analyticsConfig]);
+
+  // Dynamic SEO meta tags, Canonical URL & Structured JSON-LD per view
+  useEffect(() => {
+    if (currentView === 'store' && extractProductIdFromLocation()) {
+      // CustomerStore manages product-specific SEO while a /urun/... preview is open
+      return;
+    }
+    updatePageSeo({ view: currentView, settings });
+  }, [currentView, settings]);
+
   // Customer room & sqM state
   const [activeRoom, setActiveRoom] = useState<string>('2+1 Komple Ev');
   const [defaultSqM, setDefaultSqM] = useState<number>(85);
@@ -337,6 +375,7 @@ export const App: React.FC = () => {
   };
 
   const handleCustomerLogout = () => {
+    dbService.clearCustomerSessionToken();
     setCurrentUser(null);
     setIsAccountDrawerOpen(false);
   };
@@ -361,6 +400,7 @@ export const App: React.FC = () => {
       return next;
     });
     if (currentUser && currentUser.id === customerId) {
+      dbService.clearCustomerSessionToken();
       setCurrentUser(null);
       setIsAccountDrawerOpen(false);
     }
@@ -376,6 +416,12 @@ export const App: React.FC = () => {
       telegramConfig: secrets.telegramConfig
         ? { ...(prev.telegramConfig || {}), ...secrets.telegramConfig }
         : prev.telegramConfig,
+      resendConfig: secrets.resendConfig
+        ? { ...(prev.resendConfig || {}), ...secrets.resendConfig }
+        : prev.resendConfig,
+      posConfig: secrets.posConfig
+        ? { ...(prev.posConfig || {}), ...secrets.posConfig }
+        : prev.posConfig,
     }));
   }, []);
 
@@ -472,6 +518,28 @@ export const App: React.FC = () => {
     purchaseType?: 'with_installation' | 'material_only',
     selectedVariant?: ProductVariant
   ) => {
+    const unitPrice =
+      (purchaseType === 'material_only'
+        ? product.materialPrice
+        : product.materialPrice + product.workmanshipPrice) +
+      (selectedVariant?.priceDifference || 0);
+    trackEcommerceEvent('add_to_cart', {
+      currency: 'TRY',
+      value: unitPrice * quantity,
+      items: [
+        {
+          item_id: product.id,
+          item_name: product.name,
+          item_brand: product.brand,
+          price: unitPrice,
+          quantity,
+        },
+      ],
+    });
+
+    const maxStock =
+      typeof product.stockCount === 'number' ? Math.max(0, product.stockCount) : undefined;
+
     setCart((prev) => {
       const idx = prev.findIndex(
         (c) =>
@@ -483,16 +551,21 @@ export const App: React.FC = () => {
       );
       if (idx > -1) {
         const copy = [...prev];
-        copy[idx].quantity += quantity;
+        const nextQty = copy[idx].quantity + quantity;
+        copy[idx].quantity =
+          maxStock !== undefined ? Math.min(maxStock, Math.max(1, nextQty)) : nextQty;
         return copy;
       }
+      const clampedQty =
+        maxStock !== undefined ? Math.min(maxStock, Math.max(1, quantity)) : quantity;
+      if (clampedQty <= 0) return prev;
       return [
         ...prev,
         {
           id: `cart-${Date.now()}-${Math.random()}`,
           productId: product.id,
           product,
-          quantity,
+          quantity: clampedQty,
           roomType,
           purchaseType,
           selectedVariant,
@@ -537,7 +610,18 @@ export const App: React.FC = () => {
   const handleUpdateQuantity = (id: string, delta: number) => {
     setCart((prev) =>
       prev
-        .map((c) => (c.id === id ? { ...c, quantity: Math.max(1, c.quantity + delta) } : c))
+        .map((c) => {
+          if (c.id !== id) return c;
+          const maxStock =
+            typeof c.product?.stockCount === 'number'
+              ? Math.max(1, c.product.stockCount)
+              : undefined;
+          const rawNext = Math.max(1, c.quantity + delta);
+          return {
+            ...c,
+            quantity: maxStock !== undefined ? Math.min(maxStock, rawNext) : rawNext,
+          };
+        })
         .filter((c) => c.quantity > 0)
     );
   };
@@ -739,6 +823,53 @@ export const App: React.FC = () => {
     return () => window.clearInterval(interval);
   }, [isAdminAuthenticated, currentView, refreshAdminDataFromSupabase]);
 
+  // Automatically migrate any legacy Base64 product photos to Supabase Storage CDN (.webp)
+  const migratedCdnProductIdsRef = useRef<Set<string>>(new Set());
+  const cdnMigrationRunningRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    if (!isAdminAuthenticated || cdnMigrationRunningRef.current || products.length === 0) return;
+
+    const candidates = products.filter(
+      (p) =>
+        !migratedCdnProductIdsRef.current.has(p.id) &&
+        (isBase64DataUrl(p.image) ||
+          (Array.isArray(p.images) && p.images.some((img) => isBase64DataUrl(img))) ||
+          isBase64DataUrl(p.roomImage) ||
+          (Array.isArray(p.variants) && p.variants.some((v) => isBase64DataUrl(v.image))))
+    );
+
+    if (candidates.length === 0) return;
+
+    cdnMigrationRunningRef.current = true;
+    (async () => {
+      try {
+        const activeKey = getActiveAdminKey();
+        for (const candidate of candidates) {
+          migratedCdnProductIdsRef.current.add(candidate.id);
+          const { product: migrated, changed } = await migrateProductImagesToCdn(candidate);
+          if (changed) {
+            setProducts((prev) => {
+              const next = prev.map((item) => (item.id === migrated.id ? migrated : item));
+              syncToCloudAndTabs({ products: next });
+              return next;
+            });
+            setCart((prev) =>
+              prev.map((c) =>
+                !c.isCustom && c.productId === migrated.id ? { ...c, product: migrated } : c
+              )
+            );
+            await dbService.upsertProduct(activeKey, migrated);
+          }
+        }
+      } catch (err) {
+        console.warn('Automatic Base64 -> CDN WebP migration warning:', err);
+      } finally {
+        cdnMigrationRunningRef.current = false;
+      }
+    })();
+  }, [isAdminAuthenticated, products, getActiveAdminKey]);
+
   // Live Cross-Tab Synchronization (same browser instant tab sync)
   useEffect(() => {
     const unsubscribe = subscribeToLiveSync((payload) => {
@@ -823,18 +954,67 @@ export const App: React.FC = () => {
     dbService.replaceAllProducts(getActiveAdminKey(), INITIAL_PRODUCTS).catch((err) => console.warn(err));
   };
 
-  const handleSaveLead = (newLead: LeadRequest) => {
-    const enrichedLead: LeadRequest = {
+  const handleSaveLead = async (
+    newLead: LeadRequest,
+    opts?: { alreadySavedInCloud?: boolean }
+  ): Promise<{ ok: boolean; lead: LeadRequest; error?: string }> => {
+    const enrichedLead: LeadRequest = normalizeLeadRecord({
       ...newLead,
       customerId: newLead.customerId || (currentUser ? currentUser.id : undefined),
+    });
+
+    const firePurchaseAnalytics = (leadRecord: LeadRequest) => {
+      if (
+        leadRecord.leadType === 'web_order' ||
+        leadRecord.leadType === 'store_order' ||
+        leadRecord.totalAmount > 0
+      ) {
+        trackEcommerceEvent('purchase', {
+          currency: 'TRY',
+          transaction_id: leadRecord.orderNumber || leadRecord.id,
+          value: leadRecord.totalAmount || 0,
+          items: (leadRecord.items || []).map((it, idx) => ({
+            item_id: it.productId || `item-${idx}`,
+            item_name: it.name,
+            item_brand: it.brand,
+            price: it.quantity > 0 ? Math.round(it.total / it.quantity) : it.total,
+            quantity: it.quantity,
+          })),
+        });
+      }
     };
+
+    if (opts?.alreadySavedInCloud) {
+      setLeads((prev) => {
+        const next = [enrichedLead, ...prev.filter((l) => l.id !== enrichedLead.id)];
+        syncToCloudAndTabs({ leads: next });
+        return next;
+      });
+      firePurchaseAnalytics(enrichedLead);
+      refreshCatalogFromSupabase();
+      return { ok: true, lead: enrichedLead };
+    }
+
+    // Persist order to Supabase PostgreSQL (server verifies prices & deducts stock atomically)
+    const res = await dbService.saveLead(enrichedLead, settings);
+    if (!res.ok) {
+      return res;
+    }
+
+    const confirmedLead: LeadRequest = normalizeLeadRecord({
+      ...res.lead,
+      customerId: res.lead.customerId || enrichedLead.customerId,
+    });
+
     setLeads((prev) => {
-      const next = [enrichedLead, ...prev.filter((l) => l.id !== enrichedLead.id)];
+      const next = [confirmedLead, ...prev.filter((l) => l.id !== confirmedLead.id)];
       syncToCloudAndTabs({ leads: next });
       return next;
     });
-    // Persist order to Supabase PostgreSQL & trigger server-side notifications
-    dbService.saveLead(enrichedLead, settings).catch((err) => console.warn(err));
+
+    firePurchaseAnalytics(confirmedLead);
+    refreshCatalogFromSupabase();
+    return { ok: true, lead: confirmedLead };
   };
 
   const handleUpdateSettings = (newSettings: SiteSettings) => {
@@ -851,6 +1031,54 @@ export const App: React.FC = () => {
       return next;
     });
     dbService.adminUpdateLeadStatus(getActiveAdminKey(), leadId, status, adminNotes).catch((err) => console.warn(err));
+  };
+
+  const handleUpdateLeadTracking = (
+    leadId: string,
+    status: LeadRequest['status'],
+    adminNotes?: string,
+    trackingCarrier?: string,
+    trackingCode?: string
+  ) => {
+    setLeads((prev) => {
+      const next = prev.map((l) =>
+        l.id === leadId
+          ? {
+              ...l,
+              status,
+              adminNotes: adminNotes !== undefined ? adminNotes : l.adminNotes,
+              trackingCarrier:
+                trackingCarrier !== undefined ? trackingCarrier : l.trackingCarrier,
+              trackingCode: trackingCode !== undefined ? trackingCode : l.trackingCode,
+            }
+          : l
+      );
+      syncToCloudAndTabs({ leads: next });
+      return next;
+    });
+    dbService
+      .adminUpdateLeadTracking(
+        getActiveAdminKey(),
+        leadId,
+        status,
+        adminNotes,
+        trackingCarrier,
+        trackingCode
+      )
+      .then((updated) => {
+        if (updated) {
+          const normalized = normalizeLeadRecord(updated);
+          setLeads((prev) => prev.map((l) => (l.id === leadId ? normalized : l)));
+        }
+      })
+      .catch((err) => console.warn(err));
+  };
+
+  const handleResetCustomerPassword = async (
+    customerId: string,
+    newPasswordPlain: string
+  ): Promise<boolean> => {
+    return dbService.adminResetCustomerPassword(getActiveAdminKey(), customerId, newPasswordPlain);
   };
 
   const handleDeleteLead = (leadId: string) => {
@@ -890,27 +1118,27 @@ export const App: React.FC = () => {
     syncToCloudAndTabs(data);
   };
 
-  // Navigations
+  // Navigations (clean SEO History API URLs with full backward-compatible hash support)
   const navigateToLanding = () => {
-    window.location.hash = '#tanitim';
+    window.history.pushState({}, '', '/tanitim');
     setCurrentView('landing');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const navigateToConfigurator = () => {
-    window.location.hash = '#teklif';
+    window.history.pushState({}, '', '/teklif');
     setCurrentView('configurator');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const navigateToAdmin = () => {
-    window.location.hash = '#admin';
+    window.history.pushState({}, '', '/admin');
     setCurrentView('admin');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const navigateToStore = () => {
-    window.location.hash = '';
+    window.history.pushState({}, '', '/');
     setCurrentView('store');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -973,6 +1201,7 @@ export const App: React.FC = () => {
         settings={settings}
         customers={allUsers}
         onDeleteCustomer={handleDeleteCustomer}
+        onResetCustomerPassword={handleResetCustomerPassword}
         onUpdateProduct={handleUpdateProduct}
         onAddProduct={handleAddProduct}
         onDeleteProduct={handleDeleteProduct}
@@ -981,6 +1210,7 @@ export const App: React.FC = () => {
         onResetDefaults={handleResetDefaults}
         onUpdateSettings={handleUpdateSettings}
         onUpdateLeadStatus={handleUpdateLeadStatus}
+        onUpdateLeadTracking={handleUpdateLeadTracking}
         onDeleteLead={handleDeleteLead}
         onNavigateCustomer={navigateToStore}
         onLogout={handleAdminLogout}
@@ -1205,9 +1435,12 @@ export const App: React.FC = () => {
         onClose={() => setIsCheckoutOpen(false)}
         cart={cart}
         currentUser={currentUser}
-        onOrderCompleted={(order) => {
-          handleSaveLead(order);
-          handleClearCart();
+        onOrderCompleted={async (order, opts) => {
+          const res = await handleSaveLead(order, opts);
+          if (res.ok) {
+            handleClearCart();
+          }
+          return res;
         }}
         phoneNumber={settings.phoneNumber}
         supportPhone={settings.supportPhone}
@@ -1269,6 +1502,7 @@ export const App: React.FC = () => {
         onRegisterUser={handleRegisterUser}
         serviceAreas={settings.serviceAreas}
         initialTab={authInitialTab}
+        phoneNumber={settings.phoneNumber}
       />
 
       {/* Customer Account & Orders Drawer (Hesabım & Siparişlerim) */}

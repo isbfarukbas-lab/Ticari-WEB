@@ -36,7 +36,7 @@ export interface Product {
   brand: string;             // örn: "Filli Boya", "Marshall", "Kütahya Seramik", "Yıldız Parke"
   name: string;              // örn: "Momento Silan — Aydan Rengi"
   code: string;              // örn: "FL-AYD-201"
-  image: string;             // Gerçek kartela / numune / ürün fotoğrafı (URL veya Base64)
+  image: string;             // Gerçek kartela / numune / ürün fotoğrafı (CDN WebP URL veya Base64)
   images?: string[];         // Çoklu ürün fotoğraf galerisi (kapak, doku, açı ve mekan fotoğrafları)
   roomImage?: string;        // Uygulanmış gerçek mekan fotoğrafı (opsiyonel)
   description: string;
@@ -47,6 +47,7 @@ export interface Product {
   isActive?: boolean;
   isStoreProduct?: boolean;  // Doğrudan mağazada tekil satışa açık ürün
   inStock?: boolean;         // Stok durumu
+  stockCount?: number;       // Opsiyonel net stok adedi (siparişte otomatik düşer, 0 olunca stokta yok olur)
   specs?: string[];          // Teknik / malzeme özellikleri
   packageInfo?: string;      // Kapsam / paket bilgisi (örn: "1 Paket = 1.83 m²", "12 Çerçeve Hazır Set")
   variants?: ProductVariant[];
@@ -58,7 +59,7 @@ export interface CustomRequestItem {
   title: string;
   description: string;
   roomType: string;
-  photoDataUrl?: string;     // Müşterinin cihazından yüklediği fotoğraf (Pinterest görseli, hasarlı duvar vb.)
+  photoDataUrl?: string;     // Müşterinin cihazından yüklediği fotoğraf (CDN WebP URL)
 }
 
 export interface CartItem {
@@ -104,6 +105,8 @@ export interface LeadRequest {
   savingsAmount?: number;
   status?: 'bekliyor' | 'arandi' | 'kesif_verildi' | 'sozlesme_imzalandi';
   adminNotes?: string;
+  trackingCarrier?: string;  // Kargo / Lojistik firması (örn: "Yurtiçi Kargo", "Aras Kargo")
+  trackingCode?: string;     // Kargo takip numarası
   paymentSummary?: string;
   isCallback?: boolean;
   leadType?: 'kesif' | 'whatsapp' | 'callback' | 'store_order' | 'web_order';
@@ -112,6 +115,7 @@ export interface LeadRequest {
   shippingCost?: number;
   customerId?: string;
   items: { 
+    productId?: string;
     name: string; 
     brand: string; 
     quantity: number; 
@@ -212,6 +216,25 @@ export interface CompanyLegalSettings {
   companyEmail: string;
 }
 
+export interface ResendEmailSettings {
+  apiKey?: string;
+  fromEmail?: string;
+}
+
+export interface VirtualPosSettings {
+  provider?: 'paytr' | 'iyzico';
+  merchantId?: string;
+  merchantKey?: string;
+  merchantSalt?: string;
+  testMode?: boolean;
+}
+
+export interface AnalyticsSeoSettings {
+  ga4MeasurementId?: string;       // örn: "G-XXXXXXXXXX"
+  metaPixelId?: string;            // örn: "123456789012345"
+  googleSiteVerification?: string; // Google Search Console doğrulama kodu
+}
+
 export interface SiteSettings {
   phoneNumber: string;       // WhatsApp yönlendirme numarası
   supportPhone: string;      // Sitede gösterilen destek hattı
@@ -244,6 +267,9 @@ export interface SiteSettings {
     chatId?: string;             // Yönetici Telegram Chat ID
     enabled?: boolean;
   };
+  resendConfig?: ResendEmailSettings;      // Otomatik E-Posta (Resend API - gizli kasada saklanır)
+  posConfig?: VirtualPosSettings;          // PayTR 3D Secure Sanal POS (gizli kasada saklanır)
+  analyticsConfig?: AnalyticsSeoSettings;  // GA4, Meta Pixel ve Search Console SEO ayarları
 }
 
 export interface CustomerAddress {

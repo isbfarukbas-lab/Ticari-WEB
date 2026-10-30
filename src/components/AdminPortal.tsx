@@ -43,7 +43,14 @@ import {
   Star,
   Calculator,
   Bell,
-  Smartphone
+  Smartphone,
+  Truck,
+  Mail,
+  KeyRound,
+  Copy,
+  ExternalLink,
+  BarChart3,
+  MessageCircle
 } from 'lucide-react';
 import { 
   CategoryKey, 
@@ -66,6 +73,9 @@ import {
   syncToCloudAndTabs,
 } from '../utils/cloudSync';
 import { dbService } from '../services/dbService';
+import { SUPABASE_URL } from '../services/supabaseClient';
+import { uploadOptimizedImage } from '../utils/imageOptimizer';
+import { CARGO_CARRIERS, buildWhatsAppOrderStatusUrl } from '../utils/cargoTracking';
 
 interface AdminPortalProps {
   categories: CategoryInfo[];
@@ -82,6 +92,14 @@ interface AdminPortalProps {
   onResetDefaults: () => void;
   onUpdateSettings: (settings: SiteSettings) => void;
   onUpdateLeadStatus: (leadId: string, status: LeadRequest['status'], adminNotes?: string) => void;
+  onUpdateLeadTracking?: (
+    leadId: string,
+    status: LeadRequest['status'],
+    adminNotes?: string,
+    trackingCarrier?: string,
+    trackingCode?: string
+  ) => void;
+  onResetCustomerPassword?: (customerId: string, newPasswordPlain: string) => Promise<boolean>;
   onDeleteLead: (leadId: string) => void;
   onNavigateCustomer: () => void;
   onLogout?: () => void;
@@ -121,6 +139,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   onResetDefaults,
   onUpdateSettings,
   onUpdateLeadStatus,
+  onUpdateLeadTracking,
+  onResetCustomerPassword,
   onDeleteLead,
   onNavigateCustomer,
   onLogout,
@@ -202,9 +222,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [newMarketPrice, setNewMarketPrice] = useState<number>(0);
   const [newDescription, setNewDescription] = useState('');
   const [newIsStoreProduct, setNewIsStoreProduct] = useState(true);
+  const [newStockCount, setNewStockCount] = useState<string>('');
   const [newUnit, setNewUnit] = useState<Product['unit']>('m²');
   const [newPackageInfo, setNewPackageInfo] = useState('');
   const [newSpecs, setNewSpecs] = useState('');
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const multiFileInputRef = useRef<HTMLInputElement>(null);
@@ -302,6 +324,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [cloudEndpoint, setCloudEndpoint] = useState(() => settings.cloudEndpoint || getCustomCloudEndpoint());
   const [localWebhookUrl, setLocalWebhookUrl] = useState(() => settings.notificationWebhookUrl || '');
   const [localTelegramConfig, setLocalTelegramConfig] = useState(() => settings.telegramConfig || { enabled: false, botToken: '', chatId: '' });
+  const [localResendConfig, setLocalResendConfig] = useState(() => settings.resendConfig || { apiKey: '', fromEmail: 'RVOBA <siparis@rvoba.com>' });
+  const [localPosConfig, setLocalPosConfig] = useState(() => settings.posConfig || { provider: 'paytr' as const, merchantId: '', merchantKey: '', merchantSalt: '', testMode: true });
+  const [localAnalyticsConfig, setLocalAnalyticsConfig] = useState(() => settings.analyticsConfig || { ga4MeasurementId: '', metaPixelId: '', googleSiteVerification: '' });
   const backupFileInputRef = useRef<HTMLInputElement>(null);
 
   // Sync local form states when parent settings change (e.g. backup import, cross-tab sync, or factory reset)
@@ -328,6 +353,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     if (settings.cloudEndpoint !== undefined) setCloudEndpoint(settings.cloudEndpoint);
     if (settings.notificationWebhookUrl !== undefined) setLocalWebhookUrl(settings.notificationWebhookUrl);
     if (settings.telegramConfig) setLocalTelegramConfig(settings.telegramConfig);
+    if (settings.resendConfig) setLocalResendConfig(settings.resendConfig);
+    if (settings.posConfig) setLocalPosConfig(settings.posConfig);
+    if (settings.analyticsConfig) setLocalAnalyticsConfig(settings.analyticsConfig);
   }, [settings]);
 
   const [isTestingTelegram, setIsTestingTelegram] = useState(false);
@@ -386,63 +414,76 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     showToast('Yönetici şifresi başarıyla güncellendi.');
   };
 
-  // Handle Photo Uploads for Products
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, isRoom = false) => {
+  // Handle Photo Uploads for Products (WebP compression + Supabase Storage CDN)
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, isRoom = false) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Fotoğraf boyutu 5MB üzerinde olamaz.');
+    if (file.size > 15 * 1024 * 1024) {
+      alert('Fotoğraf boyutu 15MB üzerinde olamaz.');
       return;
     }
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (typeof reader.result === 'string') {
-        if (isRoom) setNewRoomImage(reader.result);
-        else {
-          setNewImage(reader.result);
-          setNewImages((prev) => prev.includes(reader.result as string) ? prev : [reader.result as string, ...prev]);
-        }
+    setIsUploadingMedia(true);
+    try {
+      const cdnUrl = await uploadOptimizedImage(file, 'products');
+      if (isRoom) {
+        setNewRoomImage(cdnUrl);
+      } else {
+        setNewImage(cdnUrl);
+        setNewImages((prev) => (prev.includes(cdnUrl) ? prev : [cdnUrl, ...prev]));
       }
-    };
-    reader.readAsDataURL(file);
+      showToast('Fotoğraf WebP formatına sıkıştırılıp CDN sunucusuna yüklendi!');
+    } catch {
+      alert('Fotoğraf yüklenirken bir sorun oluştu.');
+    } finally {
+      setIsUploadingMedia(false);
+      e.target.value = '';
+    }
   };
 
-  const handleMultipleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, isEdit = false) => {
+  const handleMultipleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEdit = false) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    
-    Array.from(files).forEach((file) => {
-      if (file.size > 5 * 1024 * 1024) {
-        alert(`${file.name} boyutu 5MB üzerinde olduğu için yüklenemedi.`);
-        return;
-      }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          const res = reader.result;
-          if (isEdit) {
-            setEditModalProduct((prev) => {
-              if (!prev) return null;
-              const current = prev.images && prev.images.length > 0 ? prev.images : [prev.image];
-              const updated = [...current, res];
-              return {
-                ...prev,
-                image: prev.image || res,
-                images: updated,
-              };
-            });
-          } else {
-            setNewImages((prev) => {
-              const updated = [...prev, res];
-              if (!newImage) setNewImage(res);
-              return updated;
-            });
-          }
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+    const selectedFiles = Array.from(files);
     e.target.value = '';
+
+    setIsUploadingMedia(true);
+    try {
+      for (const file of selectedFiles) {
+        if (file.size > 15 * 1024 * 1024) {
+          alert(`${file.name} boyutu 15MB üzerinde olduğu için atlandı.`);
+          continue;
+        }
+        const cdnUrl = await uploadOptimizedImage(file, 'products');
+        if (isEdit) {
+          setEditModalProduct((prev) => {
+            if (!prev) return null;
+            const current =
+              prev.images && prev.images.length > 0
+                ? prev.images
+                : prev.image
+                ? [prev.image]
+                : [];
+            const updated = [...current, cdnUrl];
+            return {
+              ...prev,
+              image: prev.image || cdnUrl,
+              images: updated,
+            };
+          });
+        } else {
+          setNewImages((prev) => {
+            const updated = [...prev, cdnUrl];
+            setNewImage((curr) => curr || cdnUrl);
+            return updated;
+          });
+        }
+      }
+      showToast('Fotoğraflar WebP formatına sıkıştırılıp CDN albümüne eklendi!');
+    } catch {
+      alert('Fotoğraflar yüklenirken bir sorun oluştu.');
+    } finally {
+      setIsUploadingMedia(false);
+    }
   };
 
   const handleAddImageUrl = (isEdit = false) => {
@@ -510,29 +551,41 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     }
   };
 
-  const handleEditFileUpload = (e: React.ChangeEvent<HTMLInputElement>, isRoom = false) => {
+  const handleEditFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, isRoom = false) => {
     const file = e.target.files?.[0];
     if (!file || !editModalProduct) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Fotoğraf boyutu 5MB üzerinde olamaz.');
+    if (file.size > 15 * 1024 * 1024) {
+      alert('Fotoğraf boyutu 15MB üzerinde olamaz.');
       return;
     }
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (typeof reader.result === 'string') {
-        if (isRoom) {
-          setEditModalProduct({ ...editModalProduct, roomImage: reader.result });
-        } else {
-          const current = editModalProduct.images && editModalProduct.images.length > 0 ? editModalProduct.images : [editModalProduct.image];
-          setEditModalProduct({ 
-            ...editModalProduct, 
-            image: reader.result,
-            images: [reader.result, ...current.filter(img => img !== reader.result)]
-          });
-        }
+    setIsUploadingMedia(true);
+    try {
+      const cdnUrl = await uploadOptimizedImage(file, 'products');
+      if (isRoom) {
+        setEditModalProduct((prev) => (prev ? { ...prev, roomImage: cdnUrl } : null));
+      } else {
+        setEditModalProduct((prev) => {
+          if (!prev) return null;
+          const current =
+            prev.images && prev.images.length > 0
+              ? prev.images
+              : prev.image
+              ? [prev.image]
+              : [];
+          return {
+            ...prev,
+            image: cdnUrl,
+            images: [cdnUrl, ...current.filter((img) => img !== cdnUrl)],
+          };
+        });
       }
-    };
-    reader.readAsDataURL(file);
+      showToast('Fotoğraf WebP olarak CDN sunucusuna yüklendi!');
+    } catch {
+      alert('Fotoğraf yüklenirken bir hata oluştu.');
+    } finally {
+      setIsUploadingMedia(false);
+      e.target.value = '';
+    }
   };
 
   const handleAddVariantToEditProduct = () => {
@@ -574,6 +627,11 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       : (newImage ? [newImage, ...(newRoomImage ? [newRoomImage] : [])] : []);
     const mainImg = finalImages[0] || newImage || 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=700&q=80';
 
+    const parsedStock =
+      newStockCount.trim() !== '' && !Number.isNaN(Number(newStockCount))
+        ? Math.max(0, Math.floor(Number(newStockCount)))
+        : undefined;
+
     const newProduct: Product = {
       id: `custom-prod-${Date.now()}`,
       category: newCategory,
@@ -590,6 +648,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
       marketPrice: newMarketPrice,
       isActive: true,
       isStoreProduct: newIsStoreProduct,
+      inStock: parsedStock === undefined || parsedStock > 0,
+      stockCount: parsedStock,
       packageInfo: newPackageInfo.trim() || undefined,
       specs: newSpecs.split('\n').map(s => s.trim()).filter(Boolean),
     };
@@ -603,6 +663,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
     setNewRoomImage('');
     setNewDescription('');
     setNewIsStoreProduct(true);
+    setNewStockCount('');
     setNewUnit('m²');
     setNewPackageInfo('');
     setNewSpecs('');
@@ -1463,7 +1524,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                                 }`}
                                 title="Stok Durumunu Değiştir (Stokta / Tükendi)"
                               >
-                                {p.inStock !== false ? 'Stokta' : 'Tükendi'}
+                                {typeof p.stockCount === 'number'
+                                  ? p.stockCount > 0 && p.inStock !== false
+                                    ? `Stok: ${p.stockCount}`
+                                    : 'Tükendi (0)'
+                                  : p.inStock !== false
+                                  ? 'Stokta'
+                                  : 'Tükendi'}
                               </button>
                             </div>
                           </td>
@@ -3257,6 +3324,301 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   </button>
                 </div>
               </div>
+
+              {/* Google SEO, GA4, Meta Pixel & Canlı Dinamik Sitemap */}
+              <div className="p-5 rounded-2xl bg-indigo-50/60 border border-indigo-200/80 space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0">
+                      <BarChart3 className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-indigo-950">
+                        Google SEO, Analytics (GA4), Meta Pixel & Canlı Dinamik Sitemap
+                      </h4>
+                      <p className="text-[10px] text-indigo-800">
+                        Ürün detayları (/urun/...), Product JSON-LD, sepete ekleme ve satın alma dönüşümleri otomatik izlenir.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard?.writeText(`${SUPABASE_URL}/functions/v1/sitemap`);
+                        showToast('Canlı dinamik Sitemap XML adresi kopyalandı!');
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-indigo-300 text-[10px] font-bold text-indigo-900 hover:bg-indigo-100 transition"
+                    >
+                      <Copy className="w-3 h-3" />
+                      <span>Canlı Sitemap URL Kopyala</span>
+                    </button>
+                    <a
+                      href={`${SUPABASE_URL}/functions/v1/sitemap`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-700 text-white text-[10px] font-bold hover:bg-indigo-800 transition"
+                    >
+                      <span>XML Aç</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                  <div>
+                    <label className="block text-[11px] font-bold text-indigo-950 mb-1">
+                      Google Analytics 4 (GA4 ID)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Örn: G-XXXXXXXXXX"
+                      value={localAnalyticsConfig.ga4MeasurementId || ''}
+                      onChange={(e) =>
+                        setLocalAnalyticsConfig({
+                          ...localAnalyticsConfig,
+                          ga4MeasurementId: e.target.value.trim(),
+                        })
+                      }
+                      className="w-full bg-white border border-indigo-300 rounded-xl px-3 py-2 text-xs font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-indigo-950 mb-1">
+                      Meta (Instagram/Facebook) Pixel ID
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Örn: 123456789012345"
+                      value={localAnalyticsConfig.metaPixelId || ''}
+                      onChange={(e) =>
+                        setLocalAnalyticsConfig({
+                          ...localAnalyticsConfig,
+                          metaPixelId: e.target.value.trim(),
+                        })
+                      }
+                      className="w-full bg-white border border-indigo-300 rounded-xl px-3 py-2 text-xs font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-indigo-950 mb-1">
+                      Google Search Console Doğrulama Kodu
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="google-site-verification içeriği"
+                      value={localAnalyticsConfig.googleSiteVerification || ''}
+                      onChange={(e) =>
+                        setLocalAnalyticsConfig({
+                          ...localAnalyticsConfig,
+                          googleSiteVerification: e.target.value.trim(),
+                        })
+                      }
+                      className="w-full bg-white border border-indigo-300 rounded-xl px-3 py-2 text-xs font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onUpdateSettings({
+                        ...settings,
+                        analyticsConfig: localAnalyticsConfig,
+                      });
+                      showToast('Google SEO, GA4 ve Meta Pixel ayarları kaydedildi!');
+                    }}
+                    className="btn-pill-black bg-indigo-600 hover:bg-indigo-700 text-white text-xs py-2 px-5 font-bold shadow-md"
+                  >
+                    SEO & Analytics Ayarlarını Kaydet
+                  </button>
+                </div>
+              </div>
+
+              {/* Otomatik Müşteri E-Posta Bildirimleri (Resend API — Gizli Kasa) */}
+              <div className="p-5 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-700 text-white flex items-center justify-center shrink-0">
+                    <Mail className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-emerald-950">
+                      Otomatik Müşteri Sipariş & Kargo E-Postaları (Resend API • Gizli Sunucu Kasası)
+                    </h4>
+                    <p className="text-[10px] text-emerald-800">
+                      Sipariş alındığında, kargoya verildiğinde ve şifre sıfırlamada müşteriye otomatik kurumsal HTML e-posta gider. API anahtarı halka açık tabloya yazılmaz.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="block text-[11px] font-bold text-emerald-950 mb-1">
+                      Resend API Key (re_...)
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="re_xxxxxxxxxxxxxxxxx"
+                      value={localResendConfig.apiKey || ''}
+                      onChange={(e) =>
+                        setLocalResendConfig({
+                          ...localResendConfig,
+                          apiKey: e.target.value.trim(),
+                        })
+                      }
+                      className="w-full bg-white border border-emerald-300 rounded-xl px-3 py-2 text-xs font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-emerald-950 mb-1">
+                      Gönderici Adı & E-Posta Adresi
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="RVOBA <siparis@rvoba.com>"
+                      value={localResendConfig.fromEmail || ''}
+                      onChange={(e) =>
+                        setLocalResendConfig({
+                          ...localResendConfig,
+                          fromEmail: e.target.value,
+                        })
+                      }
+                      className="w-full bg-white border border-emerald-300 rounded-xl px-3 py-2 text-xs font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onUpdateSettings({
+                        ...settings,
+                        resendConfig: localResendConfig,
+                      });
+                      showToast('Otomatik e-posta (Resend) ayarları güvenli kasaya kaydedildi!');
+                    }}
+                    className="btn-pill-black bg-emerald-700 hover:bg-emerald-800 text-white text-xs py-2 px-5 font-bold shadow-md"
+                  >
+                    E-Posta Ayarlarını Kaydet
+                  </button>
+                </div>
+              </div>
+
+              {/* PayTR 3D Secure Sanal POS Anahtarları (Gizli Sunucu Kasası) */}
+              <div className="p-5 rounded-2xl bg-purple-50/60 border border-purple-200/80 space-y-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-purple-700 text-white flex items-center justify-center shrink-0">
+                      <CreditCard className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-purple-950">
+                        PayTR 3D Secure Resmi Sanal POS Entegrasyonu (Gizli Kasa)
+                      </h4>
+                      <p className="text-[10px] text-purple-800">
+                        PayTR Mağaza No, Key ve Salt girildiğinde ödeme ekranında gerçek PayTR 3D Secure iFrame otomatik devreye girer.
+                      </p>
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={localPosConfig.testMode !== false}
+                      onChange={(e) =>
+                        setLocalPosConfig({ ...localPosConfig, testMode: e.target.checked })
+                      }
+                      className="rounded text-purple-700 focus:ring-purple-700 w-4 h-4"
+                    />
+                    <span className="text-xs font-bold text-purple-950">PayTR Test Modu</span>
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                  <div>
+                    <label className="block text-[11px] font-bold text-purple-950 mb-1">
+                      PayTR Mağaza No (Merchant ID)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Örn: 123456"
+                      value={localPosConfig.merchantId || ''}
+                      onChange={(e) =>
+                        setLocalPosConfig({ ...localPosConfig, merchantId: e.target.value.trim() })
+                      }
+                      className="w-full bg-white border border-purple-300 rounded-xl px-3 py-2 text-xs font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-purple-950 mb-1">
+                      PayTR Mağaza Parolası (Merchant Key)
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="••••••••••••"
+                      value={localPosConfig.merchantKey || ''}
+                      onChange={(e) =>
+                        setLocalPosConfig({ ...localPosConfig, merchantKey: e.target.value.trim() })
+                      }
+                      className="w-full bg-white border border-purple-300 rounded-xl px-3 py-2 text-xs font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-purple-950 mb-1">
+                      PayTR Gizli Anahtar (Merchant Salt)
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="••••••••••••"
+                      value={localPosConfig.merchantSalt || ''}
+                      onChange={(e) =>
+                        setLocalPosConfig({ ...localPosConfig, merchantSalt: e.target.value.trim() })
+                      }
+                      className="w-full bg-white border border-purple-300 rounded-xl px-3 py-2 text-xs font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-white border border-purple-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px]">
+                  <div className="truncate">
+                    <span className="font-bold text-purple-950">PayTR Bildirim URL (Callback): </span>
+                    <code className="font-mono text-purple-800">{`${SUPABASE_URL}/functions/v1/payment-checkout?action=paytr_callback`}</code>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(
+                        `${SUPABASE_URL}/functions/v1/payment-checkout?action=paytr_callback`
+                      );
+                      showToast('PayTR Bildirim (Callback) URL adresi kopyalandı!');
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-100 text-purple-900 font-bold text-[10px] hover:bg-purple-200 shrink-0"
+                  >
+                    <Copy className="w-3 h-3" />
+                    <span>URL Kopyala</span>
+                  </button>
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onUpdateSettings({
+                        ...settings,
+                        posConfig: {
+                          ...localPosConfig,
+                          provider: 'paytr',
+                        },
+                      });
+                      showToast('PayTR Sanal POS anahtarları güvenli sunucu kasasına kaydedildi!');
+                    }}
+                    className="btn-pill-black bg-purple-700 hover:bg-purple-800 text-white text-xs py-2 px-5 font-bold shadow-md"
+                  >
+                    PayTR Sanal POS Anahtarlarını Kaydet
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Panel Güvenlik & Şifre Değiştirme */}
@@ -3502,6 +3864,36 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                               <span>{customer.district ? `${customer.district}, ` : ''}{customer.city || 'Belirtilmedi'}</span>
                             </span>
 
+                            {onResetCustomerPassword && (
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const newPass = window.prompt(
+                                    `${customer.fullName} için yeni müşteri giriş şifresini giriniz (en az 5 karakter):`,
+                                    'rvoba123'
+                                  );
+                                  if (!newPass) return;
+                                  if (newPass.trim().length < 5) {
+                                    alert('Yeni şifre en az 5 karakter olmalıdır.');
+                                    return;
+                                  }
+                                  const ok = await onResetCustomerPassword(customer.id, newPass.trim());
+                                  if (ok) {
+                                    showToast(
+                                      `${customer.fullName} şifresi "${newPass.trim()}" olarak güncellendi!`
+                                    );
+                                  } else {
+                                    alert('Şifre sıfırlanırken bir hata oluştu.');
+                                  }
+                                }}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold border border-amber-200 transition"
+                                title="Müşteri Şifresini Sıfırla"
+                              >
+                                <KeyRound className="w-3.5 h-3.5 text-amber-700" />
+                                <span>Şifre Sıfırla</span>
+                              </button>
+                            )}
+
                             {onDeleteCustomer && (
                               <button
                                 onClick={() => {
@@ -3742,11 +4134,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   />
                   <button
                     type="button"
+                    disabled={isUploadingMedia}
                     onClick={() => multiFileInputRef.current?.click()}
-                    className="btn-pill-black text-xs py-2 px-4 flex items-center justify-center gap-1.5 shrink-0 bg-slate-900 hover:bg-black text-white"
+                    className="btn-pill-black text-xs py-2 px-4 flex items-center justify-center gap-1.5 shrink-0 bg-slate-900 hover:bg-black disabled:opacity-60 text-white"
                   >
                     <Upload className="w-3.5 h-3.5" />
-                    <span>Cihazdan Fotoğraf(lar) Seç</span>
+                    <span>
+                      {isUploadingMedia ? 'WebP CDN Yükleniyor...' : 'Cihazdan Fotoğraf(lar) Seç'}
+                    </span>
                   </button>
 
                   <div className="flex-1 flex gap-1.5">
@@ -3850,7 +4245,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                 </div>
               </div>
 
-              <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <label className="flex items-center gap-2 cursor-pointer bg-[#F8F9FA] p-2.5 rounded-xl border border-[#CBD5E1]">
                   <input
                     type="checkbox"
@@ -3862,6 +4257,17 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     🛍️ Mimari Mağazada (Ürünlerimiz) Sergile
                   </span>
                 </label>
+
+                <div>
+                  <input
+                    type="number"
+                    min={0}
+                    placeholder="Net Stok Adedi (Boş = Sınırsız Stok)"
+                    value={newStockCount}
+                    onChange={(e) => setNewStockCount(e.target.value)}
+                    className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-xl px-3 py-2.5 text-xs font-mono font-bold"
+                  />
+                </div>
               </div>
 
               <div>
@@ -4022,11 +4428,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   />
                   <button
                     type="button"
+                    disabled={isUploadingMedia}
                     onClick={() => editMultiFileInputRef.current?.click()}
-                    className="btn-pill-black text-xs py-2 px-4 flex items-center justify-center gap-1.5 shrink-0 bg-slate-900 hover:bg-black text-white"
+                    className="btn-pill-black text-xs py-2 px-4 flex items-center justify-center gap-1.5 shrink-0 bg-slate-900 hover:bg-black disabled:opacity-60 text-white"
                   >
                     <Upload className="w-3.5 h-3.5" />
-                    <span>Cihazdan Fotoğraf(lar) Ekle</span>
+                    <span>
+                      {isUploadingMedia ? 'WebP CDN Yükleniyor...' : 'Cihazdan Fotoğraf(lar) Ekle'}
+                    </span>
                   </button>
 
                   <div className="flex-1 flex gap-1.5">
@@ -4160,6 +4569,32 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     📦 Stokta Mevcut (İşaret Kaldırılırsa "Tükendi" Yazar)
                   </span>
                 </label>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold mb-1">
+                  Net Stok Adedi (Opsiyonel — Siparişte Otomatik Düşer, Boş Bırakılırsa Sınırsız)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  placeholder="Sınırsız stok için boş bırakın (Örn: 25)"
+                  value={editModalProduct.stockCount !== undefined ? editModalProduct.stockCount : ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '') {
+                      setEditModalProduct({ ...editModalProduct, stockCount: undefined });
+                    } else {
+                      const num = Math.max(0, Math.floor(Number(val)));
+                      setEditModalProduct({
+                        ...editModalProduct,
+                        stockCount: num,
+                        inStock: num > 0,
+                      });
+                    }
+                  }}
+                  className="w-full bg-[#F8F9FA] border border-[#CBD5E1] rounded-xl px-3 py-2 text-xs font-mono font-bold"
+                />
               </div>
 
               <div>
@@ -4493,21 +4928,28 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     type="file"
                     ref={beforeProjInputRef}
                     accept="image/*"
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
-                      const reader = new FileReader();
-                      reader.onloadend = () => typeof reader.result === 'string' && setNewProjBeforeImg(reader.result);
-                      reader.readAsDataURL(file);
+                      setIsUploadingMedia(true);
+                      try {
+                        const cdnUrl = await uploadOptimizedImage(file, 'projects');
+                        setNewProjBeforeImg(cdnUrl);
+                        showToast('Öncesi fotoğrafı WebP olarak CDN sunucusuna yüklendi!');
+                      } finally {
+                        setIsUploadingMedia(false);
+                        e.target.value = '';
+                      }
                     }}
                     className="hidden"
                   />
                   <button
                     type="button"
+                    disabled={isUploadingMedia}
                     onClick={() => beforeProjInputRef.current?.click()}
-                    className="btn-pill-outline text-xs py-2 px-3 shrink-0"
+                    className="btn-pill-outline text-xs py-2 px-3 shrink-0 disabled:opacity-60"
                   >
-                    Fotoğraf Seç
+                    {isUploadingMedia ? 'Yükleniyor...' : 'Fotoğraf Seç'}
                   </button>
                   <input
                     type="text"
@@ -4527,21 +4969,28 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     type="file"
                     ref={afterProjInputRef}
                     accept="image/*"
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
-                      const reader = new FileReader();
-                      reader.onloadend = () => typeof reader.result === 'string' && setNewProjAfterImg(reader.result);
-                      reader.readAsDataURL(file);
+                      setIsUploadingMedia(true);
+                      try {
+                        const cdnUrl = await uploadOptimizedImage(file, 'projects');
+                        setNewProjAfterImg(cdnUrl);
+                        showToast('Sonrası fotoğrafı WebP olarak CDN sunucusuna yüklendi!');
+                      } finally {
+                        setIsUploadingMedia(false);
+                        e.target.value = '';
+                      }
                     }}
                     className="hidden"
                   />
                   <button
                     type="button"
+                    disabled={isUploadingMedia}
                     onClick={() => afterProjInputRef.current?.click()}
-                    className="btn-pill-outline text-xs py-2 px-3 shrink-0"
+                    className="btn-pill-outline text-xs py-2 px-3 shrink-0 disabled:opacity-60"
                   >
-                    Fotoğraf Seç
+                    {isUploadingMedia ? 'Yükleniyor...' : 'Fotoğraf Seç'}
                   </button>
                   <input
                     type="text"
@@ -4689,10 +5138,56 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   )}
                 </select>
               </div>
+              {/* Kargo Firması & Kargo Takip Kodu */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div>
+                  <label className="block text-[10px] font-bold text-emerald-900 uppercase mb-1">
+                    Kargo / Lojistik Firması
+                  </label>
+                  <select
+                    value={selectedLeadDetail.trackingCarrier || ''}
+                    onChange={(e) =>
+                      setSelectedLeadDetail({
+                        ...selectedLeadDetail,
+                        trackingCarrier: e.target.value || undefined,
+                      })
+                    }
+                    className="w-full bg-white border border-emerald-300 rounded-xl px-3 py-2 text-xs font-bold text-[#0A0A0B]"
+                  >
+                    <option value="">Kargo Firması Seçiniz (Opsiyonel)</option>
+                    {CARGO_CARRIERS.map((carrier) => (
+                      <option key={carrier} value={carrier}>
+                        {carrier}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-emerald-900 uppercase mb-1">
+                    Kargo Takip Numarası
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Örn: 908123456789"
+                    value={selectedLeadDetail.trackingCode || ''}
+                    onChange={(e) =>
+                      setSelectedLeadDetail({
+                        ...selectedLeadDetail,
+                        trackingCode: e.target.value.trim() || undefined,
+                        ...(e.target.value.trim() && normalizeLeadStatus(selectedLeadDetail.status) === 'bekliyor'
+                          ? { status: 'kesif_verildi' }
+                          : {}),
+                      })
+                    }
+                    className="w-full bg-white border border-emerald-300 rounded-xl px-3 py-2 text-xs font-mono font-bold text-[#0A0A0B]"
+                  />
+                </div>
+              </div>
+
               <div>
                 <input
                   type="text"
-                  placeholder="Örn: Yurtiçi Kargo Takip: 908123456 veya Ustamız Cuma 10:30'da adresinizde olacak"
+                  placeholder="Ek Teslimat / Mimar Notu (Örn: Ustamız Cuma 10:30'da adresinizde olacak)"
                   value={selectedLeadDetail.adminNotes || ''}
                   onChange={(e) =>
                     setSelectedLeadDetail({ ...selectedLeadDetail, adminNotes: e.target.value })
@@ -4700,23 +5195,50 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   className="w-full bg-white border border-emerald-300 rounded-xl px-3.5 py-2 text-xs text-[#0A0A0B] focus:outline-none focus:border-emerald-700"
                 />
                 <p className="text-[10px] text-emerald-800 mt-1">
-                  * Buraya yazdığınız not, müşteriniz <strong>"Siparişlerim"</strong> ve <strong>"Sipariş / Keşif Sorgula"</strong> ekranından baktığında canlı olarak gösterilir.
+                  * Kargo takip kodu ve yazdığınız not, müşterinin <strong>"Siparişlerim"</strong> ekranında canlı <strong>"Kargom Nerede?"</strong> takip butonuyla gösterilir (Resend aktifse otomatik e-posta da gider).
                 </p>
               </div>
-              <div className="flex justify-end">
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                {(() => {
+                  const waStatusUrl = buildWhatsAppOrderStatusUrl(selectedLeadDetail);
+                  return waStatusUrl ? (
+                    <a
+                      href={waStatusUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white border border-emerald-400 text-emerald-800 hover:bg-emerald-100 text-xs font-bold transition"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>WhatsApp Durum & Kargo Bildirimi Gönder</span>
+                    </a>
+                  ) : (
+                    <span />
+                  );
+                })()}
+
                 <button
                   type="button"
                   onClick={() => {
-                    onUpdateLeadStatus(
-                      selectedLeadDetail.id,
-                      normalizeLeadStatus(selectedLeadDetail.status),
-                      selectedLeadDetail.adminNotes || ''
-                    );
-                    showToast('Sipariş durumu ve müşteri takip notu güncellendi.');
+                    if (onUpdateLeadTracking) {
+                      onUpdateLeadTracking(
+                        selectedLeadDetail.id,
+                        normalizeLeadStatus(selectedLeadDetail.status),
+                        selectedLeadDetail.adminNotes || '',
+                        selectedLeadDetail.trackingCarrier,
+                        selectedLeadDetail.trackingCode
+                      );
+                    } else {
+                      onUpdateLeadStatus(
+                        selectedLeadDetail.id,
+                        normalizeLeadStatus(selectedLeadDetail.status),
+                        selectedLeadDetail.adminNotes || ''
+                      );
+                    }
+                    showToast('Sipariş durumu, kargo takip kodu ve müşteri notu kaydedildi.');
                   }}
                   className="btn-pill-black bg-emerald-700 hover:bg-emerald-800 text-white text-xs py-2 px-4 font-bold"
                 >
-                  Durumu & Takip Notunu Kaydet
+                  Durumu & Kargo Takibini Kaydet
                 </button>
               </div>
             </div>

@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { CategoryInfo, CategoryKey, Product, CartItem, CustomRequestItem, SiteSettings } from '../types';
 import { BeforeAfterSlider } from './BeforeAfterSlider';
+import { uploadOptimizedImage } from '../utils/imageOptimizer';
 
 interface CustomerConfiguratorProps {
   categories: CategoryInfo[];
@@ -247,6 +248,7 @@ export const CustomerConfigurator: React.FC<CustomerConfiguratorProps> = ({
   const [customNote, setCustomNote] = useState('');
   const [customRoom, setCustomRoom] = useState('Salon');
   const [customPhoto, setCustomPhoto] = useState<string>('');
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [customAddedToast, setCustomAddedToast] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -490,23 +492,26 @@ export const CustomerConfigurator: React.FC<CustomerConfiguratorProps> = ({
     (c) => !c.isCustom && currentCategory && c.product?.category === currentCategory.key
   );
 
-  // Custom photo upload in Step 3
-  const handleCustomPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Custom photo upload in Step 3 (WebP compression + Supabase Storage CDN)
+  const handleCustomPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 3 * 1024 * 1024) {
-      alert('Fotoğraf boyutu 3MB üzerinde olamaz.');
+    if (file.size > 15 * 1024 * 1024) {
+      alert('Fotoğraf boyutu 15MB üzerinde olamaz.');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (typeof reader.result === 'string') {
-        setCustomPhoto(reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
+    setIsUploadingPhoto(true);
+    try {
+      const cdnUrl = await uploadOptimizedImage(file, 'requests');
+      setCustomPhoto(cdnUrl);
+    } catch {
+      alert('Fotoğraf yüklenirken bir hata oluştu. Lütfen tekrar deneyin.');
+    } finally {
+      setIsUploadingPhoto(false);
+      e.target.value = '';
+    }
   };
 
   const handleAddCustom = (e: React.FormEvent) => {
@@ -1628,12 +1633,19 @@ export const CustomerConfigurator: React.FC<CustomerConfiguratorProps> = ({
                       />
                       <button
                         type="button"
+                        disabled={isUploadingPhoto}
                         onClick={() => fileInputRef.current?.click()}
-                        className="w-full py-8 border-2 border-dashed border-[#CBD5E1] hover:border-black rounded-xl bg-white text-[#4B5563] text-xs font-bold flex flex-col items-center justify-center gap-2 transition"
+                        className="w-full py-8 border-2 border-dashed border-[#CBD5E1] hover:border-black disabled:opacity-60 rounded-xl bg-white text-[#4B5563] text-xs font-bold flex flex-col items-center justify-center gap-2 transition"
                       >
                         <Upload className="w-5 h-5 text-[#0A0A0B]" />
-                        <span>Cihazdan Fotoğraf Seç veya Çek</span>
-                        <span className="text-[10px] text-[#94A3B8] font-normal">PNG, JPG (Maks. 3MB)</span>
+                        <span>
+                          {isUploadingPhoto
+                            ? 'Görsel WebP formatına sıkıştırılıp yükleniyor...'
+                            : 'Cihazdan Fotoğraf Seç veya Çek'}
+                        </span>
+                        <span className="text-[10px] text-[#94A3B8] font-normal">
+                          Otomatik WebP CDN Optimizasyonu (Maks. 15MB)
+                        </span>
                       </button>
                     </div>
                   )}

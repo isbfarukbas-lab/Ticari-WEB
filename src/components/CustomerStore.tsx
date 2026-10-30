@@ -32,6 +32,13 @@ import {
 } from 'lucide-react';
 import { Product, CartItem, LeadRequest, SiteContentSettings, ProductVariant } from '../types';
 import { SmartMeasurementCalculator } from './SmartMeasurementCalculator';
+import {
+  buildProductPath,
+  buildProductFullUrl,
+  extractProductIdFromLocation,
+  updatePageSeo,
+  trackEcommerceEvent,
+} from '../utils/seo';
 
 interface CustomerStoreProps {
   products: Product[];
@@ -94,40 +101,99 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
   const [selectedVariants, setSelectedVariants] = useState<Record<string, ProductVariant>>({});
   const [copiedLink, setCopiedLink] = useState(false);
 
-  // Deep-linking: sync URL hash with preview product
+  // Deep-linking: sync clean SEO path (/urun/slug--id) AND legacy hash (#urun/id) with preview product
   useEffect(() => {
-    const handleHash = () => {
-      const hash = window.location.hash;
-      if (hash.startsWith('#urun/')) {
-        const prodId = hash.replace('#urun/', '');
+    const syncLocation = () => {
+      const prodId = extractProductIdFromLocation(window.location.pathname, window.location.hash);
+      if (prodId) {
         const found = products.find((p) => p.id === prodId);
-        if (found) setPreviewProduct(found);
+        if (found) {
+          setPreviewProduct(found);
+          updatePageSeo({ view: 'store', product: found });
+        }
+      } else {
+        setPreviewProduct((curr) => {
+          if (curr) {
+            updatePageSeo({ view: 'store', product: null });
+          }
+          return null;
+        });
       }
     };
-    handleHash();
-    window.addEventListener('hashchange', handleHash);
-    return () => window.removeEventListener('hashchange', handleHash);
+    syncLocation();
+    window.addEventListener('hashchange', syncLocation);
+    window.addEventListener('popstate', syncLocation);
+    return () => {
+      window.removeEventListener('hashchange', syncLocation);
+      window.removeEventListener('popstate', syncLocation);
+    };
   }, [products]);
 
   const openProductPreview = (product: Product) => {
     setPreviewProduct(product);
     setPreviewImageIndex(0);
-    window.location.hash = `#urun/${product.id}`;
+    window.history.pushState({}, '', buildProductPath(product));
+    updatePageSeo({ view: 'store', product });
+    trackEcommerceEvent('view_item', {
+      value: product.materialPrice,
+      items: [
+        {
+          item_id: product.id,
+          item_name: product.name,
+          item_brand: product.brand,
+          price: product.materialPrice,
+          quantity: 1,
+        },
+      ],
+    });
   };
 
   const closeProductPreview = () => {
     setPreviewProduct(null);
     setPreviewImageIndex(0);
-    if (window.location.hash.startsWith('#urun/')) {
-      window.location.hash = '';
+    if (
+      window.location.pathname.startsWith('/urun/') ||
+      window.location.hash.startsWith('#urun/')
+    ) {
+      window.history.pushState({}, '', '/');
     }
+    updatePageSeo({ view: 'store', product: null });
   };
 
   const handleCopyProductLink = (product: Product) => {
-    const url = `${window.location.origin}${window.location.pathname}#urun/${product.id}`;
+    const url = buildProductFullUrl(product);
     navigator.clipboard.writeText(url);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
+  };
+
+  const isProductOutOfStock = (product: Product): boolean => {
+    return (
+      product.inStock === false ||
+      (typeof product.stockCount === 'number' && product.stockCount <= 0)
+    );
+  };
+
+  const renderStockStatusBadge = (product: Product) => {
+    if (isProductOutOfStock(product)) {
+      return (
+        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full">
+          ● Stok Yenileniyor
+        </span>
+      );
+    }
+    if (typeof product.stockCount === 'number' && product.stockCount <= 5) {
+      return (
+        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+          ● Son {product.stockCount} {product.unit}!
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+        ● Stokta Hazır
+      </span>
+    );
   };
 
   const getProductVariant = (product: Product): ProductVariant | undefined => {
@@ -234,10 +300,14 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
     });
 
   const getQty = (id: string) => selectedQuantities[id] || 1;
-  const setQty = (id: string, val: number) => {
+  const setQty = (id: string, val: number, maxStock?: number) => {
+    const clamped =
+      typeof maxStock === 'number' && maxStock > 0
+        ? Math.min(maxStock, Math.max(1, val))
+        : Math.max(1, val);
     setSelectedQuantities((prev) => ({
       ...prev,
-      [id]: Math.max(1, val),
+      [id]: clamped,
     }));
   };
 
@@ -298,6 +368,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
       leadType: 'store_order',
       items: [
         {
+          productId: product.id,
           name: product.name,
           brand: product.brand,
           quantity: qty,
@@ -450,6 +521,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                   <img
                     src={product.image}
                     alt={product.name}
+                    loading="lazy"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
 
@@ -503,15 +575,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                 <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
                   <div>
                     <div className="flex items-center justify-between text-[10px] text-[#64748B] mb-1">
-                      {product.inStock === false ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full">
-                          ● Stok Yenileniyor
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                          ● Stokta Hazır
-                        </span>
-                      )}
+                      {renderStockStatusBadge(product)}
                       <span className="font-mono text-slate-400 text-[10px]">{activeVariant?.code || product.code}</span>
                     </div>
 
@@ -632,7 +696,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                       <div className="flex items-center border border-[#D1D5DB] rounded-full bg-white px-1.5 py-0.5 shadow-xs">
                         <button
                           type="button"
-                          onClick={() => setQty(product.id, qty - 1)}
+                          onClick={() => setQty(product.id, qty - 1, product.stockCount)}
                           className="w-5 h-5 rounded-full hover:bg-slate-100 flex items-center justify-center font-bold text-xs"
                           aria-label="Miktarı Azalt"
                         >
@@ -643,7 +707,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                         </span>
                         <button
                           type="button"
-                          onClick={() => setQty(product.id, qty + 1)}
+                          onClick={() => setQty(product.id, qty + 1, product.stockCount)}
                           className="w-5 h-5 rounded-full hover:bg-slate-100 flex items-center justify-center font-bold text-xs"
                           aria-label="Miktarı Artır"
                         >
@@ -653,7 +717,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                     </div>
 
                     <div className="flex items-center gap-1.5 pt-0.5">
-                      {product.inStock === false ? (
+                      {isProductOutOfStock(product) ? (
                         <button
                           type="button"
                           onClick={() => handleFastWhatsAppOrder(product)}
@@ -882,6 +946,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                     <img
                       src={product.image}
                       alt={product.name}
+                      loading="lazy"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
 
@@ -936,15 +1001,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                     
                     <div>
                       <div className="flex items-center justify-between text-[10px] text-[#64748B] mb-1">
-                        {product.inStock === false ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full">
-                            ● Stok Yenileniyor
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                            ● Stokta Hazır
-                          </span>
-                        )}
+                        {renderStockStatusBadge(product)}
                         <span className="font-mono text-slate-400 text-[10px]">{activeVariant?.code || product.code}</span>
                       </div>
 
@@ -1069,7 +1126,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                         <div className="flex items-center border border-[#D1D5DB] rounded-full bg-white px-1.5 py-0.5 shadow-xs">
                           <button
                             type="button"
-                            onClick={() => setQty(product.id, qty - 1)}
+                            onClick={() => setQty(product.id, qty - 1, product.stockCount)}
                             className="w-5 h-5 rounded-full hover:bg-slate-100 flex items-center justify-center font-bold text-xs"
                             aria-label="Miktarı Azalt"
                           >
@@ -1080,7 +1137,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                           </span>
                           <button
                             type="button"
-                            onClick={() => setQty(product.id, qty + 1)}
+                            onClick={() => setQty(product.id, qty + 1, product.stockCount)}
                             className="w-5 h-5 rounded-full hover:bg-slate-100 flex items-center justify-center font-bold text-xs"
                             aria-label="Miktarı Artır"
                           >
@@ -1091,7 +1148,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
 
                       {/* Action Buttons: Add to Cart with tactile confirmation + WhatsApp */}
                       <div className="flex items-center gap-1.5 pt-0.5">
-                        {product.inStock === false ? (
+                        {isProductOutOfStock(product) ? (
                           <button
                             type="button"
                             onClick={() => handleFastWhatsAppOrder(product)}
@@ -1477,7 +1534,13 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                     <div className="flex items-center border border-[#D1D5DB] rounded-full bg-white px-2 py-1 shadow-xs">
                       <button
                         type="button"
-                        onClick={() => setQty(previewProduct.id, getQty(previewProduct.id) - 1)}
+                        onClick={() =>
+                          setQty(
+                            previewProduct.id,
+                            getQty(previewProduct.id) - 1,
+                            previewProduct.stockCount
+                          )
+                        }
                         className="w-6 h-6 rounded-full hover:bg-slate-100 flex items-center justify-center font-bold text-xs"
                       >
                         -
@@ -1485,13 +1548,26 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                       <input
                         type="number"
                         min={1}
+                        max={previewProduct.stockCount && previewProduct.stockCount > 0 ? previewProduct.stockCount : undefined}
                         value={getQty(previewProduct.id)}
-                        onChange={(e) => setQty(previewProduct.id, Number(e.target.value) || 1)}
+                        onChange={(e) =>
+                          setQty(
+                            previewProduct.id,
+                            Number(e.target.value) || 1,
+                            previewProduct.stockCount
+                          )
+                        }
                         className="w-12 text-center text-xs font-bold font-mono focus:outline-none"
                       />
                       <button
                         type="button"
-                        onClick={() => setQty(previewProduct.id, getQty(previewProduct.id) + 1)}
+                        onClick={() =>
+                          setQty(
+                            previewProduct.id,
+                            getQty(previewProduct.id) + 1,
+                            previewProduct.stockCount
+                          )
+                        }
                         className="w-6 h-6 rounded-full hover:bg-slate-100 flex items-center justify-center font-bold text-xs"
                       >
                         +
@@ -1503,7 +1579,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                       onClick={() => {
                         const current = getQty(previewProduct.id);
                         const withFire = Math.max(current + 1, Math.ceil(current * 1.1));
-                        setQty(previewProduct.id, withFire);
+                        setQty(previewProduct.id, withFire, previewProduct.stockCount);
                       }}
                       className="px-3 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-bold transition"
                       title="Mevcut miktara %10 usta kesim ve uygulama fire payı ekle"
@@ -1529,7 +1605,7 @@ export const CustomerStore: React.FC<CustomerStoreProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {previewProduct.inStock === false ? (
+                    {isProductOutOfStock(previewProduct) ? (
                       <button
                         type="button"
                         onClick={() => {

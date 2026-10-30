@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   CheckCircle2, 
@@ -9,20 +9,11 @@ import {
   Building2, 
   Lock, 
   Send, 
-  Phone, 
-  Calendar, 
-  Sparkles, 
-  UserCheck, 
   Copy, 
   Check, 
   Hammer, 
   AlertCircle, 
-  RefreshCw, 
-  Smartphone, 
-  ShieldAlert, 
-  Layers,
-  ChevronRight,
-  Wifi
+  Layers
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { CartItem, LeadRequest, CustomerUser, SiteSettings } from '../types';
@@ -126,24 +117,12 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
     bankInfo.iban && !/^TR00\s*0000/i.test(bankInfo.iban.trim())
   );
   
-  // Credit Card Virtual POS State
-  const [cardHolder, setCardHolder] = useState('');
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardExpiry, setCardExpiry] = useState('');
-  const [cardCvv, setCardCvv] = useState('');
+  // Credit Card Installment Preview & Live PayTR 3D Secure iFrame State
   const [selectedBank, setSelectedBank] = useState<string>('garanti');
   const [selectedInstallment, setSelectedInstallment] = useState<number>(1);
-  const [cardFocus, setCardFocus] = useState<'front' | 'back'>('front');
-
-  // 3D Secure Modal State & Live PayTR iFrame State
-  const [is3DSecureModalOpen, setIs3DSecureModalOpen] = useState(false);
   const [paytrIframeUrl, setPaytrIframeUrl] = useState<string | null>(null);
   const [paytrMerchantOid, setPaytrMerchantOid] = useState<string | null>(null);
   const [isCheckingPaytr, setIsCheckingPaytr] = useState(false);
-  const [smsCode, setSmsCode] = useState('');
-  const [smsTimer, setSmsTimer] = useState(180);
-  const [smsError, setSmsError] = useState('');
-  const [isVerifyingSms, setIsVerifyingSms] = useState(false);
   const [provisionRef, setProvisionRef] = useState('');
 
   // General State
@@ -151,9 +130,6 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
   const [createdOrder, setCreatedOrder] = useState<LeadRequest | null>(null);
   const [copiedIban, setCopiedIban] = useState(false);
   const [formError, setFormError] = useState('');
-
-  // Timer Ref for 3D Secure
-  const timerRef = useRef<any>(null);
 
   // Sync selected payment method if admin toggles availability
   useEffect(() => {
@@ -170,11 +146,8 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
   useEffect(() => {
     if (!isOpen) {
       setCreatedOrder(null);
-      setIs3DSecureModalOpen(false);
       setPaytrIframeUrl(null);
       setPaytrMerchantOid(null);
-      setSmsCode('');
-      setSmsError('');
       setFormError('');
       return;
     }
@@ -220,28 +193,6 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
       }
     }
   }, [isOpen, currentUser]);
-
-  // Countdown timer for 3D Secure SMS code
-  useEffect(() => {
-    if (is3DSecureModalOpen) {
-      setSmsTimer(180);
-      setSmsError('');
-      timerRef.current = setInterval(() => {
-        setSmsTimer((prev) => {
-          if (prev <= 1) {
-            if (timerRef.current) clearInterval(timerRef.current);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      if (timerRef.current) clearInterval(timerRef.current);
-    }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [is3DSecureModalOpen]);
 
   // Listen for live PayTR 3D Secure callback postMessage & poll order status while PayTR iFrame is open
   useEffect(() => {
@@ -354,39 +305,7 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
   }, 0);
 
   const totalSavings = Math.max(0, marketTotal - grandTotal);
-
-  // Card formatting helpers
-  const handleCardNumberChange = (val: string) => {
-    const raw = val.replace(/\D/g, '').slice(0, 16);
-    const parts = raw.match(/.{1,4}/g) || [];
-    setCardNumber(parts.join(' '));
-  };
-
-  const handleExpiryChange = (val: string) => {
-    const raw = val.replace(/\D/g, '').slice(0, 4);
-    if (raw.length >= 2) {
-      setCardExpiry(`${raw.slice(0, 2)}/${raw.slice(2)}`);
-    } else {
-      setCardExpiry(raw);
-    }
-  };
-
-  const handleCvvChange = (val: string) => {
-    const raw = val.replace(/\D/g, '').slice(0, 4);
-    setCardCvv(raw);
-  };
-
-  // Detect card brand
-  const getCardBrand = (num: string): 'visa' | 'mastercard' | 'troy' | 'generic' => {
-    const clean = num.replace(/\s/g, '');
-    if (clean.startsWith('4')) return 'visa';
-    if (/^(5[1-5]|2[2-7])/.test(clean)) return 'mastercard';
-    if (/^(9792|65)/.test(clean)) return 'troy';
-    return 'generic';
-  };
-
-  const cardBrand = getCardBrand(cardNumber);
-  const activeBankObj = BANKS.find(b => b.id === selectedBank) || BANKS[0];
+  const activeBankObj = BANKS.find((b) => b.id === selectedBank) || BANKS[0];
 
   const handleCopyIban = () => {
     navigator.clipboard.writeText(bankInfo.iban);
@@ -429,7 +348,7 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
           : { type: 'individual' },
       paymentSummary:
         (paymentMethod === 'credit_card'
-          ? `Ödeme: Sanal POS (3D Secure ONAYLI - Provizyon: ${provCode || provisionRef || 'PRV-OK'} - ${activeBankObj.name} ${selectedInstallment} Taksit${cardNumber ? ` - Kart Sonu: ${cardNumber.replace(/\s/g, '').slice(-4)}` : ''}) | Kargo: ${isFreeShipping ? 'Ücretsiz' : `${shippingCost} ₺`}`
+          ? `Ödeme: Sanal POS (PayTR 3D Secure - Ref: ${provCode || provisionRef || orderNo} - ${activeBankObj.name} ${selectedInstallment} Taksit) | Kargo: ${isFreeShipping ? 'Ücretsiz' : `${shippingCost} ₺`}`
           : `Ödeme Tercihi: ${paymentMethod === 'bank_transfer' ? 'Banka Havalesi / EFT' : 'Kapıda / Ambar Tesliminde Ödeme'} | Kargo: ${isFreeShipping ? 'Ücretsiz' : `${shippingCost} ₺`}`) +
         invoiceSummary,
       items: cart.map((c) => {
@@ -480,13 +399,11 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
     if (paymentMethod === 'credit_card') {
       setIsSubmitting(true);
       try {
-        // 1. Try initializing real PayTR 3D Secure iFrame via Supabase Edge Function
         const draftLead = buildDraftLead();
         const paytrRes = await dbService.initPaytrCheckout(draftLead);
         if (paytrRes.ok && paytrRes.iframeUrl && paytrRes.merchantOid) {
           setPaytrMerchantOid(paytrRes.merchantOid);
           setPaytrIframeUrl(paytrRes.iframeUrl);
-          setIsSubmitting(false);
           return;
         }
         if (paytrRes.error === 'out_of_stock') {
@@ -494,51 +411,32 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
             paytrRes.reason ||
               `Stok yetersiz: ${paytrRes.productName || 'Seçili ürün'} için yeterli stok kalmadı.`
           );
-          setIsSubmitting(false);
           return;
         }
-        if (paytrRes.error && paytrRes.error !== 'pos_not_configured' && paytrRes.error !== 'network_error') {
-          setFormError(paytrRes.reason || 'Sanal POS oturumu başlatılamadı. Lütfen bilgilerinizi kontrol ediniz.');
-          setIsSubmitting(false);
+        if (paytrRes.error === 'pos_not_configured') {
+          setFormError(
+            'Online kredi kartı (Sanal POS) tahsilatı şu anda aktif değildir. Lütfen %3 indirimli Havale/EFT veya Kapıda Ödeme seçeneğini tercih ediniz.'
+          );
           return;
         }
+        setFormError(
+          paytrRes.reason ||
+            'Banka 3D Secure oturumu başlatılamadı. Lütfen bilgilerinizi kontrol edip tekrar deneyiniz.'
+        );
       } catch {
-        // Fall through to built-in 3D Secure flow if PayTR is not configured yet
+        setFormError('Banka ödeme sunucusuna bağlanılamadı. Lütfen tekrar deneyiniz.');
       } finally {
         setIsSubmitting(false);
       }
-
-      // 2. Fallback built-in 3D Secure flow when PayTR Merchant keys are not configured yet
-      const cleanCard = cardNumber.replace(/\s/g, '');
-      if (cleanCard.length < 16) {
-        setFormError('Lütfen 16 haneli kredi kartı numaranızı eksiksiz giriniz.');
-        return;
-      }
-      if (!cardHolder.trim()) {
-        setFormError('Lütfen kart üzerindeki Ad Soyad bilgisini giriniz.');
-        return;
-      }
-      if (cardExpiry.length < 5) {
-        setFormError('Lütfen kart son kullanma tarihini (AA/YY) giriniz.');
-        return;
-      }
-      if (cardCvv.length < 3) {
-        setFormError('Lütfen kartın arkasındaki 3 haneli güvenlik kodunu (CVV) giriniz.');
-        return;
-      }
-
-      const prov = `PRV-${Math.floor(100000 + Math.random() * 900000)}`;
-      setProvisionRef(prov);
-      setIs3DSecureModalOpen(true);
       return;
     }
 
     // Direct submission for Bank Transfer or Cash on Delivery
-    finalizeOrder('standard');
+    finalizeOrder();
   };
 
   // Finalize order creation (server-side price & stock verified)
-  const finalizeOrder = async (mode: 'standard' | '3d_secure') => {
+  const finalizeOrder = async () => {
     setIsSubmitting(true);
     setFormError('');
     const newLead = buildDraftLead();
@@ -549,18 +447,7 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
         setFormError(
           result.error || 'Sipariş oluşturulurken stok yetersizliği veya bağlantı hatası oluştu.'
         );
-        setIsSubmitting(false);
-        setIs3DSecureModalOpen(false);
         return;
-      }
-
-      if (mode === '3d_secure') {
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#007A3D', '#0A0A0B', '#F59E0B', '#10B981'],
-        });
       }
 
       const confirmedLead =
@@ -568,23 +455,7 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
       setCreatedOrder(confirmedLead);
     } finally {
       setIsSubmitting(false);
-      setIs3DSecureModalOpen(false);
     }
-  };
-
-  // Verify 3D Secure SMS Code
-  const handleVerifySms = () => {
-    if (smsCode.trim() !== '123456' && smsCode.trim().length !== 6) {
-      setSmsError('Girilen 3D Secure onay şifresi hatalı. Lütfen 123456 test kodunu kullanınız.');
-      return;
-    }
-
-    setIsVerifyingSms(true);
-    setSmsError('');
-    setTimeout(() => {
-      setIsVerifyingSms(false);
-      finalizeOrder('3d_secure');
-    }, 900);
   };
 
   const handleSendWhatsAppNotification = (order: LeadRequest) => {
@@ -606,17 +477,11 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
     window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
-  const formatTimer = (secs: number) => {
-    const mins = Math.floor(secs / 60);
-    const remaining = secs % 60;
-    return `${mins.toString().padStart(2, '0')}:${remaining.toString().padStart(2, '0')}`;
-  };
-
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-3 sm:p-4 selection:bg-black selection:text-white">
       {/* Backdrop */}
       <div 
-        onClick={createdOrder || is3DSecureModalOpen ? undefined : onClose} 
+        onClick={createdOrder || paytrIframeUrl ? undefined : onClose} 
         className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" 
       />
 
@@ -1129,157 +994,18 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
                 {/* ======================================================== */}
                 {paymentMethod === 'credit_card' && (
                   <div className="mt-4 p-4 sm:p-5 rounded-3xl bg-slate-50 border border-slate-200/80 space-y-5">
-                    
-                    {/* Visual Card + Card Input Form Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
-                      
-                      {/* Visual Card Widget */}
-                      <div className="md:col-span-5 flex justify-center">
-                        <div className="w-full max-w-[320px] aspect-[1.586/1] rounded-2xl bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#0A0A0B] p-5 text-white shadow-xl flex flex-col justify-between relative overflow-hidden border border-white/10 select-none">
-                          {/* Background Glow */}
-                          <div className="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-emerald-500/10 blur-2xl pointer-events-none" />
-                          <div className="absolute -bottom-12 -left-12 w-32 h-32 rounded-full bg-blue-500/10 blur-2xl pointer-events-none" />
-
-                          {/* Card Top Row: Chip & Bank Name */}
-                          <div className="flex items-center justify-between z-10">
-                            <div className="flex items-center gap-2">
-                              {/* EMV Chip */}
-                              <div className="w-9 h-7 rounded-md bg-gradient-to-br from-amber-200 via-amber-300 to-amber-400 border border-amber-500/30 flex items-center justify-center p-1 shadow-inner">
-                                <div className="w-full h-full border border-amber-600/40 rounded-sm grid grid-cols-2 gap-0.5 opacity-60">
-                                  <div className="border-b border-amber-600/30"></div>
-                                  <div className="border-b border-amber-600/30"></div>
-                                </div>
-                              </div>
-                              <Wifi className="w-4 h-4 text-white/60 rotate-90" />
-                            </div>
-
-                            <div className="text-right">
-                              <span className="text-[11px] font-bold tracking-wider text-white/90">
-                                {activeBankObj.name}
-                              </span>
-                              <span className="block text-[9px] font-semibold text-emerald-400">
-                                {activeBankObj.family}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Card Number */}
-                          <div className="z-10 tracking-widest font-mono text-sm sm:text-base font-bold text-slate-100">
-                            {cardNumber || '•••• •••• •••• ••••'}
-                          </div>
-
-                          {/* Card Bottom Row: Holder, Expiry & Brand */}
-                          <div className="flex items-end justify-between z-10">
-                            <div>
-                              <span className="text-[8px] uppercase tracking-wider text-slate-400 block font-medium">
-                                KART SAHİBİ
-                              </span>
-                              <span className="text-xs font-semibold tracking-wider text-white uppercase truncate max-w-[140px] block">
-                                {cardHolder || 'AD SOYAD'}
-                              </span>
-                            </div>
-
-                            <div>
-                              <span className="text-[8px] uppercase tracking-wider text-slate-400 block font-medium">
-                                SKT
-                              </span>
-                              <span className="text-xs font-mono font-semibold text-white">
-                                {cardExpiry || 'AA/YY'}
-                              </span>
-                            </div>
-
-                            {/* Card Brand Badge */}
-                            <div className="text-right">
-                              {cardBrand === 'visa' && (
-                                <span className="font-extrabold italic text-sm tracking-wider text-blue-300 bg-white/10 px-2 py-0.5 rounded">
-                                  VISA
-                                </span>
-                              )}
-                              {cardBrand === 'mastercard' && (
-                                <div className="flex items-center -space-x-2">
-                                  <div className="w-5 h-5 rounded-full bg-red-500 opacity-90"></div>
-                                  <div className="w-5 h-5 rounded-full bg-amber-400 opacity-90"></div>
-                                </div>
-                              )}
-                              {cardBrand === 'troy' && (
-                                <span className="font-black text-xs tracking-wider text-cyan-300 bg-cyan-950/60 border border-cyan-500/30 px-2 py-0.5 rounded">
-                                  TROY
-                                </span>
-                              )}
-                              {cardBrand === 'generic' && (
-                                <CreditCard className="w-6 h-6 text-slate-400" />
-                              )}
-                            </div>
-                          </div>
-
-                        </div>
+                    <div className="p-3.5 rounded-2xl bg-white border border-slate-200 flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                        <ShieldCheck className="w-5 h-5" />
                       </div>
-
-                      {/* Card Input Fields */}
-                      <div className="md:col-span-7 space-y-3">
-                        <div>
-                          <label className="block text-[11px] font-bold text-[#0A0A0B] mb-1">
-                            Kart Numarası *
-                          </label>
-                          <div className="relative">
-                            <input
-                              type="text"
-                              maxLength={19}
-                              placeholder="0000 0000 0000 0000"
-                              value={cardNumber}
-                              onChange={(e) => handleCardNumberChange(e.target.value)}
-                              className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3.5 py-2.5 text-xs text-[#0A0A0B] font-mono tracking-wider focus:outline-none focus:border-black transition"
-                            />
-                            <div className="absolute right-3 top-2.5 text-[10px] font-bold text-slate-400 uppercase">
-                              {cardBrand !== 'generic' ? cardBrand : '16 Hane'}
-                            </div>
-                          </div>
+                      <div className="text-xs text-slate-700 space-y-1">
+                        <div className="font-bold text-[#0A0A0B]">
+                          PCI-DSS Level 1 Şifreli Banka Ortak Ödeme Sayfası (PayTR 3D Secure)
                         </div>
-
-                        <div>
-                          <label className="block text-[11px] font-bold text-[#0A0A0B] mb-1">
-                            Kart Üzerindeki İsim *
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="Örn: MEHMET YILMAZ"
-                            value={cardHolder}
-                            onChange={(e) => setCardHolder(e.target.value.toUpperCase())}
-                            className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3.5 py-2.5 text-xs text-[#0A0A0B] uppercase focus:outline-none focus:border-black transition"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="block text-[11px] font-bold text-[#0A0A0B] mb-1">
-                              Son Kullanma (AA/YY) *
-                            </label>
-                            <input
-                              type="text"
-                              maxLength={5}
-                              placeholder="12/28"
-                              value={cardExpiry}
-                              onChange={(e) => handleExpiryChange(e.target.value)}
-                              className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3.5 py-2.5 text-xs text-[#0A0A0B] font-mono focus:outline-none focus:border-black transition"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-[11px] font-bold text-[#0A0A0B] mb-1">
-                              CVV / Güvenlik Kodu *
-                            </label>
-                            <input
-                              type="password"
-                              maxLength={4}
-                              placeholder="•••"
-                              value={cardCvv}
-                              onChange={(e) => handleCvvChange(e.target.value)}
-                              className="w-full bg-white border border-[#CBD5E1] rounded-xl px-3.5 py-2.5 text-xs text-[#0A0A0B] font-mono focus:outline-none focus:border-black transition"
-                            />
-                          </div>
-                        </div>
+                        <p className="text-[11px] text-slate-500 leading-relaxed">
+                          Kart numaranız ve CVV kodunuz sitemizde talep edilmez veya saklanmaz. Siparişi onayladığınızda doğrudan resmi <strong>PayTR 3D Secure</strong> şifreli banka ekranına yönlendirilirsiniz.
+                        </p>
                       </div>
-
                     </div>
 
                     {/* Bank Selection Tabs */}
@@ -1564,156 +1290,6 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({
                 </button>
               )}
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* ======================================================== */}
-      {/* 3D SECURE SMS VERIFICATION SIMULATION MODAL              */}
-      {/* ======================================================== */}
-      {is3DSecureModalOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-200">
-            
-            {/* Bank 3D Secure Header */}
-            <div className="p-4 bg-slate-900 text-white flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                <div>
-                  <h4 className="text-xs font-bold tracking-tight">3D SECURE DOĞRULAMA</h4>
-                  <span className="text-[10px] text-slate-300">{activeBankObj.name} Güvenli Ödeme</span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIs3DSecureModalOpen(false)}
-                className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-xs"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {/* 3D Secure Body */}
-            <div className="p-5 sm:p-6 space-y-4">
-              
-              {/* Summary Table */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-1.5">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">İşyeri:</span>
-                  <span className="font-bold text-slate-800">RVOBA MİMARLIK VE YAPI</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">İşlem Tutarı:</span>
-                  <span className="font-mono font-bold text-emerald-700">{grandTotal.toLocaleString('tr-TR')} ₺</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Taksit:</span>
-                  <span className="font-semibold text-slate-800">
-                    {selectedInstallment === 1 ? 'Tek Çekim' : `${selectedInstallment} Taksit`}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Kart Numarası:</span>
-                  <span className="font-mono text-slate-800">
-                    •••• •••• •••• {cardNumber.replace(/\s/g, '').slice(-4) || '1234'}
-                  </span>
-                </div>
-              </div>
-
-              {/* SMS Code Prompt */}
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-xs text-slate-700">
-                  <Smartphone className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>
-                    Doğrulama SMS şifresi <strong>+90 {phone ? phone.slice(-4).padStart(10, '*') : '5** *** ** 37'}</strong> nolu cep telefonunuza gönderilmiştir.
-                  </span>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-800 mb-1">
-                    6 Haneli SMS Doğrulama Kodu:
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      maxLength={6}
-                      autoFocus
-                      placeholder="123456"
-                      value={smsCode}
-                      onChange={(e) => setSmsCode(e.target.value.replace(/\D/g, ''))}
-                      className="w-full bg-[#F8F9FA] border-2 border-slate-300 focus:border-black rounded-xl px-4 py-2.5 text-center text-lg font-mono font-black tracking-widest text-[#0A0A0B] focus:outline-none transition"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setSmsCode('123456')}
-                      className="px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-xl text-[10px] font-bold text-slate-700 shrink-0 transition"
-                      title="Test için otomatik 123456 doldurur"
-                    >
-                      Test Kodu Doldur (123456)
-                    </button>
-                  </div>
-                </div>
-
-                {smsError && (
-                  <div className="text-[11px] text-rose-600 font-semibold flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5" />
-                    <span>{smsError}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Timer & Resend */}
-              <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
-                <span>Kalan Süre: <strong className="font-mono text-slate-800">{formatTimer(smsTimer)}</strong></span>
-                {smsTimer === 0 ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSmsTimer(180);
-                      setSmsError('');
-                    }}
-                    className="text-emerald-700 font-bold hover:underline flex items-center gap-1"
-                  >
-                    <RefreshCw className="w-3 h-3" />
-                    Tekrar Gönder
-                  </button>
-                ) : (
-                  <span className="text-[10px] text-slate-400">Şifre geçerlilik süresi</span>
-                )}
-              </div>
-
-              {/* Verify Button */}
-              <div className="pt-2 space-y-2">
-                <button
-                  type="button"
-                  disabled={isVerifyingSms || smsCode.length < 6}
-                  onClick={handleVerifySms}
-                  className="w-full btn-pill-black bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white py-3.5 text-xs font-bold shadow-lg flex items-center justify-center gap-2"
-                >
-                  {isVerifyingSms ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>3D Secure Onayı Alınıyor...</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Onayla ve Ödemeyi Tamamla</span>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setIs3DSecureModalOpen(false)}
-                  className="w-full text-center text-xs text-slate-500 hover:text-slate-700 py-1"
-                >
-                  İptal Et ve Geri Dön
-                </button>
-              </div>
-
-            </div>
-
           </div>
         </div>
       )}

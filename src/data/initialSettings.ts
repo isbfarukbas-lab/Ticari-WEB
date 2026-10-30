@@ -6,7 +6,6 @@ export const INITIAL_SETTINGS: SiteSettings = {
   companyName: 'RVOBA® Mimarlık ve Yapı Çözümleri',
   coverageNotice: 'İstanbul, Ankara ve İzmir genelinde mimari keşif ve usta uygulama servisimiz aktiftir.',
   kdvNotice: 'Fiyatlarımız bireysel müşterilerimiz için KDV dahil net tutardır.',
-  adminPassword: 'rvoba2026',
   freeShippingThreshold: 3000,
   standardShippingCost: 180,
   bankInfo: {

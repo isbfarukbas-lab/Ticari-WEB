@@ -22,7 +22,14 @@ function spaStaticRoutesPlugin(): Plugin {
       for (const route of staticRoutes) {
         const routeDir = path.join(distDir, route);
         fs.mkdirSync(routeDir, { recursive: true });
-        fs.writeFileSync(path.join(routeDir, 'index.html'), htmlContent, 'utf-8');
+        const routeHtml =
+          route === 'admin'
+            ? htmlContent.replace(
+                '</head>',
+                '  <meta name="robots" content="noindex, nofollow" />\n  </head>'
+              )
+            : htmlContent;
+        fs.writeFileSync(path.join(routeDir, 'index.html'), routeHtml, 'utf-8');
       }
 
       // Fallback 404.html for any other dynamic path

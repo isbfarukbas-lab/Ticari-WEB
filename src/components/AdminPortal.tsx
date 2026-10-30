@@ -389,8 +389,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
   const handleUpdatePassword = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAdminPassword || newAdminPassword.length < 4) {
-      alert('Şifre en az 4 karakter olmalıdır.');
+    if (!newAdminPassword || newAdminPassword.trim().length < 8) {
+      alert('Güvenliğiniz için yönetici şifresi en az 8 karakter olmalıdır.');
       return;
     }
     if (newAdminPassword !== confirmAdminPassword) {
@@ -3624,7 +3624,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     Yönetim Paneli Giriş Şifresi
                   </h2>
                   <p className="text-xs text-[#64748B]">
-                    rvoba.com/#admin adresine girerken sorulan şifreyi buradan güncelleyebilirsiniz.
+                    rvoba.com/admin adresine girerken sorulan şifreyi buradan güncelleyebilirsiniz (en az 8 karakter).
                   </p>
                 </div>
               </div>

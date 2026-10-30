@@ -41,7 +41,6 @@ export interface CustomerHeaderProps {
   currentUser?: CustomerUser | null;
   onOpenAuth: () => void;
   onOpenAccount: () => void;
-  onNavigateAdmin: () => void;
   onNavigateLanding: () => void;
   onNavigateConfigurator: () => void;
   onNavigateStore: () => void;
@@ -82,7 +81,6 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
   currentUser,
   onOpenAuth,
   onOpenAccount,
-  onNavigateAdmin,
   onNavigateLanding,
   onNavigateConfigurator,
   onNavigateStore,
@@ -103,20 +101,6 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
 }) => {
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const logoClickTimesRef = useRef<number[]>([]);
-
-  // Secret Admin shortcut: 3 quick clicks on the RVOBA logo within 1.2s
-  const handleLogoClick = (e: React.MouseEvent) => {
-    const now = Date.now();
-    logoClickTimesRef.current = [...logoClickTimesRef.current.filter(t => now - t < 1200), now];
-    if (logoClickTimesRef.current.length >= 3) {
-      logoClickTimesRef.current = [];
-      e.preventDefault();
-      onNavigateAdmin();
-      return;
-    }
-    onNavigateStore();
-  };
 
   const totalCount = cart.length;
   const totalPrice = cart.reduce((sum, item) => {
@@ -231,9 +215,10 @@ export const CustomerHeader: React.FC<CustomerHeaderProps> = ({
           <div className="flex items-center gap-3 sm:gap-4 shrink-0" ref={menuRef}>
             {/* Logo */}
             <button
-              onClick={handleLogoClick}
+              type="button"
+              onClick={onNavigateStore}
               className="flex items-center gap-1 group text-left cursor-pointer"
-              title="RVOBA® Ana Sayfa (3 kez hızlı tıklayarak yönetici girişine geçebilirsiniz)"
+              title="RVOBA® Ana Sayfa"
             >
               <span className="font-display font-black text-2xl sm:text-3xl tracking-tighter text-[#0A0A0B] group-hover:opacity-90 transition select-none">
                 RVOBA

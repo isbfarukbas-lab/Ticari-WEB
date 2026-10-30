@@ -4,7 +4,6 @@ import { SiteSettings } from '../types';
 import { LegalTabKey } from './CustomerLegalModal';
 
 interface CustomerFooterProps {
-  onNavigateAdmin: () => void;
   onNavigateStore?: () => void;
   onNavigateConfigurator?: () => void;
   onOpenLegal?: (tab: LegalTabKey) => void;
@@ -12,7 +11,6 @@ interface CustomerFooterProps {
 }
 
 export const CustomerFooter: React.FC<CustomerFooterProps> = ({ 
-  onNavigateAdmin,
   onNavigateStore,
   onNavigateConfigurator,
   onOpenLegal,
@@ -126,16 +124,6 @@ export const CustomerFooter: React.FC<CustomerFooterProps> = ({
                 : ''}{' '}
               • Tüm hakları saklıdır (rvoba.com).
             </span>
-            {onNavigateAdmin && (
-              <button 
-                onClick={onNavigateAdmin}
-                className="text-slate-300 hover:text-slate-600 transition p-0.5 rounded opacity-60 hover:opacity-100" 
-                title="Yetkili Yönetici Girişi"
-                aria-label="Yetkili Yönetici Girişi"
-              >
-                <Lock className="w-3 h-3" />
-              </button>
-            )}
           </div>
           <div className="flex items-center gap-4 flex-wrap">
             <span>Tek Kurumsal Muhatap</span>

@@ -3,13 +3,11 @@ import { Lock, Eye, EyeOff, ArrowLeft, ShieldCheck, KeyRound, AlertCircle } from
 import { dbService, AdminSecrets } from '../services/dbService';
 
 interface AdminLoginScreenProps {
-  correctPassword?: string;
   onLoginSuccess: (rememberMe: boolean, password: string, secrets?: AdminSecrets) => void;
   onNavigateHome: () => void;
 }
 
 export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
-  correctPassword = 'rvoba2026',
   onLoginSuccess,
   onNavigateHome,
 }) => {
@@ -41,8 +39,10 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
         return;
       }
 
-      if (res.networkError && cleanPassword === correctPassword) {
-        onLoginSuccess(rememberMe, cleanPassword);
+      if (res.networkError) {
+        setError(
+          'Güvenlik sunucusuna bağlanılamadı. Lütfen internet bağlantınızı kontrol edip tekrar deneyiniz.'
+        );
         return;
       }
 

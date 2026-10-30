@@ -272,10 +272,13 @@ export const App: React.FC = () => {
         return {
           ...INITIAL_SETTINGS,
           ...parsed,
+          adminPassword: undefined,
+          notificationWebhookUrl: '',
+          telegramConfig: INITIAL_SETTINGS.telegramConfig,
+          resendConfig: undefined,
+          posConfig: undefined,
           paymentMethods,
-          cloudEndpoint: parsed.cloudEndpoint || INITIAL_SETTINGS.cloudEndpoint || '',
-          notificationWebhookUrl: parsed.notificationWebhookUrl || INITIAL_SETTINGS.notificationWebhookUrl || '',
-          telegramConfig: parsed.telegramConfig || INITIAL_SETTINGS.telegramConfig,
+          cloudEndpoint: '',
           content: mergedContent,
         };
       }
@@ -287,7 +290,15 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     try {
-      localStorage.setItem('rvoba_settings_v1', JSON.stringify(settings));
+      const publicOnlySettings: SiteSettings = {
+        ...settings,
+        adminPassword: undefined,
+        notificationWebhookUrl: undefined,
+        telegramConfig: undefined,
+        resendConfig: undefined,
+        posConfig: undefined,
+      };
+      localStorage.setItem('rvoba_settings_v1', JSON.stringify(publicOnlySettings));
     } catch (e) {
       console.error(e);
     }
@@ -417,7 +428,7 @@ export const App: React.FC = () => {
   });
 
   const getActiveAdminKey = useCallback((): string => {
-    return dbService.getStoredAdminKey() || settings.adminPassword || 'rvoba2026';
+    return dbService.getStoredAdminKey() || settings.adminPassword || '';
   }, [settings.adminPassword]);
 
   const handleDeleteCustomer = (customerId: string) => {
@@ -469,9 +480,21 @@ export const App: React.FC = () => {
   const handleAdminLogout = () => {
     setIsAdminAuthenticated(false);
     dbService.clearStoredAdminKey();
+    setSettings((prev) => ({
+      ...prev,
+      adminPassword: undefined,
+      notificationWebhookUrl: undefined,
+      telegramConfig: undefined,
+      resendConfig: undefined,
+      posConfig: undefined,
+    }));
+    setLeads([]);
+    setAllUsers([]);
     try {
       sessionStorage.removeItem('rvoba_admin_auth');
       localStorage.removeItem('rvoba_admin_auth');
+      localStorage.removeItem('rvoba_leads_v1');
+      localStorage.removeItem('rvoba_customers_v1');
     } catch (e) {
       console.error(e);
     }
@@ -669,86 +692,12 @@ export const App: React.FC = () => {
 
   const handleClearCart = () => setCart([]);
 
-  const migrationInFlightRef = useRef(false);
-  const settingsRef = useRef(settings);
-  settingsRef.current = settings;
-
-  // Fetch live catalog & settings from Supabase PostgreSQL (and auto-migrate non-demo admin data once)
+  // Fetch live public catalog & settings from Supabase PostgreSQL
   const refreshCatalogFromSupabase = useCallback(async () => {
-    let snapshot = await dbService.fetchCatalogAndSettings();
+    const snapshot = await dbService.fetchCatalogAndSettings();
     if (!snapshot) {
       setIsCatalogLoading(false);
       return;
-    }
-
-    const currentSettings = settingsRef.current;
-
-    // One-time seamless auto-migration from the admin's existing browser localStorage
-    if (!migrationInFlightRef.current && localStorage.getItem('rvoba_supabase_migrated_v1') !== 'true') {
-      migrationInFlightRef.current = true;
-      try {
-        const rawProds = localStorage.getItem('rvoba_products_v1');
-        const localRealProducts: Product[] = rawProds
-          ? (JSON.parse(rawProds) as Product[]).filter((p) => p && p.id && !isLegacyDemoProductId(p.id))
-          : [];
-
-        const rawLeads = localStorage.getItem('rvoba_leads_v1');
-        const localRealLeads: LeadRequest[] = rawLeads
-          ? (JSON.parse(rawLeads) as LeadRequest[]).filter((l) => l && l.id && l.id !== 'lead-sample-1')
-          : [];
-
-        const rawCustomers = localStorage.getItem('rvoba_customers_v1');
-        const localRealCustomers: CustomerUser[] = rawCustomers
-          ? (JSON.parse(rawCustomers) as CustomerUser[]).filter((u) => u && u.id && u.id !== 'cust-demo-1')
-          : [];
-
-        const hasLocalDataToMigrate =
-          localRealProducts.length > 0 || localRealLeads.length > 0 || localRealCustomers.length > 0;
-
-        if (hasLocalDataToMigrate) {
-          const candidateKeys = Array.from(
-            new Set(
-              [dbService.getStoredAdminKey(), currentSettings.adminPassword, 'rvoba2026']
-                .map((k) => (k || '').trim())
-                .filter(Boolean)
-            )
-          );
-
-          let verifiedKey = '';
-          for (const candidate of candidateKeys) {
-            const check = await dbService.verifyAdminLogin(candidate);
-            if (check.ok) {
-              verifiedKey = candidate;
-              break;
-            }
-          }
-
-          if (verifiedKey) {
-            if (!snapshot.catalogInitialized) {
-              if (localRealProducts.length > 0) {
-                await dbService.replaceAllProducts(verifiedKey, localRealProducts);
-              }
-              await dbService.saveSettings(verifiedKey, currentSettings);
-              verifiedKey = dbService.getStoredAdminKey() || currentSettings.adminPassword || verifiedKey;
-            }
-            if (localRealLeads.length > 0) {
-              await dbService.adminBulkUpsertLeads(verifiedKey, localRealLeads);
-            }
-            if (localRealCustomers.length > 0) {
-              await dbService.adminBulkUpsertCustomers(verifiedKey, localRealCustomers);
-            }
-            localStorage.setItem('rvoba_supabase_migrated_v1', 'true');
-            const refreshed = await dbService.fetchCatalogAndSettings();
-            if (refreshed) snapshot = refreshed;
-          }
-        } else if (snapshot.catalogInitialized) {
-          localStorage.setItem('rvoba_supabase_migrated_v1', 'true');
-        }
-      } catch (err) {
-        console.warn('Auto-migration warning:', err);
-      } finally {
-        migrationInFlightRef.current = false;
-      }
     }
 
     setProducts(snapshot.products);
@@ -759,7 +708,7 @@ export const App: React.FC = () => {
     );
 
     if (snapshot.settings) {
-      setSettings((prev) => mergePublicSettings(prev, snapshot!.settings));
+      setSettings((prev) => mergePublicSettings(prev, snapshot.settings));
     }
 
     setIsCatalogLoading(false);
@@ -769,7 +718,7 @@ export const App: React.FC = () => {
   const refreshAdminDataFromSupabase = useCallback(async () => {
     const candidateKeys = Array.from(
       new Set(
-        [dbService.getStoredAdminKey(), settings.adminPassword, 'rvoba2026']
+        [dbService.getStoredAdminKey(), settings.adminPassword]
           .map((k) => (k || '').trim())
           .filter(Boolean)
       )
@@ -1158,12 +1107,6 @@ export const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const navigateToAdmin = () => {
-    window.history.pushState({}, '', '/admin');
-    setCurrentView('admin');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   const navigateToStore = () => {
     window.history.pushState({}, '', '/');
     setCurrentView('store');
@@ -1220,7 +1163,6 @@ export const App: React.FC = () => {
           }
         >
           <AdminLoginScreen
-            correctPassword={settings.adminPassword || 'rvoba2026'}
             onLoginSuccess={handleAdminLogin}
             onNavigateHome={navigateToStore}
           />
@@ -1277,7 +1219,6 @@ export const App: React.FC = () => {
             setIsAuthModalOpen(true);
           }}
           onOpenAccount={() => setIsAccountDrawerOpen(true)}
-          onNavigateAdmin={navigateToAdmin}
           onNavigateLanding={navigateToLanding}
           onNavigateConfigurator={navigateToConfigurator}
           onNavigateStore={navigateToStore}
@@ -1420,7 +1361,6 @@ export const App: React.FC = () => {
       {/* Footer */}
       <div className="print:hidden">
         <CustomerFooter
-          onNavigateAdmin={navigateToAdmin}
           onNavigateStore={navigateToStore}
           onNavigateConfigurator={navigateToConfigurator}
           onOpenLegal={(tab) => setLegalModalTab(tab)}
